@@ -39,3 +39,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+.gradle
+AppData
+Application Data
+Local Settings
+.emulator_console_auth_token
