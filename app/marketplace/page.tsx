@@ -398,57 +398,55 @@ function MarketplaceContent() {
           </aside>
 
           <section>
-            <div className="sticky top-[76px] z-20 -mx-4 mb-5 border-b border-[#E5E0D8] bg-[#F7F5F1]/95 px-4 pb-4 pt-3 backdrop-blur supports-[backdrop-filter]:bg-[#F7F5F1]/80 sm:static sm:mx-0 sm:mb-6 sm:border-b sm:bg-transparent sm:px-0 sm:pb-4 sm:pt-0 sm:backdrop-blur-0">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-                <div>
-                  <h1 className="text-2xl font-bold text-[#1F1F1F] sm:text-3xl">
-                    Books for Sale
-                  </h1>
-                  <p className="mt-1 text-sm text-[#8A8175]">
-                    Find affordable books from readers and student sellers.
-                  </p>
-                  <p className="mt-1 text-sm text-[#8A8175]">
-                    1 - {filteredBooks.length} of {filteredBooks.length} results
-                  </p>
-                </div>
+            <div className="mb-4">
+              <h1 className="text-2xl font-bold text-[#1F1F1F] sm:text-3xl">
+                Books for Sale
+              </h1>
+              <p className="mt-1 text-sm text-[#8A8175]">
+                Find affordable books from readers and student sellers.
+              </p>
+              <p className="mt-1 text-sm text-[#8A8175]">
+                1 - {filteredBooks.length} of {filteredBooks.length} results
+              </p>
+            </div>
 
-                <div className="flex gap-2 sm:hidden">
-                  <button
-                    type="button"
-                    onClick={() => setMobileFiltersOpen(true)}
-                    className="inline-flex flex-1 items-center justify-center gap-2 rounded-full border border-[#D9D1C6] bg-white px-4 py-2.5 text-sm font-semibold text-[#1F1F1F] shadow-sm transition hover:bg-[#F7F4EE]"
-                  >
-                    <SlidersHorizontal size={16} />
-                    Filters
-                  </button>
+            <div className="sticky top-[76px] z-20 -mx-4 mb-5 bg-[#F7F5F1]/95 px-4 py-2 backdrop-blur supports-[backdrop-filter]:bg-[#F7F5F1]/80 sm:static sm:mx-0 sm:mb-6 sm:bg-transparent sm:px-0 sm:py-0">
+              <div className="flex gap-2 sm:hidden">
+                <button
+                  type="button"
+                  onClick={() => setMobileFiltersOpen(true)}
+                  className="inline-flex flex-1 items-center justify-center gap-2 rounded-full border border-[#D9D1C6] bg-white px-4 py-2.5 text-sm font-semibold text-[#1F1F1F] shadow-sm transition hover:bg-[#F7F4EE]"
+                >
+                  <SlidersHorizontal size={16} />
+                  Filters
+                </button>
 
-                  <select
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value)}
-                    className="min-w-0 flex-1 rounded-full border border-[#DDD6CC] bg-white px-4 py-2.5 text-sm font-semibold text-[#1F1F1F] outline-none focus:border-[#E67E22]"
-                  >
-                    <option value="newest">Newest</option>
-                    <option value="price-low">Low to High</option>
-                    <option value="price-high">High to Low</option>
-                    <option value="title-az">A to Z</option>
-                  </select>
-                </div>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="min-w-0 flex-1 rounded-full border border-[#DDD6CC] bg-white px-4 py-2.5 text-sm font-semibold text-[#1F1F1F] outline-none focus:border-[#E67E22]"
+                >
+                  <option value="newest">Newest</option>
+                  <option value="price-low">Low to High</option>
+                  <option value="price-high">High to Low</option>
+                  <option value="title-az">A to Z</option>
+                </select>
+              </div>
 
-                <div className="hidden w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:gap-3">
-                  <label className="text-xs font-semibold uppercase tracking-wide text-[#8A8175]">
-                    Sort By
-                  </label>
-                  <select
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value)}
-                    className="w-full rounded-xl border border-[#DDD6CC] bg-white px-3 py-2 text-sm text-[#1F1F1F] outline-none focus:border-[#E67E22] sm:w-auto"
-                  >
-                    <option value="newest">Newest</option>
-                    <option value="price-low">Price: Low to High</option>
-                    <option value="price-high">Price: High to Low</option>
-                    <option value="title-az">Title: A to Z</option>
-                  </select>
-                </div>
+              <div className="hidden w-full flex-col gap-2 sm:flex sm:w-auto sm:flex-row sm:items-center sm:justify-end sm:gap-3">
+                <label className="text-xs font-semibold uppercase tracking-wide text-[#8A8175]">
+                  Sort By
+                </label>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="w-full rounded-xl border border-[#DDD6CC] bg-white px-3 py-2 text-sm text-[#1F1F1F] outline-none focus:border-[#E67E22] sm:w-auto"
+                >
+                  <option value="newest">Newest</option>
+                  <option value="price-low">Price: Low to High</option>
+                  <option value="price-high">Price: High to Low</option>
+                  <option value="title-az">Title: A to Z</option>
+                </select>
               </div>
             </div>
 
