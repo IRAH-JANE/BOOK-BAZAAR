@@ -10,7 +10,6 @@ import {
   MapPin,
   BookOpen,
   Search,
-  Package,
   CircleDollarSign,
   AlertTriangle,
   Copy,
@@ -305,7 +304,7 @@ export default function MyListingsPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-[#F7F5F1] px-6 py-10">
+      <main className="min-h-screen bg-[#F7F5F1] px-4 py-8 sm:px-6 sm:py-10">
         <div className="mx-auto max-w-7xl text-[#6B6B6B]">
           Loading your listings...
         </div>
@@ -315,72 +314,72 @@ export default function MyListingsPage() {
 
   return (
     <>
-      <main className="min-h-screen bg-[#F7F5F1] px-6 py-10">
+      <main className="min-h-screen bg-[#F7F5F1] px-4 py-8 sm:px-6 sm:py-10">
         <div className="mx-auto max-w-7xl">
           <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#E67E22]">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#E67E22] sm:text-sm">
                 Seller Dashboard
               </p>
-              <h1 className="mt-2 text-4xl font-bold text-[#1F1F1F]">
+              <h1 className="mt-2 text-3xl font-bold text-[#1F1F1F] sm:text-4xl">
                 My Listings
               </h1>
-              <p className="mt-2 text-[#6B6B6B]">
+              <p className="mt-2 text-sm text-[#6B6B6B] sm:text-base">
                 Manage the books you posted for sale.
               </p>
             </div>
 
             <Link
               href="/sell"
-              className="inline-flex items-center justify-center rounded-full bg-[#E67E22] px-5 py-3 font-semibold text-white transition hover:bg-[#cf6f1c]"
+              className="inline-flex items-center justify-center rounded-full bg-[#E67E22] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#cf6f1c] sm:text-base"
             >
               Add New Listing
             </Link>
           </div>
 
           <section className="mb-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <div className="rounded-3xl border border-[#E5E0D8] bg-white p-5 shadow-sm">
+            <div className="rounded-2xl border border-[#E5E0D8] bg-white p-4 shadow-sm sm:rounded-3xl sm:p-5">
               <div className="flex items-center gap-3 text-[#6B6B6B]">
                 <BookOpen size={18} />
                 <span className="text-sm font-medium">Total Listings</span>
               </div>
-              <p className="mt-4 text-3xl font-bold text-[#1F1F1F]">
+              <p className="mt-4 text-2xl font-bold text-[#1F1F1F] sm:text-3xl">
                 {summary.totalListings}
               </p>
             </div>
 
-            <div className="rounded-3xl border border-[#E5E0D8] bg-white p-5 shadow-sm">
+            <div className="rounded-2xl border border-[#E5E0D8] bg-white p-4 shadow-sm sm:rounded-3xl sm:p-5">
               <div className="flex items-center gap-3 text-[#6B6B6B]">
                 <CheckCircle2 size={18} />
                 <span className="text-sm font-medium">Active Listings</span>
               </div>
-              <p className="mt-4 text-3xl font-bold text-[#1F1F1F]">
+              <p className="mt-4 text-2xl font-bold text-[#1F1F1F] sm:text-3xl">
                 {summary.activeListings}
               </p>
             </div>
 
-            <div className="rounded-3xl border border-[#E5E0D8] bg-white p-5 shadow-sm">
+            <div className="rounded-2xl border border-[#E5E0D8] bg-white p-4 shadow-sm sm:rounded-3xl sm:p-5">
               <div className="flex items-center gap-3 text-[#6B6B6B]">
                 <CircleDollarSign size={18} />
                 <span className="text-sm font-medium">Sold Listings</span>
               </div>
-              <p className="mt-4 text-3xl font-bold text-[#1F1F1F]">
+              <p className="mt-4 text-2xl font-bold text-[#1F1F1F] sm:text-3xl">
                 {summary.soldListings}
               </p>
             </div>
 
-            <div className="rounded-3xl border border-[#E5E0D8] bg-white p-5 shadow-sm">
+            <div className="rounded-2xl border border-[#E5E0D8] bg-white p-4 shadow-sm sm:rounded-3xl sm:p-5">
               <div className="flex items-center gap-3 text-[#6B6B6B]">
                 <AlertTriangle size={18} />
                 <span className="text-sm font-medium">Low Stock</span>
               </div>
-              <p className="mt-4 text-3xl font-bold text-[#1F1F1F]">
+              <p className="mt-4 text-2xl font-bold text-[#1F1F1F] sm:text-3xl">
                 {summary.lowStockListings}
               </p>
             </div>
           </section>
 
-          <section className="mb-8 rounded-3xl border border-[#E5E0D8] bg-white p-5 shadow-sm">
+          <section className="mb-8 rounded-2xl border border-[#E5E0D8] bg-white p-4 shadow-sm sm:rounded-3xl sm:p-5">
             <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr_0.8fr_0.8fr]">
               <div className="relative">
                 <Search
@@ -432,7 +431,7 @@ export default function MyListingsPage() {
               </select>
             </div>
 
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+            <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
               <p className="text-sm text-[#8A8175]">
                 Showing {filteredBooks.length} of {books.length} listings
               </p>
@@ -444,7 +443,7 @@ export default function MyListingsPage() {
                   setSelectedCondition("");
                   setSortBy("newest");
                 }}
-                className="rounded-full border border-[#D9D2C7] px-4 py-2 text-sm font-semibold text-[#1F1F1F] transition hover:bg-[#F7F4EE]"
+                className="w-full rounded-full border border-[#D9D2C7] px-4 py-2 text-sm font-semibold text-[#1F1F1F] transition hover:bg-[#F7F4EE] sm:w-auto"
               >
                 Reset Filters
               </button>
@@ -452,7 +451,7 @@ export default function MyListingsPage() {
           </section>
 
           {books.length === 0 ? (
-            <div className="rounded-3xl border border-[#E5E0D8] bg-white p-8 shadow-sm">
+            <div className="rounded-2xl border border-[#E5E0D8] bg-white p-6 shadow-sm sm:rounded-3xl sm:p-8">
               <div className="flex items-center gap-3 text-[#8A8175]">
                 <BookOpen size={20} />
                 <p>You have not posted any books yet.</p>
@@ -460,13 +459,13 @@ export default function MyListingsPage() {
 
               <Link
                 href="/sell"
-                className="mt-5 inline-block rounded-full bg-[#E67E22] px-5 py-3 font-semibold text-white transition hover:bg-[#cf6f1c]"
+                className="mt-5 inline-block rounded-full bg-[#E67E22] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#cf6f1c] sm:text-base"
               >
                 Post Your First Book
               </Link>
             </div>
           ) : filteredBooks.length === 0 ? (
-            <div className="rounded-3xl border border-[#E5E0D8] bg-white p-10 text-center text-[#6B6B6B] shadow-sm">
+            <div className="rounded-2xl border border-[#E5E0D8] bg-white p-8 text-center text-[#6B6B6B] shadow-sm sm:rounded-3xl sm:p-10">
               No listings match your filters.
             </div>
           ) : (
@@ -482,10 +481,10 @@ export default function MyListingsPage() {
                 return (
                   <div
                     key={book.id}
-                    className="rounded-3xl border border-[#E5E0D8] bg-white p-5 shadow-sm"
+                    className="rounded-2xl border border-[#E5E0D8] bg-white p-4 shadow-sm sm:rounded-3xl sm:p-5"
                   >
                     <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
-                      <div className="flex min-w-0 gap-4">
+                      <div className="flex flex-col gap-4 sm:flex-row sm:gap-4">
                         <div className="h-28 w-24 shrink-0 overflow-hidden rounded-2xl bg-[#F7F4EE]">
                           {book.image_url ? (
                             <img
@@ -502,7 +501,7 @@ export default function MyListingsPage() {
 
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
-                            <h2 className="break-words text-2xl font-bold text-[#1F1F1F]">
+                            <h2 className="break-words text-xl font-bold text-[#1F1F1F] sm:text-2xl">
                               {book.title}
                             </h2>
 
@@ -534,11 +533,11 @@ export default function MyListingsPage() {
                           </div>
 
                           <div className="mt-3 flex items-center gap-2 text-sm text-[#8A8175]">
-                            <MapPin size={15} />
-                            <span>{book.location}</span>
+                            <MapPin size={15} className="shrink-0" />
+                            <span className="break-words">{book.location}</span>
                           </div>
 
-                          <div className="mt-4 flex flex-wrap gap-3 text-sm">
+                          <div className="mt-4 grid gap-2 text-sm sm:flex sm:flex-wrap sm:gap-3">
                             <span className="rounded-2xl bg-[#F7F4EE] px-3 py-2 text-[#1F1F1F]">
                               Stock: <strong>{book.stock_quantity ?? 0}</strong>
                             </span>
@@ -555,7 +554,7 @@ export default function MyListingsPage() {
                       <div className="flex flex-wrap gap-2 xl:max-w-[360px] xl:justify-end">
                         <Link
                           href={`/book/${book.id}`}
-                          className="inline-flex items-center gap-2 rounded-full border border-[#E5E0D8] bg-white px-4 py-2 font-semibold text-[#1F1F1F] transition hover:bg-[#F7F4EE]"
+                          className="inline-flex flex-1 items-center justify-center gap-2 rounded-full border border-[#E5E0D8] bg-white px-4 py-2 text-sm font-semibold text-[#1F1F1F] transition hover:bg-[#F7F4EE] sm:flex-none"
                         >
                           <Eye size={16} />
                           View
@@ -563,7 +562,7 @@ export default function MyListingsPage() {
 
                         <Link
                           href={`/edit-listing/${book.id}`}
-                          className="inline-flex items-center gap-2 rounded-full border border-[#E8A16A] px-4 py-2 font-semibold text-[#E67E22] transition hover:bg-[#E67E22] hover:text-white"
+                          className="inline-flex flex-1 items-center justify-center gap-2 rounded-full border border-[#E8A16A] px-4 py-2 text-sm font-semibold text-[#E67E22] transition hover:bg-[#E67E22] hover:text-white sm:flex-none"
                         >
                           <Pencil size={16} />
                           Edit
@@ -572,7 +571,7 @@ export default function MyListingsPage() {
                         <button
                           onClick={() => duplicateBook(book)}
                           disabled={actionLoadingId === book.id}
-                          className="inline-flex items-center gap-2 rounded-full border border-[#E5E0D8] px-4 py-2 font-semibold text-[#1F1F1F] transition hover:bg-[#F7F4EE] disabled:opacity-60"
+                          className="inline-flex flex-1 items-center justify-center gap-2 rounded-full border border-[#E5E0D8] px-4 py-2 text-sm font-semibold text-[#1F1F1F] transition hover:bg-[#F7F4EE] disabled:opacity-60 sm:flex-none"
                         >
                           <Copy size={16} />
                           Duplicate
@@ -582,7 +581,7 @@ export default function MyListingsPage() {
                           <button
                             onClick={() => updateBookStatus(book.id, "sold")}
                             disabled={actionLoadingId === book.id}
-                            className="inline-flex items-center gap-2 rounded-full border border-green-300 px-4 py-2 font-semibold text-green-700 transition hover:bg-green-50 disabled:opacity-60"
+                            className="inline-flex flex-1 items-center justify-center gap-2 rounded-full border border-green-300 px-4 py-2 text-sm font-semibold text-green-700 transition hover:bg-green-50 disabled:opacity-60 sm:flex-none"
                           >
                             <CheckCircle2 size={16} />
                             Mark Sold
@@ -593,7 +592,7 @@ export default function MyListingsPage() {
                           <button
                             onClick={() => updateBookStatus(book.id, "hidden")}
                             disabled={actionLoadingId === book.id}
-                            className="inline-flex items-center gap-2 rounded-full border border-[#D9D2C7] px-4 py-2 font-semibold text-[#6B6B6B] transition hover:bg-[#F7F4EE] disabled:opacity-60"
+                            className="inline-flex flex-1 items-center justify-center gap-2 rounded-full border border-[#D9D2C7] px-4 py-2 text-sm font-semibold text-[#6B6B6B] transition hover:bg-[#F7F4EE] disabled:opacity-60 sm:flex-none"
                           >
                             <Archive size={16} />
                             Hide
@@ -602,7 +601,7 @@ export default function MyListingsPage() {
                           <button
                             onClick={() => updateBookStatus(book.id, "active")}
                             disabled={actionLoadingId === book.id}
-                            className="inline-flex items-center gap-2 rounded-full border border-blue-300 px-4 py-2 font-semibold text-blue-700 transition hover:bg-blue-50 disabled:opacity-60"
+                            className="inline-flex flex-1 items-center justify-center gap-2 rounded-full border border-blue-300 px-4 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-50 disabled:opacity-60 sm:flex-none"
                           >
                             <CheckCircle2 size={16} />
                             Unhide
@@ -612,7 +611,7 @@ export default function MyListingsPage() {
                         <button
                           onClick={() => setDeleteTarget(book)}
                           disabled={actionLoadingId === book.id}
-                          className="inline-flex items-center gap-2 rounded-full border border-red-300 px-4 py-2 font-semibold text-red-500 transition hover:bg-red-50 disabled:opacity-60"
+                          className="inline-flex flex-1 items-center justify-center gap-2 rounded-full border border-red-300 px-4 py-2 text-sm font-semibold text-red-500 transition hover:bg-red-50 disabled:opacity-60 sm:flex-none"
                         >
                           <Trash2 size={16} />
                           Delete
@@ -629,14 +628,14 @@ export default function MyListingsPage() {
 
       {deleteTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
+          <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl sm:rounded-3xl sm:p-6">
             <div className="flex items-start gap-3">
               <div className="rounded-full bg-red-100 p-2 text-red-500">
                 <XCircle size={20} />
               </div>
 
               <div>
-                <h3 className="text-xl font-bold text-[#1F1F1F]">
+                <h3 className="text-lg font-bold text-[#1F1F1F] sm:text-xl">
                   Delete Listing
                 </h3>
                 <p className="mt-2 text-sm leading-6 text-[#6B6B6B]">
