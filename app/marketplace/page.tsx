@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import {
@@ -59,6 +59,10 @@ function MarketplaceContent() {
   const [cartLoadingIds, setCartLoadingIds] = useState<number[]>([]);
   const [cartBookIds, setCartBookIds] = useState<number[]>([]);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [showMobileShortcutBar, setShowMobileShortcutBar] = useState(true);
+
+  const lastScrollY = useRef(0);
+  const hideTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const searchFromUrl = searchParams.get("search") || "";
@@ -160,6 +164,46 @@ function MarketplaceContent() {
 
     setFilteredBooks(result);
   }, [books, search, selectedCategory, selectedCondition, sortBy]);
+
+  useEffect(() => {
+    const startHideTimer = () => {
+      if (hideTimerRef.current) {
+        clearTimeout(hideTimerRef.current);
+      }
+
+      hideTimerRef.current = setTimeout(() => {
+        setShowMobileShortcutBar(false);
+      }, 1400);
+    };
+
+    const handleScroll = () => {
+      const currentY = window.scrollY;
+
+      if (currentY <= 40) {
+        setShowMobileShortcutBar(true);
+      } else if (currentY > lastScrollY.current) {
+        setShowMobileShortcutBar(false);
+      } else if (currentY < lastScrollY.current) {
+        setShowMobileShortcutBar(true);
+      }
+
+      lastScrollY.current = currentY;
+      startHideTimer();
+    };
+
+    setShowMobileShortcutBar(true);
+    lastScrollY.current = window.scrollY;
+    startHideTimer();
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      if (hideTimerRef.current) {
+        clearTimeout(hideTimerRef.current);
+      }
+    };
+  }, []);
 
   const toggleWishlist = async (bookId: number) => {
     if (!userId) {
@@ -268,12 +312,8 @@ function MarketplaceContent() {
     setSortBy("newest");
   };
 
-  const closeMobileFilters = () => {
-    setMobileFiltersOpen(false);
-  };
-
   const filterContent = (
-    <div className="space-y-6 lg:space-y-8">
+    <div className="space-y-8">
       <div>
         <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[#1F1F1F]">
           Search
@@ -283,62 +323,60 @@ function MarketplaceContent() {
           placeholder="Search title or author"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full rounded-xl border border-[#DDD6CC] bg-white px-3 py-2.5 text-sm text-[#1F1F1F] outline-none placeholder:text-[#9C9489] focus:border-[#E67E22]"
+          className="w-full rounded-xl border border-[#DDD6CC] bg-white px-3 py-2 text-sm text-[#1F1F1F] outline-none placeholder:text-[#9C9489] focus:border-[#E67E22]"
         />
       </div>
 
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-1">
-        <div>
-          <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[#1F1F1F]">
-            Categories
-          </h3>
-          <div className="space-y-2">
+      <div>
+        <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[#1F1F1F]">
+          Categories
+        </h3>
+        <div className="space-y-2">
+          <button
+            onClick={() => setSelectedCategory("")}
+            className={`block text-left text-sm ${
+              selectedCategory === ""
+                ? "font-semibold text-[#E67E22]"
+                : "text-[#6B6B6B] hover:text-[#1F1F1F]"
+            }`}
+          >
+            All Categories
+          </button>
+
+          {categories.map((category) => (
             <button
-              onClick={() => setSelectedCategory("")}
+              key={category.id}
+              onClick={() => setSelectedCategory(String(category.id))}
               className={`block text-left text-sm ${
-                selectedCategory === ""
+                selectedCategory === String(category.id)
                   ? "font-semibold text-[#E67E22]"
                   : "text-[#6B6B6B] hover:text-[#1F1F1F]"
               }`}
             >
-              All Categories
+              {category.name}
             </button>
-
-            {categories.map((category) => (
-              <button
-                key={category.id}
-                onClick={() => setSelectedCategory(String(category.id))}
-                className={`block text-left text-sm ${
-                  selectedCategory === String(category.id)
-                    ? "font-semibold text-[#E67E22]"
-                    : "text-[#6B6B6B] hover:text-[#1F1F1F]"
-                }`}
-              >
-                {category.name}
-              </button>
-            ))}
-          </div>
+          ))}
         </div>
+      </div>
 
-        <div>
-          <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[#1F1F1F]">
-            Condition
-          </h3>
-          <div className="space-y-2">
-            {["", "New", "Good", "Used"].map((condition) => (
-              <button
-                key={condition || "all"}
-                onClick={() => setSelectedCondition(condition)}
-                className={`block text-left text-sm ${
-                  selectedCondition === condition
-                    ? "font-semibold text-[#E67E22]"
-                    : "text-[#6B6B6B] hover:text-[#1F1F1F]"
-                }`}
-              >
-                {condition || "All Conditions"}
-              </button>
-            ))}
-          </div>
+      <div>
+        <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[#1F1F1F]">
+          Condition
+        </h3>
+        <div className="space-y-2">
+          {["", "New", "Good", "Used"].map((condition) => (
+            <button
+              key={condition || "all"}
+              onClick={() => setSelectedCondition(condition)}
+              className={`block text-left text-sm ${
+                selectedCondition === condition
+                  ? "font-semibold text-[#E67E22]"
+                  : "text-[#6B6B6B] hover:text-[#1F1F1F]"
+              }`}
+            >
+              {condition || "All Conditions"}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -346,9 +384,9 @@ function MarketplaceContent() {
         <button
           onClick={() => {
             resetFilters();
-            closeMobileFilters();
+            setMobileFiltersOpen(false);
           }}
-          className="w-full rounded-xl border border-[#D9D1C6] bg-white px-4 py-2.5 text-sm font-medium text-[#1F1F1F] transition hover:bg-[#F1ECE4]"
+          className="w-full rounded-xl border border-[#D9D1C6] bg-white px-4 py-2 text-sm font-medium text-[#1F1F1F] transition hover:bg-[#F1ECE4]"
         >
           Reset Filters
         </button>
@@ -358,7 +396,7 @@ function MarketplaceContent() {
 
   if (loading) {
     return (
-      <main className="mx-auto max-w-7xl px-4 py-8 text-[#6B6B6B] sm:px-6 sm:py-10">
+      <main className="mx-auto max-w-7xl px-6 py-10 text-[#6B6B6B]">
         Loading marketplace...
       </main>
     );
@@ -366,19 +404,19 @@ function MarketplaceContent() {
 
   return (
     <main className="min-h-screen bg-[#F7F5F1]">
-      <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 sm:py-8">
+      <div className="mx-auto max-w-7xl px-6 py-8">
         {mobileFiltersOpen && (
           <div className="fixed inset-0 z-50 lg:hidden">
             <div
               className="absolute inset-0 bg-black/40"
-              onClick={closeMobileFilters}
+              onClick={() => setMobileFiltersOpen(false)}
             />
             <div className="absolute right-0 top-0 h-full w-full max-w-sm overflow-y-auto bg-[#F7F5F1] p-5 shadow-xl">
               <div className="mb-5 flex items-center justify-between">
                 <h2 className="text-lg font-bold text-[#1F1F1F]">Filters</h2>
                 <button
                   type="button"
-                  onClick={closeMobileFilters}
+                  onClick={() => setMobileFiltersOpen(false)}
                   className="rounded-full border border-[#D9D1C6] bg-white p-2 text-[#1F1F1F]"
                 >
                   <X size={18} />
@@ -392,55 +430,33 @@ function MarketplaceContent() {
           </div>
         )}
 
-        <div className="grid gap-6 lg:grid-cols-[240px_1fr] lg:gap-8">
+        <div className="grid gap-8 lg:grid-cols-[240px_1fr]">
           <aside className="hidden border-r border-[#E5E0D8] pr-6 lg:block">
             {filterContent}
           </aside>
 
           <section>
-            <div className="mb-4">
-              <h1 className="text-2xl font-bold text-[#1F1F1F] sm:text-3xl">
-                Books for Sale
-              </h1>
-              <p className="mt-1 text-sm text-[#8A8175]">
-                Find affordable books from readers and student sellers.
-              </p>
-              <p className="mt-1 text-sm text-[#8A8175]">
-                1 - {filteredBooks.length} of {filteredBooks.length} results
-              </p>
-            </div>
-
-            <div className="sticky top-[76px] z-20 -mx-4 mb-5 bg-[#F7F5F1]/95 px-4 py-2 backdrop-blur supports-[backdrop-filter]:bg-[#F7F5F1]/80 sm:static sm:mx-0 sm:mb-6 sm:bg-transparent sm:px-0 sm:py-0">
-              <div className="flex gap-2 sm:hidden">
-                <button
-                  type="button"
-                  onClick={() => setMobileFiltersOpen(true)}
-                  className="inline-flex flex-1 items-center justify-center gap-2 rounded-full border border-[#D9D1C6] bg-white px-4 py-2.5 text-sm font-semibold text-[#1F1F1F] shadow-sm transition hover:bg-[#F7F4EE]"
-                >
-                  <SlidersHorizontal size={16} />
-                  Filters
-                </button>
-
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  className="min-w-0 flex-1 rounded-full border border-[#DDD6CC] bg-white px-4 py-2.5 text-sm font-semibold text-[#1F1F1F] outline-none focus:border-[#E67E22]"
-                >
-                  <option value="newest">Newest</option>
-                  <option value="price-low">Low to High</option>
-                  <option value="price-high">High to Low</option>
-                  <option value="title-az">A to Z</option>
-                </select>
+            <div className="mb-6 flex flex-col gap-4 border-b border-[#E5E0D8] pb-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h1 className="text-2xl font-bold text-[#1F1F1F]">
+                  Books for Sale
+                </h1>
+                <p className="mt-1 text-sm text-[#8A8175]">
+                  Find affordable books from readers and student sellers.
+                </p>
+                <p className="mt-1 text-sm text-[#8A8175]">
+                  1 - {filteredBooks.length} of {filteredBooks.length} results
+                </p>
               </div>
 
-              <div className="hidden w-full flex-col gap-2 sm:flex sm:w-auto sm:flex-row sm:items-center sm:justify-end sm:gap-3">
+              <div className="hidden items-center gap-3 lg:flex">
                 <label className="text-xs font-semibold uppercase tracking-wide text-[#8A8175]">
                   Sort By
                 </label>
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
-                  className="w-full rounded-xl border border-[#DDD6CC] bg-white px-3 py-2 text-sm text-[#1F1F1F] outline-none focus:border-[#E67E22] sm:w-auto"
+                  className="rounded-xl border border-[#DDD6CC] bg-white px-3 py-2 text-sm text-[#1F1F1F] outline-none focus:border-[#E67E22]"
                 >
                   <option value="newest">Newest</option>
                   <option value="price-low">Price: Low to High</option>
@@ -450,12 +466,46 @@ function MarketplaceContent() {
               </div>
             </div>
 
+            <div
+              className={`fixed left-0 right-0 z-30 px-6 transition-all duration-300 lg:hidden ${
+                showMobileShortcutBar
+                  ? "pointer-events-auto top-[120px] translate-y-0 opacity-100"
+                  : "pointer-events-none top-[120px] -translate-y-3 opacity-0"
+              }`}
+            >
+              <div className="mx-auto max-w-7xl">
+                <div className="rounded-2xl bg-white/10 backdrop-blur-md py-2 border border-white/20 shadow-sm">
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setMobileFiltersOpen(true)}
+                      className="inline-flex flex-1 items-center justify-center gap-2 rounded-full border border-[#D9D1C6] bg-white px-4 py-2.5 text-sm font-semibold text-[#1F1F1F] shadow-sm transition hover:bg-[#F7F4EE]"
+                    >
+                      <SlidersHorizontal size={16} />
+                      Filters
+                    </button>
+
+                    <select
+                      value={sortBy}
+                      onChange={(e) => setSortBy(e.target.value)}
+                      className="min-w-0 flex-1 rounded-full border border-[#DDD6CC] bg-white px-4 py-2.5 text-sm font-semibold text-[#1F1F1F] outline-none focus:border-[#E67E22]"
+                    >
+                      <option value="newest">Newest</option>
+                      <option value="price-low">Low to High</option>
+                      <option value="price-high">High to Low</option>
+                      <option value="title-az">A to Z</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {filteredBooks.length === 0 ? (
-              <div className="rounded-2xl border border-[#E5E0D8] bg-white p-8 text-center text-sm text-[#6B6B6B] sm:p-10 sm:text-base">
+              <div className="rounded-2xl border border-[#E5E0D8] bg-white p-10 text-center text-[#6B6B6B]">
                 No books found.
               </div>
             ) : (
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 md:grid-cols-3 xl:grid-cols-4">
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
                 {filteredBooks.map((book) => {
                   const isWishlisted = wishlistBookIds.includes(book.id);
                   const isWishlistLoading = wishlistLoadingIds.includes(
@@ -475,10 +525,10 @@ function MarketplaceContent() {
                             <img
                               src={book.image_url}
                               alt={book.title}
-                              className="h-52 w-full object-cover transition duration-300 group-hover:scale-[1.02] sm:h-64"
+                              className="h-64 w-full object-cover transition duration-300 group-hover:scale-[1.02]"
                             />
                           ) : (
-                            <div className="flex h-52 w-full items-center justify-center bg-[#EEF1F6] text-[#7B8593] sm:h-64">
+                            <div className="flex h-64 w-full items-center justify-center bg-[#EEF1F6] text-[#7B8593]">
                               No Image
                             </div>
                           )}
@@ -522,7 +572,7 @@ function MarketplaceContent() {
                         </p>
 
                         <div className="mt-2 flex items-center gap-2 text-sm text-[#8A8175]">
-                          <MapPin size={14} className="shrink-0" />
+                          <MapPin size={14} />
                           <span className="line-clamp-1">{book.location}</span>
                         </div>
 
@@ -535,7 +585,7 @@ function MarketplaceContent() {
                             type="button"
                             onClick={() => handleAddToCart(book.id)}
                             disabled={isCartLoading}
-                            className="flex w-full items-center justify-center gap-2 rounded-full bg-[#E67E22] px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-[#cf6f1c] disabled:cursor-not-allowed disabled:opacity-60"
+                            className="flex w-full items-center justify-center gap-2 rounded-full bg-[#E67E22] px-3 py-2 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-[#cf6f1c] disabled:cursor-not-allowed disabled:opacity-60"
                           >
                             <ShoppingCart size={14} />
                             {isCartLoading
@@ -547,7 +597,7 @@ function MarketplaceContent() {
 
                           <Link
                             href={`/book/${book.id}`}
-                            className="flex w-full items-center justify-center gap-2 rounded-full border border-[#E8A16A] px-3 py-2.5 text-center text-xs font-semibold uppercase tracking-wide text-[#E67E22] transition hover:bg-[#E67E22] hover:text-white"
+                            className="flex w-full items-center justify-center gap-2 rounded-full border border-[#E8A16A] px-3 py-2 text-center text-xs font-semibold uppercase tracking-wide text-[#E67E22] transition hover:bg-[#E67E22] hover:text-white"
                           >
                             <Eye size={14} />
                             View Book
@@ -570,7 +620,7 @@ export default function MarketplacePage() {
   return (
     <Suspense
       fallback={
-        <main className="mx-auto max-w-7xl px-4 py-8 text-[#6B6B6B] sm:px-6 sm:py-10">
+        <main className="mx-auto max-w-7xl px-6 py-10 text-[#6B6B6B]">
           Loading marketplace...
         </main>
       }
