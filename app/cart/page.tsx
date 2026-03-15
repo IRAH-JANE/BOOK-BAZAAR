@@ -221,39 +221,43 @@ export default function CartPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-[#F7F5F1] px-6 py-10">
+      <main className="min-h-screen bg-[#F7F5F1] px-4 py-8 sm:px-6 sm:py-10">
         <div className="mx-auto max-w-6xl text-[#6B6B6B]">Loading cart...</div>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-[#F7F5F1] px-6 py-10">
+    <main className="min-h-screen bg-[#F7F5F1] px-4 py-8 sm:px-6 sm:py-10">
       <div className="mx-auto max-w-6xl">
         <div className="mb-8">
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#E67E22]">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#E67E22] sm:text-sm">
             Shopping Cart
           </p>
-          <h1 className="mt-2 text-4xl font-bold text-[#1F1F1F]">My Cart</h1>
-          <p className="mt-2 text-[#6B6B6B]">
+          <h1 className="mt-2 text-3xl font-bold text-[#1F1F1F] sm:text-4xl">
+            My Cart
+          </h1>
+          <p className="mt-2 text-sm text-[#6B6B6B] sm:text-base">
             Review your selected books before proceeding to checkout.
           </p>
         </div>
 
         {items.length === 0 ? (
-          <div className="rounded-3xl border border-[#E5E0D8] bg-white p-8 shadow-sm">
-            <p className="text-[#6B6B6B]">Your cart is empty.</p>
+          <div className="rounded-2xl border border-[#E5E0D8] bg-white p-6 shadow-sm sm:rounded-3xl sm:p-8">
+            <p className="text-sm text-[#6B6B6B] sm:text-base">
+              Your cart is empty.
+            </p>
             <Link
               href="/marketplace"
-              className="mt-4 inline-block rounded-full bg-[#E67E22] px-5 py-3 font-semibold text-white transition hover:bg-[#cf6f1c]"
+              className="mt-4 inline-block rounded-full bg-[#E67E22] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#cf6f1c] sm:text-base"
             >
               Browse Books
             </Link>
           </div>
         ) : (
-          <div className="grid gap-8 lg:grid-cols-[1fr_340px]">
+          <div className="grid gap-6 lg:grid-cols-[1fr_340px] lg:gap-8">
             <div>
-              <div className="mb-4 flex flex-col gap-3 rounded-3xl border border-[#E5E0D8] bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+              <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-[#E5E0D8] bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:rounded-3xl sm:p-5">
                 <label className="flex items-center gap-3 text-sm font-medium text-[#1F1F1F]">
                   <input
                     type="checkbox"
@@ -267,7 +271,7 @@ export default function CartPage() {
                 <button
                   onClick={handleRemoveSelected}
                   disabled={removingSelected || selectedIds.length === 0}
-                  className="rounded-full border border-red-300 px-4 py-2 text-sm font-semibold text-red-500 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="w-full rounded-full border border-red-300 px-4 py-2 text-sm font-semibold text-red-500 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
                 >
                   {removingSelected ? "Removing..." : "Remove Selected"}
                 </button>
@@ -283,11 +287,11 @@ export default function CartPage() {
                   return (
                     <div
                       key={item.id}
-                      className="rounded-3xl border border-[#E5E0D8] bg-white p-4 shadow-sm transition hover:shadow-md"
+                      className="rounded-2xl border border-[#E5E0D8] bg-white p-4 shadow-sm transition hover:shadow-md sm:rounded-3xl"
                     >
-                      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                        <div className="flex items-start gap-4">
-                          <div className="flex items-center self-center">
+                      <div className="flex flex-col gap-4">
+                        <div className="flex items-start gap-3 sm:gap-4">
+                          <div className="pt-1">
                             <input
                               type="checkbox"
                               checked={isSelected}
@@ -296,29 +300,29 @@ export default function CartPage() {
                             />
                           </div>
 
-                          <div className="flex flex-1 items-center gap-4">
+                          <div className="flex min-w-0 flex-1 gap-3 sm:gap-4">
                             {book?.image_url ? (
                               <img
                                 src={book.image_url}
                                 alt={book.title}
-                                className="h-28 w-24 rounded-2xl object-cover"
+                                className="h-24 w-20 shrink-0 rounded-2xl object-cover sm:h-28 sm:w-24"
                               />
                             ) : (
-                              <div className="flex h-28 w-24 items-center justify-center rounded-2xl bg-[#F1ECE4] text-sm text-[#8A8175]">
+                              <div className="flex h-24 w-20 shrink-0 items-center justify-center rounded-2xl bg-[#F1ECE4] text-xs text-[#8A8175] sm:h-28 sm:w-24 sm:text-sm">
                                 No Image
                               </div>
                             )}
 
-                            <div className="min-w-0">
-                              <h2 className="text-lg font-semibold text-[#1F1F1F]">
+                            <div className="min-w-0 flex-1">
+                              <h2 className="break-words text-base font-semibold text-[#1F1F1F] sm:text-lg">
                                 {book?.title || "Unknown Book"}
                               </h2>
 
-                              <p className="text-sm text-[#6B6B6B]">
+                              <p className="mt-1 text-sm text-[#6B6B6B]">
                                 {book?.author || "Unknown Author"}
                               </p>
 
-                              <div className="mt-3 flex flex-wrap items-center gap-4">
+                              <div className="mt-3 flex flex-col gap-1 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
                                 <p className="font-bold text-[#E67E22]">
                                   ₱{book?.price || 0}
                                 </p>
@@ -327,57 +331,55 @@ export default function CartPage() {
                                   Subtotal: ₱{subtotal.toFixed(2)}
                                 </p>
                               </div>
-
-                              <div className="mt-4 flex flex-wrap items-center gap-3">
-                                <div className="flex items-center overflow-hidden rounded-full border border-[#E5E0D8] bg-[#FFFDF9]">
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      handleUpdateQuantity(
-                                        item.id,
-                                        item.quantity - 1,
-                                      )
-                                    }
-                                    disabled={
-                                      item.quantity <= 1 || isQtyUpdating
-                                    }
-                                    className="flex h-10 w-10 items-center justify-center text-[#1F1F1F] transition hover:bg-[#F7F4EE] disabled:cursor-not-allowed disabled:opacity-40"
-                                  >
-                                    <Minus size={16} />
-                                  </button>
-
-                                  <div className="min-w-[48px] text-center text-sm font-semibold text-[#1F1F1F]">
-                                    {isQtyUpdating ? "..." : item.quantity}
-                                  </div>
-
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      handleUpdateQuantity(
-                                        item.id,
-                                        item.quantity + 1,
-                                      )
-                                    }
-                                    disabled={isQtyUpdating}
-                                    className="flex h-10 w-10 items-center justify-center text-[#1F1F1F] transition hover:bg-[#F7F4EE] disabled:cursor-not-allowed disabled:opacity-40"
-                                  >
-                                    <Plus size={16} />
-                                  </button>
-                                </div>
-
-                                <p className="text-sm text-[#8A8175]">
-                                  Quantity: {item.quantity}
-                                </p>
-                              </div>
                             </div>
                           </div>
                         </div>
 
-                        <div className="flex justify-end">
+                        <div className="flex flex-col gap-3 border-t border-[#F0EAE2] pt-3 sm:flex-row sm:items-center sm:justify-between">
+                          <div className="flex flex-wrap items-center gap-3">
+                            <div className="flex items-center overflow-hidden rounded-full border border-[#E5E0D8] bg-[#FFFDF9]">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleUpdateQuantity(
+                                    item.id,
+                                    item.quantity - 1,
+                                  )
+                                }
+                                disabled={item.quantity <= 1 || isQtyUpdating}
+                                className="flex h-10 w-10 items-center justify-center text-[#1F1F1F] transition hover:bg-[#F7F4EE] disabled:cursor-not-allowed disabled:opacity-40"
+                              >
+                                <Minus size={16} />
+                              </button>
+
+                              <div className="min-w-[48px] text-center text-sm font-semibold text-[#1F1F1F]">
+                                {isQtyUpdating ? "..." : item.quantity}
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleUpdateQuantity(
+                                    item.id,
+                                    item.quantity + 1,
+                                  )
+                                }
+                                disabled={isQtyUpdating}
+                                className="flex h-10 w-10 items-center justify-center text-[#1F1F1F] transition hover:bg-[#F7F4EE] disabled:cursor-not-allowed disabled:opacity-40"
+                              >
+                                <Plus size={16} />
+                              </button>
+                            </div>
+
+                            <p className="text-sm text-[#8A8175]">
+                              Quantity: {item.quantity}
+                            </p>
+                          </div>
+
                           <button
                             onClick={() => handleRemove(item.id)}
                             disabled={removingOneId === item.id}
-                            className="inline-flex items-center gap-2 rounded-full border border-red-300 px-4 py-2 text-sm font-semibold text-red-500 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+                            className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-red-300 px-4 py-2 text-sm font-semibold text-red-500 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
                           >
                             <Trash2 size={16} />
                             {removingOneId === item.id
@@ -392,28 +394,28 @@ export default function CartPage() {
               </div>
             </div>
 
-            <div className="h-fit rounded-3xl border border-[#E5E0D8] bg-white p-6 shadow-sm">
-              <h2 className="text-2xl font-bold text-[#1F1F1F]">
+            <div className="h-fit rounded-2xl border border-[#E5E0D8] bg-white p-5 shadow-sm sm:rounded-3xl sm:p-6">
+              <h2 className="text-xl font-bold text-[#1F1F1F] sm:text-2xl">
                 Order Summary
               </h2>
 
               <div className="mt-6 space-y-3">
-                <div className="flex items-center justify-between text-[#6B6B6B]">
+                <div className="flex items-center justify-between text-sm text-[#6B6B6B] sm:text-base">
                   <span>Selected Items</span>
                   <span>{selectedItems.length}</span>
                 </div>
 
-                <div className="flex items-center justify-between text-[#6B6B6B]">
+                <div className="flex items-center justify-between text-sm text-[#6B6B6B] sm:text-base">
                   <span>Total Quantity</span>
                   <span>{totalQuantity}</span>
                 </div>
 
                 <div className="border-t border-[#E5E0D8] pt-4">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between gap-4">
                     <span className="text-lg font-semibold text-[#1F1F1F]">
                       Total
                     </span>
-                    <span className="text-3xl font-bold text-[#E67E22]">
+                    <span className="break-words text-right text-2xl font-bold text-[#E67E22] sm:text-3xl">
                       ₱{total.toFixed(2)}
                     </span>
                   </div>
@@ -423,12 +425,12 @@ export default function CartPage() {
               {selectedItems.length > 0 ? (
                 <Link
                   href={`/checkout?items=${selectedIds.join(",")}`}
-                  className="mt-6 block w-full rounded-full bg-[#E67E22] px-5 py-3 text-center font-semibold text-white transition hover:bg-[#cf6f1c]"
+                  className="mt-6 block w-full rounded-full bg-[#E67E22] px-5 py-3 text-center text-sm font-semibold text-white transition hover:bg-[#cf6f1c] sm:text-base"
                 >
                   Proceed to Checkout
                 </Link>
               ) : (
-                <div className="mt-6 block w-full rounded-full bg-gray-300 px-5 py-3 text-center font-semibold text-white">
+                <div className="mt-6 block w-full rounded-full bg-gray-300 px-5 py-3 text-center text-sm font-semibold text-white sm:text-base">
                   Proceed to Checkout
                 </div>
               )}

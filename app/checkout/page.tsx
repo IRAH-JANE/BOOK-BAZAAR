@@ -353,14 +353,14 @@ function CheckoutContent() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-[#F7F5F1] px-6 py-10 text-[#6B6B6B]">
+      <main className="min-h-screen bg-[#F7F5F1] px-4 py-8 text-[#6B6B6B] sm:px-6 sm:py-10">
         Loading checkout...
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-[#F7F5F1] px-6 py-10">
+    <main className="min-h-screen bg-[#F7F5F1] px-4 py-8 sm:px-6 sm:py-10">
       <div className="mx-auto max-w-6xl">
         <div className="mb-8">
           <Link
@@ -370,35 +370,37 @@ function CheckoutContent() {
             Back to Cart
           </Link>
 
-          <p className="mt-6 text-sm font-semibold uppercase tracking-[0.2em] text-[#E67E22]">
+          <p className="mt-6 text-xs font-semibold uppercase tracking-[0.2em] text-[#E67E22] sm:text-sm">
             Secure Checkout
           </p>
-          <h1 className="mt-2 text-4xl font-bold text-[#1F1F1F]">Checkout</h1>
-          <p className="mt-2 text-[#6B6B6B]">
+          <h1 className="mt-2 text-3xl font-bold text-[#1F1F1F] sm:text-4xl">
+            Checkout
+          </h1>
+          <p className="mt-2 text-sm text-[#6B6B6B] sm:text-base">
             Review your selected books, choose delivery, and place your order.
           </p>
         </div>
 
         {items.length === 0 ? (
-          <div className="rounded-3xl border border-[#E5E0D8] bg-white p-8 shadow-sm">
-            <p className="text-[#6B6B6B]">
+          <div className="rounded-2xl border border-[#E5E0D8] bg-white p-6 shadow-sm sm:rounded-3xl sm:p-8">
+            <p className="text-sm text-[#6B6B6B] sm:text-base">
               No selected cart items are ready for checkout.
             </p>
             <Link
               href="/marketplace"
-              className="mt-4 inline-block rounded-full bg-[#E67E22] px-5 py-3 font-semibold text-white transition hover:bg-[#cf6f1c]"
+              className="mt-4 inline-block rounded-full bg-[#E67E22] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#cf6f1c] sm:text-base"
             >
               Browse Books
             </Link>
           </div>
         ) : (
-          <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
+          <div className="grid gap-6 lg:grid-cols-[1fr_360px] lg:gap-8">
             <div className="space-y-6">
-              <div className="rounded-3xl border border-[#E5E0D8] bg-white p-6 shadow-sm">
+              <div className="rounded-2xl border border-[#E5E0D8] bg-white p-4 shadow-sm sm:rounded-3xl sm:p-6">
                 <div className="flex items-start gap-3">
-                  <MapPin className="mt-1 text-[#E67E22]" size={20} />
+                  <MapPin className="mt-1 shrink-0 text-[#E67E22]" size={20} />
                   <div className="flex-1">
-                    <h2 className="text-2xl font-bold text-[#1F1F1F]">
+                    <h2 className="text-xl font-bold text-[#1F1F1F] sm:text-2xl">
                       Shipping Address
                     </h2>
                     <p className="mt-1 text-sm text-[#6B6B6B]">
@@ -407,11 +409,11 @@ function CheckoutContent() {
 
                     <div className="mt-4 rounded-2xl bg-[#FFFDF9] p-4 ring-1 ring-[#EDE7DE]">
                       {hasSavedAddress ? (
-                        <p className="leading-7 text-[#1F1F1F]">
+                        <p className="break-words text-sm leading-7 text-[#1F1F1F] sm:text-base">
                           {shippingAddress}
                         </p>
                       ) : (
-                        <p className="text-[#B94A48]">
+                        <p className="text-sm text-[#B94A48] sm:text-base">
                           No saved address found in your profile.
                         </p>
                       )}
@@ -428,11 +430,11 @@ function CheckoutContent() {
                 </div>
               </div>
 
-              <div className="rounded-3xl border border-[#E5E0D8] bg-white p-6 shadow-sm">
+              <div className="rounded-2xl border border-[#E5E0D8] bg-white p-4 shadow-sm sm:rounded-3xl sm:p-6">
                 <div className="flex items-start gap-3">
-                  <Truck className="mt-1 text-[#E67E22]" size={20} />
+                  <Truck className="mt-1 shrink-0 text-[#E67E22]" size={20} />
                   <div className="flex-1">
-                    <h2 className="text-2xl font-bold text-[#1F1F1F]">
+                    <h2 className="text-xl font-bold text-[#1F1F1F] sm:text-2xl">
                       Delivery Method
                     </h2>
                     <p className="mt-1 text-sm text-[#6B6B6B]">
@@ -459,7 +461,7 @@ function CheckoutContent() {
                   ].map((option) => (
                     <label
                       key={option.label}
-                      className={`flex cursor-pointer items-center gap-4 rounded-2xl border px-4 py-4 transition ${
+                      className={`flex cursor-pointer items-start gap-3 rounded-2xl border px-4 py-4 transition sm:items-center sm:gap-4 ${
                         deliveryMethod === option.label
                           ? "border-[#E67E22] bg-[#FFF7EF]"
                           : "border-[#E5E0D8] bg-[#FFFDF9]"
@@ -471,15 +473,19 @@ function CheckoutContent() {
                         value={option.label}
                         checked={deliveryMethod === option.label}
                         onChange={(e) => setDeliveryMethod(e.target.value)}
+                        className="mt-1 sm:mt-0"
                       />
-                      <Truck size={18} className="text-[#E67E22]" />
-                      <div className="flex-1">
+                      <Truck
+                        size={18}
+                        className="mt-0.5 shrink-0 text-[#E67E22] sm:mt-0"
+                      />
+                      <div className="min-w-0 flex-1">
                         <p className="font-semibold text-[#1F1F1F]">
                           {option.label}
                         </p>
                         <p className="text-sm text-[#6B6B6B]">{option.desc}</p>
                       </div>
-                      <span className="font-semibold text-[#E67E22]">
+                      <span className="shrink-0 text-sm font-semibold text-[#E67E22] sm:text-base">
                         {option.label === "Standard Delivery" && "₱80"}
                         {option.label === "Express Delivery" && "₱150"}
                         {option.label === "Meet-up / Pick-up" && "₱0"}
@@ -502,11 +508,11 @@ function CheckoutContent() {
                 </div>
               </div>
 
-              <div className="rounded-3xl border border-[#E5E0D8] bg-white p-6 shadow-sm">
+              <div className="rounded-2xl border border-[#E5E0D8] bg-white p-4 shadow-sm sm:rounded-3xl sm:p-6">
                 <div className="flex items-start gap-3">
-                  <Wallet className="mt-1 text-[#E67E22]" size={20} />
+                  <Wallet className="mt-1 shrink-0 text-[#E67E22]" size={20} />
                   <div className="flex-1">
-                    <h2 className="text-2xl font-bold text-[#1F1F1F]">
+                    <h2 className="text-xl font-bold text-[#1F1F1F] sm:text-2xl">
                       Payment Method
                     </h2>
                     <p className="mt-1 text-sm text-[#6B6B6B]">
@@ -524,7 +530,7 @@ function CheckoutContent() {
                   ].map(({ label, icon: Icon }) => (
                     <label
                       key={label}
-                      className={`flex cursor-pointer items-center gap-4 rounded-2xl border px-4 py-4 transition ${
+                      className={`flex cursor-pointer items-start gap-3 rounded-2xl border px-4 py-4 transition sm:items-center sm:gap-4 ${
                         paymentMethod === label
                           ? "border-[#E67E22] bg-[#FFF7EF]"
                           : "border-[#E5E0D8] bg-[#FFFDF9]"
@@ -536,9 +542,13 @@ function CheckoutContent() {
                         value={label}
                         checked={paymentMethod === label}
                         onChange={(e) => setPaymentMethod(e.target.value)}
+                        className="mt-1 sm:mt-0"
                       />
-                      <Icon size={18} className="text-[#E67E22]" />
-                      <div>
+                      <Icon
+                        size={18}
+                        className="mt-0.5 shrink-0 text-[#E67E22] sm:mt-0"
+                      />
+                      <div className="min-w-0">
                         <p className="font-semibold text-[#1F1F1F]">{label}</p>
                         <p className="text-sm text-[#6B6B6B]">
                           {label === "Cash on Delivery" &&
@@ -643,8 +653,8 @@ function CheckoutContent() {
                 </div>
               </div>
 
-              <div className="rounded-3xl border border-[#E5E0D8] bg-white p-6 shadow-sm">
-                <h2 className="text-2xl font-bold text-[#1F1F1F]">
+              <div className="rounded-2xl border border-[#E5E0D8] bg-white p-4 shadow-sm sm:rounded-3xl sm:p-6">
+                <h2 className="text-xl font-bold text-[#1F1F1F] sm:text-2xl">
                   Order Items
                 </h2>
 
@@ -655,22 +665,22 @@ function CheckoutContent() {
                     return (
                       <div
                         key={item.id}
-                        className="flex gap-4 rounded-2xl border border-[#E5E0D8] bg-[#FFFDF9] p-4"
+                        className="flex gap-3 rounded-2xl border border-[#E5E0D8] bg-[#FFFDF9] p-4 sm:gap-4"
                       >
                         {book?.image_url ? (
                           <img
                             src={book.image_url}
                             alt={book.title}
-                            className="h-24 w-20 rounded-xl object-cover"
+                            className="h-20 w-16 shrink-0 rounded-xl object-cover sm:h-24 sm:w-20"
                           />
                         ) : (
-                          <div className="flex h-24 w-20 items-center justify-center rounded-xl bg-[#F1ECE4] text-xs text-[#8A8175]">
+                          <div className="flex h-20 w-16 shrink-0 items-center justify-center rounded-xl bg-[#F1ECE4] text-[10px] text-[#8A8175] sm:h-24 sm:w-20 sm:text-xs">
                             No Image
                           </div>
                         )}
 
-                        <div className="flex-1">
-                          <h3 className="text-lg font-semibold text-[#1F1F1F]">
+                        <div className="min-w-0 flex-1">
+                          <h3 className="break-words text-base font-semibold text-[#1F1F1F] sm:text-lg">
                             {book?.title || "Unknown Book"}
                           </h3>
                           <p className="text-sm text-[#6B6B6B]">
@@ -690,48 +700,48 @@ function CheckoutContent() {
               </div>
             </div>
 
-            <div className="h-fit rounded-3xl border border-[#E5E0D8] bg-white p-6 shadow-sm">
-              <h2 className="text-2xl font-bold text-[#1F1F1F]">
+            <div className="h-fit rounded-2xl border border-[#E5E0D8] bg-white p-5 shadow-sm sm:rounded-3xl sm:p-6">
+              <h2 className="text-xl font-bold text-[#1F1F1F] sm:text-2xl">
                 Order Summary
               </h2>
 
               <div className="mt-6 space-y-3">
-                <div className="flex items-center justify-between text-[#6B6B6B]">
+                <div className="flex items-center justify-between gap-4 text-sm text-[#6B6B6B] sm:text-base">
                   <span>Selected Books</span>
                   <span>{items.length}</span>
                 </div>
 
-                <div className="flex items-center justify-between text-[#6B6B6B]">
+                <div className="flex items-center justify-between gap-4 text-sm text-[#6B6B6B] sm:text-base">
                   <span>Total Quantity</span>
                   <span>{totalQuantity}</span>
                 </div>
 
-                <div className="flex items-center justify-between text-[#6B6B6B]">
+                <div className="flex items-center justify-between gap-4 text-sm text-[#6B6B6B] sm:text-base">
                   <span>Items Subtotal</span>
                   <span>₱{subtotal.toFixed(2)}</span>
                 </div>
 
-                <div className="flex items-center justify-between text-[#6B6B6B]">
+                <div className="flex items-center justify-between gap-4 text-sm text-[#6B6B6B] sm:text-base">
                   <span>Shipping Fee</span>
                   <span>₱{shippingFee.toFixed(2)}</span>
                 </div>
 
-                <div className="flex items-center justify-between text-[#6B6B6B]">
+                <div className="flex items-center justify-between gap-4 text-sm text-[#6B6B6B] sm:text-base">
                   <span>Payment Method</span>
                   <span className="text-right">{paymentMethod}</span>
                 </div>
 
-                <div className="flex items-center justify-between text-[#6B6B6B]">
+                <div className="flex items-center justify-between gap-4 text-sm text-[#6B6B6B] sm:text-base">
                   <span>Delivery Method</span>
                   <span className="text-right">{deliveryMethod}</span>
                 </div>
 
                 <div className="border-t border-[#E5E0D8] pt-4">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between gap-4">
                     <span className="text-lg font-semibold text-[#1F1F1F]">
                       Grand Total
                     </span>
-                    <span className="text-3xl font-bold text-[#E67E22]">
+                    <span className="break-words text-right text-2xl font-bold text-[#E67E22] sm:text-3xl">
                       ₱{total.toFixed(2)}
                     </span>
                   </div>
@@ -741,7 +751,7 @@ function CheckoutContent() {
               <button
                 onClick={handlePlaceOrder}
                 disabled={placingOrder || !hasSavedAddress}
-                className="mt-6 w-full rounded-full bg-[#E67E22] px-5 py-3 font-semibold text-white transition hover:bg-[#cf6f1c] disabled:cursor-not-allowed disabled:opacity-50"
+                className="mt-6 w-full rounded-full bg-[#E67E22] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#cf6f1c] disabled:cursor-not-allowed disabled:opacity-50 sm:text-base"
               >
                 {placingOrder ? "Placing Order..." : "Place Order"}
               </button>
@@ -763,7 +773,7 @@ export default function CheckoutPage() {
   return (
     <Suspense
       fallback={
-        <main className="min-h-screen bg-[#F7F5F1] px-6 py-10 text-[#6B6B6B]">
+        <main className="min-h-screen bg-[#F7F5F1] px-4 py-8 text-[#6B6B6B] sm:px-6 sm:py-10">
           Loading checkout...
         </main>
       }

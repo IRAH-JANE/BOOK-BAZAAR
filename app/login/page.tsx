@@ -57,10 +57,12 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="min-h-screen bg-[#F7F5F1] px-6 py-10">
-      <div className="mx-auto max-w-md rounded-3xl border border-[#E5E0D8] bg-white p-8 shadow-sm">
-        <h1 className="mb-2 text-4xl font-bold text-[#1F1F1F]">Login</h1>
-        <p className="mb-6 text-[#6B6B6B]">
+    <main className="min-h-screen bg-[#F7F5F1] px-4 py-8 sm:px-6 sm:py-10">
+      <div className="mx-auto max-w-md rounded-2xl border border-[#E5E0D8] bg-white p-6 shadow-sm sm:rounded-3xl sm:p-8">
+        <h1 className="mb-2 text-3xl font-bold text-[#1F1F1F] sm:text-4xl">
+          Login
+        </h1>
+        <p className="mb-6 text-sm text-[#6B6B6B] sm:text-base">
           Sign in to access your BookBazaar account.
         </p>
 

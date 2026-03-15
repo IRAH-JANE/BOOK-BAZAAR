@@ -125,8 +125,8 @@ export default async function BookDetailsPage({ params }: BookPageProps) {
 
   return (
     <main className="min-h-screen bg-[#F7F5F1]">
-      <section className="mx-auto max-w-7xl px-6 py-8">
-        <div className="mb-5">
+      <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8">
+        <div className="mb-4 sm:mb-5">
           <Link
             href="/marketplace"
             className="inline-flex items-center gap-2 rounded-full border border-[#D9D1C6] bg-white px-4 py-2 text-sm font-semibold text-[#1F1F1F] transition hover:bg-[#F7F4EE]"
@@ -136,42 +136,42 @@ export default async function BookDetailsPage({ params }: BookPageProps) {
           </Link>
         </div>
 
-        <div className="grid gap-8 lg:grid-cols-[340px_minmax(0,620px)] lg:justify-center lg:items-start">
-          <div className="rounded-[24px] border border-[#E5E0D8] bg-white p-4 shadow-sm">
+        <div className="grid gap-5 sm:gap-6 lg:grid-cols-[340px_minmax(0,620px)] lg:items-start lg:justify-center lg:gap-8">
+          <div className="rounded-[20px] border border-[#E5E0D8] bg-white p-3 shadow-sm sm:rounded-[24px] sm:p-4">
             <BookImageWithFallback
               imageUrl={book.image_url}
               isbn={book.isbn}
               title={book.title}
-              wrapperClassName="flex min-h-[460px] items-center justify-center rounded-[20px] border border-[#ECE6DC] bg-[#F7F4EE] p-5"
-              className="max-h-[420px] w-auto max-w-full object-contain"
-              emptyClassName="flex h-[380px] w-full items-center justify-center text-[#8A8175]"
+              wrapperClassName="flex min-h-[280px] items-center justify-center rounded-[18px] border border-[#ECE6DC] bg-[#F7F4EE] p-4 sm:min-h-[460px] sm:rounded-[20px] sm:p-5"
+              className="max-h-[260px] w-auto max-w-full object-contain sm:max-h-[420px]"
+              emptyClassName="flex h-[240px] w-full items-center justify-center text-[#8A8175] sm:h-[380px]"
               emptyText="No Image Available"
             />
           </div>
 
           <div className="space-y-5">
-            <div className="rounded-[24px] border border-[#E5E0D8] bg-white p-6 shadow-sm">
-              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#E67E22]">
+            <div className="rounded-[20px] border border-[#E5E0D8] bg-white p-4 shadow-sm sm:rounded-[24px] sm:p-6">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#E67E22] sm:text-sm">
                 Book Information
               </p>
 
-              <h1 className="mt-3 break-words text-3xl font-bold leading-tight text-[#1F1F1F] sm:text-[42px]">
+              <h1 className="mt-3 break-words text-2xl font-bold leading-tight text-[#1F1F1F] sm:text-3xl lg:text-[42px]">
                 {book.title}
               </h1>
 
-              <p className="mt-2 text-base text-[#6B6B6B] sm:text-lg">
+              <p className="mt-2 text-sm text-[#6B6B6B] sm:text-base lg:text-lg">
                 {book.author}
               </p>
 
-              <div className="mt-4 flex flex-wrap items-center gap-3">
-                <div className="flex items-center gap-1 rounded-full bg-[#F7F4EE] px-3 py-2 text-sm font-medium text-[#1F1F1F]">
+              <div className="mt-4 flex flex-wrap items-center gap-2 sm:gap-3">
+                <div className="flex items-center gap-1 rounded-full bg-[#F7F4EE] px-3 py-2 text-xs font-medium text-[#1F1F1F] sm:text-sm">
                   <Star size={15} className="fill-[#E67E22] text-[#E67E22]" />
                   <span>0.0</span>
                   <span className="text-[#8A8175]">(No ratings yet)</span>
                 </div>
 
                 {categoryName && (
-                  <div className="rounded-full bg-[#F7F4EE] px-3 py-2 text-sm font-medium text-[#1F1F1F]">
+                  <div className="rounded-full bg-[#F7F4EE] px-3 py-2 text-xs font-medium text-[#1F1F1F] sm:text-sm">
                     {categoryName}
                   </div>
                 )}
@@ -186,7 +186,7 @@ export default async function BookDetailsPage({ params }: BookPageProps) {
                   <p className="text-xs font-semibold uppercase tracking-wide text-[#8A8175]">
                     Condition
                   </p>
-                  <p className="mt-2 font-semibold text-[#1F1F1F]">
+                  <p className="mt-2 text-sm font-semibold text-[#1F1F1F] sm:text-base">
                     {book.condition || "Not specified"}
                   </p>
                 </div>
@@ -195,7 +195,7 @@ export default async function BookDetailsPage({ params }: BookPageProps) {
                   <p className="text-xs font-semibold uppercase tracking-wide text-[#8A8175]">
                     Status
                   </p>
-                  <p className="mt-2 font-semibold capitalize text-[#1F1F1F]">
+                  <p className="mt-2 text-sm font-semibold capitalize text-[#1F1F1F] sm:text-base">
                     {book.status || "Available"}
                   </p>
                 </div>
@@ -205,8 +205,8 @@ export default async function BookDetailsPage({ params }: BookPageProps) {
                     Location
                   </p>
                   <div className="mt-2 flex items-center gap-2 text-[#1F1F1F]">
-                    <MapPin size={16} className="text-[#E67E22]" />
-                    <span className="font-semibold">
+                    <MapPin size={16} className="shrink-0 text-[#E67E22]" />
+                    <span className="text-sm font-semibold sm:text-base">
                       {book.location || "No location provided"}
                     </span>
                   </div>
@@ -225,8 +225,10 @@ export default async function BookDetailsPage({ params }: BookPageProps) {
                         Category
                       </p>
                       <div className="mt-2 flex items-center gap-2 text-[#1F1F1F]">
-                        <Tag size={16} className="text-[#E67E22]" />
-                        <span className="font-semibold">{categoryName}</span>
+                        <Tag size={16} className="shrink-0 text-[#E67E22]" />
+                        <span className="text-sm font-semibold sm:text-base">
+                          {categoryName}
+                        </span>
                       </div>
                     </div>
                   )}
@@ -237,8 +239,8 @@ export default async function BookDetailsPage({ params }: BookPageProps) {
                         ISBN
                       </p>
                       <div className="mt-2 flex items-center gap-2 text-[#1F1F1F]">
-                        <Hash size={16} className="text-[#E67E22]" />
-                        <span className="break-all font-semibold">
+                        <Hash size={16} className="shrink-0 text-[#E67E22]" />
+                        <span className="break-all text-sm font-semibold sm:text-base">
                           {book.isbn}
                         </span>
                       </div>
@@ -251,8 +253,11 @@ export default async function BookDetailsPage({ params }: BookPageProps) {
                         Publisher
                       </p>
                       <div className="mt-2 flex items-center gap-2 text-[#1F1F1F]">
-                        <Building2 size={16} className="text-[#E67E22]" />
-                        <span className="break-words font-semibold">
+                        <Building2
+                          size={16}
+                          className="shrink-0 text-[#E67E22]"
+                        />
+                        <span className="break-words text-sm font-semibold sm:text-base">
                           {book.publisher}
                         </span>
                       </div>
@@ -265,8 +270,11 @@ export default async function BookDetailsPage({ params }: BookPageProps) {
                         Published Date
                       </p>
                       <div className="mt-2 flex items-center gap-2 text-[#1F1F1F]">
-                        <CalendarDays size={16} className="text-[#E67E22]" />
-                        <span className="font-semibold">
+                        <CalendarDays
+                          size={16}
+                          className="shrink-0 text-[#E67E22]"
+                        />
+                        <span className="text-sm font-semibold sm:text-base">
                           {book.published_date}
                         </span>
                       </div>
@@ -278,8 +286,11 @@ export default async function BookDetailsPage({ params }: BookPageProps) {
                       Availability
                     </p>
                     <div className="mt-2 flex items-center gap-2 text-[#1F1F1F]">
-                      <PackageCheck size={16} className="text-[#E67E22]" />
-                      <span className="font-semibold">
+                      <PackageCheck
+                        size={16}
+                        className="shrink-0 text-[#E67E22]"
+                      />
+                      <span className="text-sm font-semibold sm:text-base">
                         {book.status || "Available for buyer inquiry"}
                       </span>
                     </div>
@@ -292,18 +303,18 @@ export default async function BookDetailsPage({ params }: BookPageProps) {
                   Description
                 </h2>
 
-                <div className="mt-4 rounded-2xl bg-[#F7F4EE] p-5">
+                <div className="mt-4 rounded-2xl bg-[#F7F4EE] p-4 sm:p-5">
                   <details className="group">
                     <summary className="cursor-pointer list-none outline-none">
-                      <p className="break-words leading-7 text-[#4F4A43] group-open:hidden">
+                      <p className="break-words text-sm leading-7 text-[#4F4A43] group-open:hidden sm:text-base">
                         {shortDescription}
                       </p>
 
-                      <p className="hidden break-words leading-7 text-[#4F4A43] group-open:block">
+                      <p className="hidden break-words text-sm leading-7 text-[#4F4A43] group-open:block sm:text-base">
                         {book.description || "No description available."}
                       </p>
 
-                      <span className="mt-4 inline-block font-semibold text-[#E67E22]">
+                      <span className="mt-4 inline-block text-sm font-semibold text-[#E67E22] sm:text-base">
                         <span className="group-open:hidden">
                           Read full detail
                         </span>
@@ -323,43 +334,43 @@ export default async function BookDetailsPage({ params }: BookPageProps) {
           </div>
         </div>
 
-        <section className="mt-14">
+        <section className="mt-10 sm:mt-14">
           <div className="mb-6">
-            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#E67E22]">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#E67E22] sm:text-sm">
               You may also like
             </p>
-            <h2 className="mt-2 text-3xl font-bold text-[#1F1F1F]">
+            <h2 className="mt-2 text-2xl font-bold text-[#1F1F1F] sm:text-3xl">
               Related Books
             </h2>
-            <p className="mt-2 text-[#6B6B6B]">
+            <p className="mt-2 text-sm text-[#6B6B6B] sm:text-base">
               Explore more books similar to this listing.
             </p>
           </div>
 
           {relatedBooks.length === 0 ? (
-            <div className="rounded-[24px] border border-[#E5E0D8] bg-white p-8 text-[#6B6B6B] shadow-sm">
+            <div className="rounded-[20px] border border-[#E5E0D8] bg-white p-6 text-sm text-[#6B6B6B] shadow-sm sm:rounded-[24px] sm:p-8 sm:text-base">
               No related books available yet.
             </div>
           ) : (
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4">
               {relatedBooks.map((related) => (
                 <Link
                   key={related.id}
                   href={`/book/${related.id}`}
-                  className="group rounded-[24px] border border-[#E5E0D8] bg-white p-4 shadow-sm transition hover:shadow-md"
+                  className="group rounded-[20px] border border-[#E5E0D8] bg-white p-4 shadow-sm transition hover:shadow-md sm:rounded-[24px]"
                 >
                   <BookImageWithFallback
                     imageUrl={related.image_url}
                     isbn={related.isbn || null}
                     title={related.title}
                     wrapperClassName="overflow-hidden rounded-2xl bg-[#F7F4EE]"
-                    className="h-64 w-full object-contain bg-[#F7F4EE] transition duration-300 group-hover:scale-[1.02]"
-                    emptyClassName="flex h-64 items-center justify-center text-[#8A8175]"
+                    className="h-52 w-full object-contain bg-[#F7F4EE] transition duration-300 group-hover:scale-[1.02] sm:h-64"
+                    emptyClassName="flex h-52 items-center justify-center text-[#8A8175] sm:h-64"
                     emptyText="No Image"
                   />
 
                   <div className="pt-4">
-                    <h3 className="line-clamp-2 min-h-[52px] text-base font-semibold text-[#1F1F1F]">
+                    <h3 className="line-clamp-2 min-h-[48px] text-base font-semibold text-[#1F1F1F] sm:min-h-[52px]">
                       {related.title}
                     </h3>
 
@@ -372,7 +383,7 @@ export default async function BookDetailsPage({ params }: BookPageProps) {
                     </p>
 
                     <div className="mt-2 flex items-center gap-2 text-sm text-[#8A8175]">
-                      <MapPin size={14} />
+                      <MapPin size={14} className="shrink-0" />
                       <span className="line-clamp-1">
                         {related.location || "No location"}
                       </span>
