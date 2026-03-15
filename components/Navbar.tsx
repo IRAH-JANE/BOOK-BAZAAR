@@ -175,16 +175,6 @@ export default function Navbar() {
             </Link>
 
             <Link
-              href="/seller-orders"
-              className={navLinkClass("/seller-orders")}
-            >
-              <span className="inline-flex items-center gap-2">
-                <Store size={16} />
-                Seller Orders
-              </span>
-            </Link>
-
-            <Link
               href="/sell"
               className="rounded-full bg-[#E67E22] px-4 py-2 font-semibold text-white hover:bg-[#cf6f1c]"
             >
