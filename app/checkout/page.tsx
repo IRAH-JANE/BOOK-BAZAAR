@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -10,7 +10,6 @@ import {
   CreditCard,
   Landmark,
   Truck,
-  Store,
   ChevronRight,
   ShieldCheck,
 } from "lucide-react";
@@ -41,7 +40,7 @@ type ProfileAddress = {
   postal_code: string | null;
 };
 
-export default function CheckoutPage() {
+function CheckoutContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -140,7 +139,7 @@ export default function CheckoutPage() {
           image_url,
           seller_id
         )
-        `,
+      `,
       )
       .eq("user_id", user.id);
 
@@ -162,7 +161,7 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     fetchCheckoutData();
-  }, []);
+  }, [selectedCartIds]);
 
   const subtotal = useMemo(() => {
     return items.reduce((sum, item) => {
@@ -757,5 +756,19 @@ export default function CheckoutPage() {
         )}
       </div>
     </main>
+  );
+}
+
+export default function CheckoutPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen bg-[#F7F5F1] px-6 py-10 text-[#6B6B6B]">
+          Loading checkout...
+        </main>
+      }
+    >
+      <CheckoutContent />
+    </Suspense>
   );
 }
