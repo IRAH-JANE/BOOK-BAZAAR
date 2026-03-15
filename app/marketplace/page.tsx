@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { Heart, MapPin, ShoppingCart, Eye } from "lucide-react";
@@ -35,7 +35,7 @@ type CartItem = {
   user_id: string;
 };
 
-export default function MarketplacePage() {
+function MarketplaceContent() {
   const searchParams = useSearchParams();
 
   const [books, setBooks] = useState<Book[]>([]);
@@ -493,5 +493,19 @@ export default function MarketplacePage() {
         </div>
       </div>
     </main>
+  );
+}
+
+export default function MarketplacePage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="mx-auto max-w-7xl px-6 py-10 text-[#6B6B6B]">
+          Loading marketplace...
+        </main>
+      }
+    >
+      <MarketplaceContent />
+    </Suspense>
   );
 }
