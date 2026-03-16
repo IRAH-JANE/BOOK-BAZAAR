@@ -11,6 +11,7 @@ import {
   Truck,
   CheckCircle2,
 } from "lucide-react";
+import PageLoader from "@/components/PageLoader";
 
 type SellerBook = {
   title: string;
@@ -56,7 +57,9 @@ export default function SellerOrdersPage() {
   const [searchText, setSearchText] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
 
-  const [courierInputs, setCourierInputs] = useState<Record<number, string>>({});
+  const [courierInputs, setCourierInputs] = useState<Record<number, string>>(
+    {},
+  );
   const [trackingInputs, setTrackingInputs] = useState<Record<number, string>>(
     {},
   );
@@ -384,9 +387,10 @@ export default function SellerOrdersPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-[#F7F5F1] px-6 py-8">
-        Loading seller orders...
-      </main>
+      <PageLoader
+        title="Loading seller orders..."
+        subtitle="Please wait while we load your seller order records."
+      />
     );
   }
 
@@ -515,7 +519,9 @@ export default function SellerOrdersPage() {
                           Order #{group.order.id}
                         </h2>
                         <p className="text-sm text-[#6B6B6B]">
-                          {new Date(group.order.created_at).toLocaleDateString()}
+                          {new Date(
+                            group.order.created_at,
+                          ).toLocaleDateString()}
                         </p>
                         <div className="mt-1 flex flex-wrap gap-2 text-sm text-[#6B6B6B]">
                           <span>{group.items.length} item(s)</span>
@@ -537,7 +543,11 @@ export default function SellerOrdersPage() {
                         className="inline-flex items-center gap-1 rounded-full border border-[#D9D1C6] bg-white px-3 py-1.5 text-sm font-semibold text-[#1F1F1F] transition hover:bg-[#F7F4EE]"
                       >
                         {isOpen ? "Hide" : "View"}
-                        {isOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                        {isOpen ? (
+                          <ChevronUp size={14} />
+                        ) : (
+                          <ChevronDown size={14} />
+                        )}
                       </button>
                     </div>
                   </div>
@@ -549,7 +559,8 @@ export default function SellerOrdersPage() {
                           Buyer Shipping Address
                         </p>
                         <p className="mt-2 text-sm leading-6 text-[#1F1F1F]">
-                          {group.order.shipping_address || "No shipping address"}
+                          {group.order.shipping_address ||
+                            "No shipping address"}
                         </p>
 
                         <p className="mt-3 text-[11px] font-semibold uppercase tracking-wide text-[#8A8175]">
@@ -732,7 +743,9 @@ export default function SellerOrdersPage() {
                                   }
                                   disabled={
                                     savingId === item.id ||
-                                    !["out_for_delivery"].includes(currentStatus)
+                                    !["out_for_delivery"].includes(
+                                      currentStatus,
+                                    )
                                   }
                                   className={`${actionButtonClass} border-green-200 bg-green-50 text-green-700 hover:bg-green-100`}
                                 >
@@ -749,9 +762,11 @@ export default function SellerOrdersPage() {
                                   }
                                   disabled={
                                     savingId === item.id ||
-                                    ["delivered", "received", "cancelled"].includes(
-                                      currentStatus,
-                                    )
+                                    [
+                                      "delivered",
+                                      "received",
+                                      "cancelled",
+                                    ].includes(currentStatus)
                                   }
                                   className={`${actionButtonClass} border-red-200 bg-red-50 text-red-700 hover:bg-red-100`}
                                 >

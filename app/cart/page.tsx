@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { Minus, Plus, Trash2 } from "lucide-react";
+import PageLoader from "@/components/PageLoader";
 
 type CartBook = {
   id: number;
@@ -221,9 +222,10 @@ export default function CartPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-[#F7F5F1] px-4 py-8 sm:px-6 sm:py-10">
-        <div className="mx-auto max-w-6xl text-[#6B6B6B]">Loading cart...</div>
-      </main>
+      <PageLoader
+        title="Loading cart..."
+        subtitle="Please wait while we load your cart items."
+      />
     );
   }
 

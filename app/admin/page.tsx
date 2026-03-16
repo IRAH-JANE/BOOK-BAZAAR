@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
+import PageLoader from "@/components/PageLoader";
 
 type RecentBook = {
   id: number;
@@ -79,9 +80,10 @@ export default function AdminPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-[#F7F5F1] px-4 py-8 text-[#6B6B6B] sm:px-6 sm:py-10">
-        Loading admin dashboard...
-      </main>
+      <PageLoader
+        title="Loading admin dashboard..."
+        subtitle="Please wait while we prepare your admin overview."
+      />
     );
   }
 

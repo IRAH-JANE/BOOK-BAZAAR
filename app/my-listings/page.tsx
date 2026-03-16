@@ -17,6 +17,7 @@ import {
   Archive,
   XCircle,
 } from "lucide-react";
+import PageLoader from "@/components/PageLoader";
 
 type BookStatus = "active" | "reserved" | "sold" | "hidden";
 
@@ -304,11 +305,10 @@ export default function MyListingsPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-[#F7F5F1] px-4 py-8 sm:px-6 sm:py-10">
-        <div className="mx-auto max-w-7xl text-[#6B6B6B]">
-          Loading your listings...
-        </div>
-      </main>
+      <PageLoader
+        title="Loading your listings..."
+        subtitle="Please wait while we prepare your seller listings."
+      />
     );
   }
 
@@ -672,3 +672,4 @@ export default function MyListingsPage() {
     </>
   );
 }
+//last update: 2024-06-12

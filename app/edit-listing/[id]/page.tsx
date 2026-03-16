@@ -13,6 +13,7 @@ import {
   Tag,
   UserRound,
 } from "lucide-react";
+import PageLoader from "@/components/PageLoader";
 
 type Category = {
   id: number;
@@ -111,17 +112,10 @@ export default function EditListingPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-black px-4 py-10 text-white">
-        <div className="mx-auto max-w-5xl">
-          <div className="animate-pulse space-y-4 rounded-3xl border border-white/10 bg-white/5 p-6">
-            <div className="h-8 w-48 rounded bg-white/10" />
-            <div className="h-12 rounded-xl bg-white/10" />
-            <div className="h-12 rounded-xl bg-white/10" />
-            <div className="h-32 rounded-xl bg-white/10" />
-            <div className="h-12 rounded-xl bg-white/10" />
-          </div>
-        </div>
-      </main>
+      <PageLoader
+        title="Loading listing editor..."
+        subtitle="Please wait while we load your book details."
+      />
     );
   }
 

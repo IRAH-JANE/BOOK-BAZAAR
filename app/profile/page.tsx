@@ -21,6 +21,7 @@ import {
   CheckCircle2,
   X,
 } from "lucide-react";
+import PageLoader from "@/components/PageLoader";
 
 type PSGCItem = {
   code: string;
@@ -576,9 +577,10 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-[#F7F5F1] px-6 py-10 text-[#6B6B6B]">
-        Loading profile...
-      </main>
+      <PageLoader
+        title="Loading profile..."
+        subtitle="Please wait while we load your account details."
+      />
     );
   }
 

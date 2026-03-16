@@ -38,6 +38,27 @@ type GoogleBookVolume = {
   };
 };
 
+type OpenLibrarySearchDoc = {
+  title?: string;
+  author_name?: string[];
+  publisher?: string[];
+  first_publish_year?: number;
+  subject?: string[];
+  isbn?: string[];
+  cover_i?: number;
+};
+
+type AutofillBook = {
+  source: "google" | "openlibrary";
+  title: string;
+  authors: string[];
+  description: string;
+  publisher: string;
+  publishedDate: string;
+  categories: string[];
+  coverUrls: string[];
+};
+
 export default function SellPage() {
   const [title, setTitle] = useState("");
   const [author, setAuthor] = useState("");
@@ -61,6 +82,9 @@ export default function SellPage() {
 
   const [coverCandidates, setCoverCandidates] = useState<string[]>([]);
   const [coverIndex, setCoverIndex] = useState(0);
+  const [autofillSource, setAutofillSource] = useState<
+    "" | "google" | "openlibrary"
+  >("");
 
   const cleanedIsbn = useMemo(() => isbn.replace(/[^0-9Xx]/g, ""), [isbn]);
 
@@ -102,14 +126,14 @@ export default function SellPage() {
   }, []);
 
   const getMatchedCategoryId = (
-    googleCats: string[] = [],
+    sourceCategories: string[] = [],
     bookTitle = "",
     bookDescription = "",
     dbCategories: Category[] = categories,
   ) => {
     if (!dbCategories.length) return "";
 
-    const combinedText = [...googleCats, bookTitle, bookDescription]
+    const combinedText = [...sourceCategories, bookTitle, bookDescription]
       .join(" ")
       .toLowerCase();
 
@@ -202,7 +226,6 @@ export default function SellPage() {
         "database",
         "algorithms",
         "technology",
-        "coding theory",
       ],
       Science: [
         "science",
@@ -277,8 +300,8 @@ export default function SellPage() {
       "children's books": "Children",
     };
 
-    for (const [googleName, dbName] of Object.entries(normalizedCategoryMap)) {
-      if (combinedText.includes(googleName)) {
+    for (const [sourceName, dbName] of Object.entries(normalizedCategoryMap)) {
+      if (combinedText.includes(sourceName)) {
         const matched = dbCategories.find(
           (cat) => cat.name.toLowerCase() === dbName.toLowerCase(),
         );
@@ -309,16 +332,23 @@ export default function SellPage() {
     }
   }, [googleCategories, title, description, categories]);
 
-  const buildCoverCandidates = (
+  const sanitizeUrl = (url?: string) => {
+    if (!url) return "";
+    return url.replace("http://", "https://");
+  };
+
+  const uniqueNonEmpty = (items: string[]) => {
+    return [...new Set(items.filter(Boolean))];
+  };
+
+  const buildGoogleCoverCandidates = (
     isbnValue: string,
     googleThumbnail?: string,
     googleSmallThumbnail?: string,
     googleVolumeId?: string,
   ) => {
-    const normalThumbnail =
-      googleThumbnail?.replace("http://", "https://") || "";
-    const normalSmallThumbnail =
-      googleSmallThumbnail?.replace("http://", "https://") || "";
+    const normalThumbnail = sanitizeUrl(googleThumbnail);
+    const normalSmallThumbnail = sanitizeUrl(googleSmallThumbnail);
 
     const upgradedThumbnail = normalThumbnail
       ? normalThumbnail.replace("&edge=curl", "").replace("zoom=1", "zoom=2")
@@ -330,7 +360,7 @@ export default function SellPage() {
           .replace("zoom=1", "zoom=2")
       : "";
 
-    const candidates = [
+    return uniqueNonEmpty([
       normalThumbnail,
       normalSmallThumbnail,
       upgradedThumbnail,
@@ -344,9 +374,141 @@ export default function SellPage() {
       isbnValue
         ? `https://covers.openlibrary.org/b/isbn/${isbnValue}-L.jpg?default=false`
         : "",
-    ].filter(Boolean);
+    ]);
+  };
 
-    return [...new Set(candidates)];
+  const buildOpenLibraryCoverCandidates = (
+    isbnValue: string,
+    coverId?: number,
+    extraIsbns: string[] = [],
+  ) => {
+    return uniqueNonEmpty([
+      isbnValue
+        ? `https://covers.openlibrary.org/b/isbn/${isbnValue}-L.jpg?default=false`
+        : "",
+      ...extraIsbns.map(
+        (value) =>
+          `https://covers.openlibrary.org/b/isbn/${value}-L.jpg?default=false`,
+      ),
+      coverId
+        ? `https://covers.openlibrary.org/b/id/${coverId}-L.jpg?default=false`
+        : "",
+    ]);
+  };
+
+  const fetchFromGoogleBooks = async (
+    isbnValue: string,
+  ): Promise<AutofillBook | null> => {
+    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_BOOKS_API_KEY;
+
+    const buildUrl = (query: string) => {
+      const url = new URL("https://www.googleapis.com/books/v1/volumes");
+      url.searchParams.set("q", query);
+      url.searchParams.set("maxResults", "1");
+      url.searchParams.set("printType", "books");
+      url.searchParams.set("projection", "lite");
+      if (apiKey) {
+        url.searchParams.set("key", apiKey);
+      }
+      return url.toString();
+    };
+
+    let response = await fetch(buildUrl(`isbn:${isbnValue}`));
+    let data = await response.json();
+
+    if (!data?.items?.length) {
+      response = await fetch(buildUrl(isbnValue));
+      data = await response.json();
+    }
+
+    const item = data?.items?.[0] as GoogleBookVolume | undefined;
+    const info = item?.volumeInfo;
+
+    if (!info) return null;
+
+    return {
+      source: "google",
+      title: info.title ?? "",
+      authors: info.authors ?? [],
+      description: info.description ?? "",
+      publisher: info.publisher ?? "",
+      publishedDate: info.publishedDate ?? "",
+      categories: info.categories ?? [],
+      coverUrls: buildGoogleCoverCandidates(
+        isbnValue,
+        info.imageLinks?.thumbnail,
+        info.imageLinks?.smallThumbnail,
+        item?.id,
+      ),
+    };
+  };
+
+  const fetchFromOpenLibrary = async (
+    isbnValue: string,
+  ): Promise<AutofillBook | null> => {
+    const url = `https://openlibrary.org/search.json?isbn=${encodeURIComponent(
+      isbnValue,
+    )}`;
+
+    const response = await fetch(url);
+    const data = await response.json();
+
+    const doc = data?.docs?.[0] as OpenLibrarySearchDoc | undefined;
+
+    if (!doc) return null;
+
+    const subjects = doc.subject ?? [];
+    const coverUrls = buildOpenLibraryCoverCandidates(
+      isbnValue,
+      doc.cover_i,
+      doc.isbn ?? [],
+    );
+
+    return {
+      source: "openlibrary",
+      title: doc.title ?? "",
+      authors: doc.author_name ?? [],
+      description: "",
+      publisher: doc.publisher?.[0] ?? "",
+      publishedDate: doc.first_publish_year
+        ? String(doc.first_publish_year)
+        : "",
+      categories: subjects,
+      coverUrls,
+    };
+  };
+
+  const applyAutofillBook = (book: AutofillBook) => {
+    const nextTitle = book.title ?? "";
+    const nextAuthor = book.authors?.join(", ") ?? "";
+    const nextDescription = book.description ?? "";
+    const nextPublisher = book.publisher ?? "";
+    const nextPublishedDate = book.publishedDate ?? "";
+    const nextCategories = book.categories ?? [];
+    const nextCoverUrls = book.coverUrls ?? [];
+
+    setAutofillSource(book.source);
+    setTitle(nextTitle);
+    setAuthor(nextAuthor);
+    setDescription(nextDescription);
+    setPublisher(nextPublisher);
+    setPublishedDate(nextPublishedDate);
+    setGoogleCategories(nextCategories);
+
+    setCoverCandidates(nextCoverUrls);
+    setCoverIndex(0);
+    setFetchedCover(nextCoverUrls[0] || "");
+
+    const matchedId = getMatchedCategoryId(
+      nextCategories,
+      nextTitle,
+      nextDescription,
+      categories,
+    );
+
+    if (matchedId) {
+      setCategoryId(matchedId);
+    }
   };
 
   const handleIsbnLookup = async () => {
@@ -367,79 +529,30 @@ export default function SellPage() {
       setFetchedCover("");
       setCoverCandidates([]);
       setCoverIndex(0);
+      setAutofillSource("");
 
-      const apiKey = process.env.NEXT_PUBLIC_GOOGLE_BOOKS_API_KEY;
+      const googleBook = await fetchFromGoogleBooks(normalizedIsbn);
 
-      const buildUrl = (query: string) => {
-        const url = new URL("https://www.googleapis.com/books/v1/volumes");
-        url.searchParams.set("q", query);
-        url.searchParams.set("maxResults", "1");
-        url.searchParams.set("printType", "books");
-        url.searchParams.set("projection", "lite");
-        if (apiKey) {
-          url.searchParams.set("key", apiKey);
-        }
-        return url.toString();
-      };
-
-      let response = await fetch(buildUrl(`isbn:${normalizedIsbn}`));
-      let data = await response.json();
-
-      if (!data.items || data.items.length === 0) {
-        response = await fetch(buildUrl(normalizedIsbn));
-        data = await response.json();
-      }
-
-      const item = data?.items?.[0] as GoogleBookVolume | undefined;
-      const info = item?.volumeInfo;
-
-      if (!info) {
-        alert(
-          "No match found. Please check the ISBN or fill in the details manually.",
-        );
+      if (googleBook) {
+        applyAutofillBook(googleBook);
+        alert("Book details filled successfully from Google Books.");
         return;
       }
 
-      const nextTitle = info.title ?? "";
-      const nextAuthor = info.authors?.join(", ") ?? "";
-      const nextDescription = info.description ?? "";
-      const nextPublisher = info.publisher ?? "";
-      const nextPublishedDate = info.publishedDate ?? "";
-      const nextGoogleCategories = info.categories ?? [];
+      const openLibraryBook = await fetchFromOpenLibrary(normalizedIsbn);
 
-      setTitle(nextTitle);
-      setAuthor(nextAuthor);
-      setDescription(nextDescription);
-      setPublisher(nextPublisher);
-      setPublishedDate(nextPublishedDate);
-      setGoogleCategories(nextGoogleCategories);
-
-      const candidates = buildCoverCandidates(
-        normalizedIsbn,
-        info.imageLinks?.thumbnail,
-        info.imageLinks?.smallThumbnail,
-        item?.id,
-      );
-
-      setCoverCandidates(candidates);
-      setCoverIndex(0);
-      setFetchedCover(candidates[0] || "");
-
-      const matchedId = getMatchedCategoryId(
-        nextGoogleCategories,
-        nextTitle,
-        nextDescription,
-        categories,
-      );
-
-      if (matchedId) {
-        setCategoryId(matchedId);
+      if (openLibraryBook) {
+        applyAutofillBook(openLibraryBook);
+        alert("Book details filled successfully from Open Library.");
+        return;
       }
 
-      alert("Book details filled successfully.");
+      alert(
+        "No match found. Please check the ISBN or fill in the details manually.",
+      );
     } catch (error) {
       console.error("ISBN lookup failed:", error);
-      alert("ISBN lookup failed. Please check your internet or API key.");
+      alert("ISBN lookup failed. Please check your internet or API setup.");
     } finally {
       setLookupLoading(false);
     }
@@ -556,6 +669,7 @@ export default function SellPage() {
     setImageFile(null);
     setGoogleCategories([]);
     setStockQuantity("1");
+    setAutofillSource("");
   };
 
   return (
@@ -592,6 +706,16 @@ export default function SellPage() {
                 <p className="mt-2 text-sm leading-7 text-[#6B6B6B]">
                   Add the ISBN first, then click the lookup button to
                   automatically fill the book’s basic information.
+                </p>
+                <p className="mt-2 text-xs text-[#8A8175]">
+                  Source used:{" "}
+                  <span className="font-semibold text-[#1F1F1F]">
+                    {autofillSource
+                      ? autofillSource === "google"
+                        ? "Google Books"
+                        : "Open Library"
+                      : "None yet"}
+                  </span>
                 </p>
               </div>
             </div>
@@ -702,10 +826,13 @@ export default function SellPage() {
                     Original Price
                   </label>
                   <input
-                    type="number"
-                    min="1"
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                     value={price}
-                    onChange={(e) => setPrice(e.target.value)}
+                    onChange={(e) =>
+                      setPrice(e.target.value.replace(/[^\d]/g, ""))
+                    }
                     placeholder="Original price"
                     className={inputClass}
                     required
@@ -718,10 +845,13 @@ export default function SellPage() {
                     Stock Quantity
                   </label>
                   <input
-                    type="number"
-                    min="1"
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                     value={stockQuantity}
-                    onChange={(e) => setStockQuantity(e.target.value)}
+                    onChange={(e) =>
+                      setStockQuantity(e.target.value.replace(/[^\d]/g, ""))
+                    }
                     placeholder="How many copies do you have?"
                     className={inputClass}
                     required

@@ -13,6 +13,7 @@ import {
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
+import PageLoader from "@/components/PageLoader";
 
 type OrderBook = {
   title: string;
@@ -340,9 +341,10 @@ export default function OrdersPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-[#F7F5F1] px-6 py-8">
-        Loading orders...
-      </main>
+      <PageLoader
+        title="Loading orders..."
+        subtitle="Please wait while we load your orders."
+      />
     );
   }
 

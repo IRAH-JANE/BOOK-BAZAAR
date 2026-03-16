@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import PageLoader from "@/components/PageLoader";
 import {
   Heart,
   MapPin,
@@ -265,9 +266,7 @@ function MarketplaceContent() {
         .eq("book_id", bookId)
         .maybeSingle();
 
-      if (existingError) {
-        throw existingError;
-      }
+      if (existingError) throw existingError;
 
       if (existingItem) {
         const { error: updateError } = await supabase
@@ -275,9 +274,7 @@ function MarketplaceContent() {
           .update({ quantity: existingItem.quantity + 1 })
           .eq("id", existingItem.id);
 
-        if (updateError) {
-          throw updateError;
-        }
+        if (updateError) throw updateError;
       } else {
         const { error: insertError } = await supabase
           .from("cart_items")
@@ -289,9 +286,7 @@ function MarketplaceContent() {
             },
           ]);
 
-        if (insertError) {
-          throw insertError;
-        }
+        if (insertError) throw insertError;
 
         setCartBookIds((prev) => [...prev, bookId]);
       }
@@ -396,15 +391,16 @@ function MarketplaceContent() {
 
   if (loading) {
     return (
-      <main className="mx-auto max-w-7xl px-6 py-10 text-[#6B6B6B]">
-        Loading marketplace...
-      </main>
+      <PageLoader
+        title="Loading marketplace..."
+        subtitle="Please wait while we prepare the latest listings for you."
+      />
     );
   }
 
   return (
-    <main className="min-h-screen bg-[#F7F5F1]">
-      <div className="mx-auto max-w-7xl px-6 py-8">
+    <main className="bg-[#F7F5F1] lg:h-[calc(100vh-76px)] lg:overflow-hidden">
+      <div className="mx-auto max-w-7xl px-6 lg:h-full">
         {mobileFiltersOpen && (
           <div className="fixed inset-0 z-50 lg:hidden">
             <div
@@ -430,186 +426,190 @@ function MarketplaceContent() {
           </div>
         )}
 
-        <div className="grid gap-8 lg:grid-cols-[240px_1fr]">
-          <aside className="hidden border-r border-[#E5E0D8] pr-6 lg:block">
-            {filterContent}
+        <div className="grid gap-8 py-6 lg:grid-cols-[240px_minmax(0,1fr)] lg:h-full lg:py-0">
+          <aside className="hidden lg:block lg:h-full lg:overflow-hidden lg:border-r lg:border-[#E5E0D8] lg:pr-6 lg:pt-6">
+            <div className="sticky top-0">{filterContent}</div>
           </aside>
 
-          <section>
-            <div className="mb-6 flex flex-col gap-4 border-b border-[#E5E0D8] pb-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h1 className="text-2xl font-bold text-[#1F1F1F]">
-                  Books for Sale
-                </h1>
-                <p className="mt-1 text-sm text-[#8A8175]">
-                  Find affordable books from readers and student sellers.
-                </p>
-                <p className="mt-1 text-sm text-[#8A8175]">
-                  1 - {filteredBooks.length} of {filteredBooks.length} results
-                </p>
+          <div className="min-w-0 lg:h-full lg:overflow-y-auto lg:-mr-38">
+            <section className="min-w-0 lg:pr-10 lg:pt-6 lg:pb-6">
+              <div className="mb-6 flex flex-col gap-4 border-b border-[#E5E0D8] pb-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h1 className="text-2xl font-bold text-[#1F1F1F]">
+                    Books for Sale
+                  </h1>
+                  <p className="mt-1 text-sm text-[#8A8175]">
+                    Find affordable books from readers and student sellers.
+                  </p>
+                  <p className="mt-1 text-sm text-[#8A8175]">
+                    1 - {filteredBooks.length} of {filteredBooks.length} results
+                  </p>
+                </div>
+
+                <div className="hidden items-center gap-3 lg:flex">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-[#8A8175]">
+                    Sort By
+                  </label>
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                    className="rounded-xl border border-[#DDD6CC] bg-white px-3 py-2 text-sm text-[#1F1F1F] outline-none focus:border-[#E67E22]"
+                  >
+                    <option value="newest">Newest</option>
+                    <option value="price-low">Price: Low to High</option>
+                    <option value="price-high">Price: High to Low</option>
+                    <option value="title-az">Title: A to Z</option>
+                  </select>
+                </div>
               </div>
 
-              <div className="hidden items-center gap-3 lg:flex">
-                <label className="text-xs font-semibold uppercase tracking-wide text-[#8A8175]">
-                  Sort By
-                </label>
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  className="rounded-xl border border-[#DDD6CC] bg-white px-3 py-2 text-sm text-[#1F1F1F] outline-none focus:border-[#E67E22]"
-                >
-                  <option value="newest">Newest</option>
-                  <option value="price-low">Price: Low to High</option>
-                  <option value="price-high">Price: High to Low</option>
-                  <option value="title-az">Title: A to Z</option>
-                </select>
-              </div>
-            </div>
+              <div
+                className={`fixed left-0 right-0 z-30 px-6 transition-all duration-300 lg:hidden ${
+                  showMobileShortcutBar
+                    ? "pointer-events-auto top-[120px] translate-y-0 opacity-100"
+                    : "pointer-events-none top-[120px] -translate-y-3 opacity-0"
+                }`}
+              >
+                <div className="mx-auto max-w-7xl">
+                  <div className="rounded-2xl border border-white/20 bg-white/10 py-2 shadow-sm backdrop-blur-md">
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setMobileFiltersOpen(true)}
+                        className="inline-flex flex-1 items-center justify-center gap-2 rounded-full border border-[#D9D1C6] bg-white px-4 py-2.5 text-sm font-semibold text-[#1F1F1F] shadow-sm transition hover:bg-[#F7F4EE]"
+                      >
+                        <SlidersHorizontal size={16} />
+                        Filters
+                      </button>
 
-            <div
-              className={`fixed left-0 right-0 z-30 px-6 transition-all duration-300 lg:hidden ${
-                showMobileShortcutBar
-                  ? "pointer-events-auto top-[120px] translate-y-0 opacity-100"
-                  : "pointer-events-none top-[120px] -translate-y-3 opacity-0"
-              }`}
-            >
-              <div className="mx-auto max-w-7xl">
-                <div className="rounded-2xl bg-white/10 backdrop-blur-md py-2 border border-white/20 shadow-sm">
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setMobileFiltersOpen(true)}
-                      className="inline-flex flex-1 items-center justify-center gap-2 rounded-full border border-[#D9D1C6] bg-white px-4 py-2.5 text-sm font-semibold text-[#1F1F1F] shadow-sm transition hover:bg-[#F7F4EE]"
-                    >
-                      <SlidersHorizontal size={16} />
-                      Filters
-                    </button>
-
-                    <select
-                      value={sortBy}
-                      onChange={(e) => setSortBy(e.target.value)}
-                      className="min-w-0 flex-1 rounded-full border border-[#DDD6CC] bg-white px-4 py-2.5 text-sm font-semibold text-[#1F1F1F] outline-none focus:border-[#E67E22]"
-                    >
-                      <option value="newest">Newest</option>
-                      <option value="price-low">Low to High</option>
-                      <option value="price-high">High to Low</option>
-                      <option value="title-az">A to Z</option>
-                    </select>
+                      <select
+                        value={sortBy}
+                        onChange={(e) => setSortBy(e.target.value)}
+                        className="min-w-0 flex-1 rounded-full border border-[#DDD6CC] bg-white px-4 py-2.5 text-sm font-semibold text-[#1F1F1F] outline-none focus:border-[#E67E22]"
+                      >
+                        <option value="newest">Newest</option>
+                        <option value="price-low">Low to High</option>
+                        <option value="price-high">High to Low</option>
+                        <option value="title-az">A to Z</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            {filteredBooks.length === 0 ? (
-              <div className="rounded-2xl border border-[#E5E0D8] bg-white p-10 text-center text-[#6B6B6B]">
-                No books found.
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
-                {filteredBooks.map((book) => {
-                  const isWishlisted = wishlistBookIds.includes(book.id);
-                  const isWishlistLoading = wishlistLoadingIds.includes(
-                    book.id,
-                  );
-                  const isCartLoading = cartLoadingIds.includes(book.id);
-                  const isAlreadyInCart = cartBookIds.includes(book.id);
+              {filteredBooks.length === 0 ? (
+                <div className="rounded-2xl border border-[#E5E0D8] bg-white p-10 text-center text-[#6B6B6B]">
+                  No books found.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-6 pb-6 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
+                  {filteredBooks.map((book) => {
+                    const isWishlisted = wishlistBookIds.includes(book.id);
+                    const isWishlistLoading = wishlistLoadingIds.includes(
+                      book.id,
+                    );
+                    const isCartLoading = cartLoadingIds.includes(book.id);
+                    const isAlreadyInCart = cartBookIds.includes(book.id);
 
-                  return (
-                    <div
-                      key={book.id}
-                      className="group rounded-[20px] border border-[#E5E0D8] bg-white p-4 shadow-sm transition hover:shadow-md"
-                    >
-                      <div className="relative overflow-hidden rounded-2xl bg-[#F7F4EE]">
-                        <Link href={`/book/${book.id}`}>
-                          {book.image_url ? (
-                            <img
-                              src={book.image_url}
-                              alt={book.title}
-                              className="h-64 w-full object-cover transition duration-300 group-hover:scale-[1.02]"
-                            />
-                          ) : (
-                            <div className="flex h-64 w-full items-center justify-center bg-[#EEF1F6] text-[#7B8593]">
-                              No Image
-                            </div>
-                          )}
-                        </Link>
+                    return (
+                      <div
+                        key={book.id}
+                        className="group rounded-[20px] border border-[#E5E0D8] bg-white p-4 shadow-sm transition hover:shadow-md"
+                      >
+                        <div className="relative overflow-hidden rounded-2xl bg-[#F7F4EE]">
+                          <Link href={`/book/${book.id}`}>
+                            {book.image_url ? (
+                              <img
+                                src={book.image_url}
+                                alt={book.title}
+                                className="h-64 w-full object-cover transition duration-300 group-hover:scale-[1.02]"
+                              />
+                            ) : (
+                              <div className="flex h-64 w-full items-center justify-center bg-[#EEF1F6] text-[#7B8593]">
+                                No Image
+                              </div>
+                            )}
+                          </Link>
 
-                        <span className="absolute left-3 top-3 rounded-full bg-white px-3 py-1 text-[11px] font-semibold text-[#1F1F1F] shadow-sm">
-                          {book.condition}
-                        </span>
+                          <span className="absolute left-3 top-3 rounded-full bg-white px-3 py-1 text-[11px] font-semibold text-[#1F1F1F] shadow-sm">
+                            {book.condition}
+                          </span>
 
-                        <button
-                          type="button"
-                          onClick={() => toggleWishlist(book.id)}
-                          disabled={isWishlistLoading}
-                          className="absolute right-3 top-3 rounded-full bg-white p-2 shadow-sm transition hover:bg-[#F7F4EE] disabled:opacity-50"
-                          aria-label="Toggle wishlist"
-                        >
-                          <Heart
-                            size={16}
-                            className={`transition ${
-                              isWishlisted
-                                ? "fill-red-500 text-red-500"
-                                : "text-[#1F1F1F]"
-                            }`}
-                          />
-                        </button>
-                      </div>
-
-                      <div className="pt-4">
-                        <Link href={`/book/${book.id}`}>
-                          <h2 className="line-clamp-2 min-h-[48px] text-base font-semibold text-[#1F1F1F]">
-                            {book.title}
-                          </h2>
-                        </Link>
-
-                        <p className="mt-1 line-clamp-1 text-sm text-[#8A8175]">
-                          {book.author}
-                        </p>
-
-                        <p className="mt-3 text-lg font-bold text-[#E67E22]">
-                          ₱{book.price}
-                        </p>
-
-                        <div className="mt-2 flex items-center gap-2 text-sm text-[#8A8175]">
-                          <MapPin size={14} />
-                          <span className="line-clamp-1">{book.location}</span>
-                        </div>
-
-                        <p className="mt-2 text-xs font-medium uppercase tracking-wide text-[#6B6B6B]">
-                          Available
-                        </p>
-
-                        <div className="mt-4 space-y-2">
                           <button
                             type="button"
-                            onClick={() => handleAddToCart(book.id)}
-                            disabled={isCartLoading}
-                            className="flex w-full items-center justify-center gap-2 rounded-full bg-[#E67E22] px-3 py-2 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-[#cf6f1c] disabled:cursor-not-allowed disabled:opacity-60"
+                            onClick={() => toggleWishlist(book.id)}
+                            disabled={isWishlistLoading}
+                            className="absolute right-3 top-3 rounded-full bg-white p-2 shadow-sm transition hover:bg-[#F7F4EE] disabled:opacity-50"
+                            aria-label="Toggle wishlist"
                           >
-                            <ShoppingCart size={14} />
-                            {isCartLoading
-                              ? "Adding..."
-                              : isAlreadyInCart
-                                ? "Add Again"
-                                : "Add to Cart"}
+                            <Heart
+                              size={16}
+                              className={`transition ${
+                                isWishlisted
+                                  ? "fill-red-500 text-red-500"
+                                  : "text-[#1F1F1F]"
+                              }`}
+                            />
                           </button>
+                        </div>
 
-                          <Link
-                            href={`/book/${book.id}`}
-                            className="flex w-full items-center justify-center gap-2 rounded-full border border-[#E8A16A] px-3 py-2 text-center text-xs font-semibold uppercase tracking-wide text-[#E67E22] transition hover:bg-[#E67E22] hover:text-white"
-                          >
-                            <Eye size={14} />
-                            View Book
+                        <div className="pt-4">
+                          <Link href={`/book/${book.id}`}>
+                            <h2 className="line-clamp-2 min-h-[48px] text-base font-semibold text-[#1F1F1F]">
+                              {book.title}
+                            </h2>
                           </Link>
+
+                          <p className="mt-1 line-clamp-1 text-sm text-[#8A8175]">
+                            {book.author}
+                          </p>
+
+                          <p className="mt-3 text-lg font-bold text-[#E67E22]">
+                            ₱{book.price}
+                          </p>
+
+                          <div className="mt-2 flex items-center gap-2 text-sm text-[#8A8175]">
+                            <MapPin size={14} />
+                            <span className="line-clamp-1">
+                              {book.location}
+                            </span>
+                          </div>
+
+                          <p className="mt-2 text-xs font-medium uppercase tracking-wide text-[#6B6B6B]">
+                            Available
+                          </p>
+
+                          <div className="mt-4 space-y-2">
+                            <button
+                              type="button"
+                              onClick={() => handleAddToCart(book.id)}
+                              disabled={isCartLoading}
+                              className="flex w-full items-center justify-center gap-2 rounded-full bg-[#E67E22] px-3 py-2 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-[#cf6f1c] disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              <ShoppingCart size={14} />
+                              {isCartLoading
+                                ? "Adding..."
+                                : isAlreadyInCart
+                                  ? "Add Again"
+                                  : "Add to Cart"}
+                            </button>
+
+                            <Link
+                              href={`/book/${book.id}`}
+                              className="flex w-full items-center justify-center gap-2 rounded-full border border-[#E8A16A] px-3 py-2 text-center text-xs font-semibold uppercase tracking-wide text-[#E67E22] transition hover:bg-[#E67E22] hover:text-white"
+                            >
+                              <Eye size={14} />
+                              View Book
+                            </Link>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </section>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
+          </div>
         </div>
       </div>
     </main>
@@ -620,9 +620,10 @@ export default function MarketplacePage() {
   return (
     <Suspense
       fallback={
-        <main className="mx-auto max-w-7xl px-6 py-10 text-[#6B6B6B]">
-          Loading marketplace...
-        </main>
+        <PageLoader
+          title="Loading marketplace..."
+          subtitle="Please wait while we prepare the latest listings for you."
+        />
       }
     >
       <MarketplaceContent />

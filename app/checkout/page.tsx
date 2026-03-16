@@ -13,6 +13,7 @@ import {
   ChevronRight,
   ShieldCheck,
 } from "lucide-react";
+import PageLoader from "@/components/PageLoader";
 
 type CartBook = {
   id: number;
@@ -353,9 +354,10 @@ function CheckoutContent() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-[#F7F5F1] px-4 py-8 text-[#6B6B6B] sm:px-6 sm:py-10">
-        Loading checkout...
-      </main>
+      <PageLoader
+        title="Loading checkout..."
+        subtitle="Please wait while we prepare your checkout details."
+      />
     );
   }
 
@@ -773,9 +775,10 @@ export default function CheckoutPage() {
   return (
     <Suspense
       fallback={
-        <main className="min-h-screen bg-[#F7F5F1] px-4 py-8 text-[#6B6B6B] sm:px-6 sm:py-10">
-          Loading checkout...
-        </main>
+        <PageLoader
+          title="Loading checkout..."
+          subtitle="Please wait while we prepare your checkout details."
+        />
       }
     >
       <CheckoutContent />

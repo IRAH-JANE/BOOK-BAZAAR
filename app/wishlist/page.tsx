@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import PageLoader from "@/components/PageLoader";
 
 type WishlistBook = {
   id: number;
@@ -95,11 +96,10 @@ export default function WishlistPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-[#F7F5F1] px-6 py-10">
-        <div className="mx-auto max-w-7xl text-[#6B6B6B]">
-          Loading wishlist...
-        </div>
-      </main>
+      <PageLoader
+        title="Loading wishlist..."
+        subtitle="Please wait while we load your saved books."
+      />
     );
   }
 
