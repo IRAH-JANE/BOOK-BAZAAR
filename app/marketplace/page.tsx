@@ -2,9 +2,8 @@
 
 import Link from "next/link";
 import { Suspense, useEffect, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import PageLoader from "@/components/PageLoader";
 import { useToast } from "@/components/ToastProvider";
 
 import {
@@ -45,8 +44,118 @@ type CartItem = {
   user_id: string;
 };
 
+function SkeletonBox({ className = "" }: { className?: string }) {
+  return (
+    <div className={`animate-pulse rounded-xl bg-[#E9E3D9] ${className}`} />
+  );
+}
+
+function MarketplaceSkeleton() {
+  return (
+    <main className="bg-[#F7F5F1] lg:h-[calc(100vh-76px)] lg:overflow-hidden">
+      <div className="mx-auto max-w-7xl px-6 lg:h-full">
+        <div className="grid gap-8 py-6 lg:grid-cols-[240px_minmax(0,1fr)] lg:h-full lg:py-0">
+          <aside className="hidden lg:block lg:h-full lg:overflow-hidden lg:border-r lg:border-[#E5E0D8] lg:pr-6 lg:pt-6">
+            <div className="sticky top-0 space-y-8">
+              <div>
+                <SkeletonBox className="mb-3 h-4 w-16" />
+                <SkeletonBox className="h-10 w-full" />
+              </div>
+
+              <div>
+                <SkeletonBox className="mb-3 h-4 w-24" />
+                <div className="space-y-2">
+                  {[...Array(5)].map((_, index) => (
+                    <SkeletonBox key={index} className="h-4 w-28" />
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <SkeletonBox className="mb-3 h-4 w-20" />
+                <div className="space-y-2">
+                  {[...Array(4)].map((_, index) => (
+                    <SkeletonBox key={index} className="h-4 w-24" />
+                  ))}
+                </div>
+              </div>
+
+              <SkeletonBox className="h-10 w-full" />
+            </div>
+          </aside>
+
+          <div className="min-w-0 lg:h-full lg:overflow-y-auto lg:-mr-38">
+            <section className="min-w-0 lg:pr-10 lg:pt-6 lg:pb-6">
+              <div className="mb-6 flex flex-col gap-4 border-b border-[#E5E0D8] pb-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <SkeletonBox className="h-8 w-48" />
+                  <SkeletonBox className="mt-2 h-4 w-72 max-w-full" />
+                  <SkeletonBox className="mt-2 h-4 w-40" />
+                </div>
+
+                <div className="hidden items-center gap-3 lg:flex">
+                  <SkeletonBox className="h-4 w-14" />
+                  <SkeletonBox className="h-10 w-40" />
+                </div>
+              </div>
+
+              <div className="fixed left-0 right-0 top-[120px] z-30 px-6 lg:hidden">
+                <div className="mx-auto max-w-7xl">
+                  <div className="rounded-2xl border border-white/20 bg-white/10 py-2 shadow-sm backdrop-blur-md">
+                    <div className="flex gap-2">
+                      <SkeletonBox className="h-11 flex-1 rounded-full" />
+                      <SkeletonBox className="h-11 flex-1 rounded-full" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-6 pb-6 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
+                {[...Array(8)].map((_, index) => (
+                  <div
+                    key={index}
+                    className="group rounded-[20px] border border-[#E5E0D8] bg-white p-4 shadow-sm"
+                  >
+                    <div className="relative overflow-hidden rounded-2xl bg-[#F7F4EE]">
+                      <SkeletonBox className="h-64 w-full rounded-2xl" />
+                      <SkeletonBox className="absolute left-3 top-3 h-7 w-20 rounded-full" />
+                      <SkeletonBox className="absolute right-3 top-3 h-8 w-8 rounded-full" />
+                    </div>
+
+                    <div className="pt-4">
+                      <SkeletonBox className="h-5 w-full" />
+                      <SkeletonBox className="mt-2 h-5 w-4/5" />
+                      <SkeletonBox className="mt-2 h-4 w-2/3" />
+                      <SkeletonBox className="mt-3 h-6 w-20" />
+
+                      <div className="mt-2 flex items-center gap-2">
+                        <SkeletonBox className="h-4 w-4 rounded-full" />
+                        <SkeletonBox className="h-4 w-24" />
+                      </div>
+
+                      <SkeletonBox className="mt-2 h-4 w-16" />
+
+                      <div className="mt-4 space-y-2">
+                        <SkeletonBox className="h-10 w-full rounded-full" />
+                        <SkeletonBox className="h-10 w-full rounded-full" />
+                        <SkeletonBox className="h-10 w-full rounded-full" />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </main>
+  );
+}
+
 function MarketplaceContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const { showToast } = useToast();
 
   const [books, setBooks] = useState<Book[]>([]);
   const [filteredBooks, setFilteredBooks] = useState<Book[]>([]);
@@ -60,6 +169,7 @@ function MarketplaceContent() {
   const [wishlistBookIds, setWishlistBookIds] = useState<number[]>([]);
   const [wishlistLoadingIds, setWishlistLoadingIds] = useState<number[]>([]);
   const [cartLoadingIds, setCartLoadingIds] = useState<number[]>([]);
+  const [buyNowLoadingIds, setBuyNowLoadingIds] = useState<number[]>([]);
   const [cartBookIds, setCartBookIds] = useState<number[]>([]);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [showMobileShortcutBar, setShowMobileShortcutBar] = useState(true);
@@ -210,7 +320,11 @@ function MarketplaceContent() {
 
   const toggleWishlist = async (bookId: number) => {
     if (!userId) {
-      alert("Please log in first to save books to your wishlist.");
+      showToast({
+        title: "Login required",
+        message: "Please log in first to save books to your wishlist.",
+        type: "info",
+      });
       return;
     }
 
@@ -228,9 +342,18 @@ function MarketplaceContent() {
         .eq("book_id", bookId);
 
       if (error) {
-        alert(error.message);
+        showToast({
+          title: "Wishlist update failed",
+          message: error.message,
+          type: "error",
+        });
       } else {
         setWishlistBookIds((prev) => prev.filter((id) => id !== bookId));
+        showToast({
+          title: "Removed from wishlist",
+          message: "The book was removed from your wishlist.",
+          type: "success",
+        });
       }
     } else {
       const { error } = await supabase.from("wishlists").insert([
@@ -241,9 +364,18 @@ function MarketplaceContent() {
       ]);
 
       if (error) {
-        alert(error.message);
+        showToast({
+          title: "Wishlist update failed",
+          message: error.message,
+          type: "error",
+        });
       } else {
         setWishlistBookIds((prev) => [...prev, bookId]);
+        showToast({
+          title: "Saved to wishlist",
+          message: "The book was added to your wishlist.",
+          type: "success",
+        });
       }
     }
 
@@ -252,7 +384,11 @@ function MarketplaceContent() {
 
   const handleAddToCart = async (bookId: number) => {
     if (!userId) {
-      alert("Please log in first to add books to your cart.");
+      showToast({
+        title: "Login required",
+        message: "Please log in first to add books to your cart.",
+        type: "info",
+      });
       return;
     }
 
@@ -293,12 +429,91 @@ function MarketplaceContent() {
         setCartBookIds((prev) => [...prev, bookId]);
       }
 
-      alert("Book added to cart.");
+      showToast({
+        title: "Added to cart",
+        message: "Book added to cart.",
+        type: "success",
+      });
     } catch (error) {
       console.error(error);
-      alert("Failed to add book to cart.");
+      showToast({
+        title: "Add to cart failed",
+        message: "Failed to add book to cart.",
+        type: "error",
+      });
     } finally {
       setCartLoadingIds((prev) => prev.filter((id) => id !== bookId));
+    }
+  };
+
+  const handleBuyNow = async (bookId: number) => {
+    if (!userId) {
+      showToast({
+        title: "Login required",
+        message: "Please log in first to buy this book.",
+        type: "info",
+      });
+      return;
+    }
+
+    if (buyNowLoadingIds.includes(bookId)) return;
+
+    setBuyNowLoadingIds((prev) => [...prev, bookId]);
+
+    try {
+      const { data: existingItem, error: existingError } = await supabase
+        .from("cart_items")
+        .select("id, quantity")
+        .eq("user_id", userId)
+        .eq("book_id", bookId)
+        .maybeSingle();
+
+      if (existingError) throw existingError;
+
+      let cartItemId: number | null = null;
+
+      if (existingItem) {
+        cartItemId = existingItem.id;
+      } else {
+        const { data: insertedItem, error: insertError } = await supabase
+          .from("cart_items")
+          .insert([
+            {
+              user_id: userId,
+              book_id: bookId,
+              quantity: 1,
+            },
+          ])
+          .select("id, book_id")
+          .single();
+
+        if (insertError) throw insertError;
+
+        if (insertedItem) {
+          cartItemId = insertedItem.id;
+          setCartBookIds((prev) => [...prev, bookId]);
+        }
+      }
+
+      if (!cartItemId) {
+        showToast({
+          title: "Checkout failed",
+          message: "Failed to continue to checkout.",
+          type: "error",
+        });
+        return;
+      }
+
+      router.push(`/checkout?items=${cartItemId}`);
+    } catch (error) {
+      console.error(error);
+      showToast({
+        title: "Buy now failed",
+        message: "Failed to process Buy Now.",
+        type: "error",
+      });
+    } finally {
+      setBuyNowLoadingIds((prev) => prev.filter((id) => id !== bookId));
     }
   };
 
@@ -392,12 +607,7 @@ function MarketplaceContent() {
   );
 
   if (loading) {
-    return (
-      <PageLoader
-        title="Loading marketplace..."
-        subtitle="Please wait while we prepare the latest listings for you."
-      />
-    );
+    return <MarketplaceSkeleton />;
   }
 
   return (
@@ -511,6 +721,7 @@ function MarketplaceContent() {
                       book.id,
                     );
                     const isCartLoading = cartLoadingIds.includes(book.id);
+                    const isBuyNowLoading = buyNowLoadingIds.includes(book.id);
                     const isAlreadyInCart = cartBookIds.includes(book.id);
 
                     return (
@@ -596,6 +807,16 @@ function MarketplaceContent() {
                                   : "Add to Cart"}
                             </button>
 
+                            <button
+                              type="button"
+                              onClick={() => handleBuyNow(book.id)}
+                              disabled={isBuyNowLoading}
+                              className="flex w-full items-center justify-center gap-2 rounded-full border border-[#E67E22] bg-[#FFF7EF] px-3 py-2 text-xs font-semibold uppercase tracking-wide text-[#E67E22] transition hover:bg-[#E67E22] hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              <ShoppingCart size={14} />
+                              {isBuyNowLoading ? "Processing..." : "Buy Now"}
+                            </button>
+
                             <Link
                               href={`/book/${book.id}`}
                               className="flex w-full items-center justify-center gap-2 rounded-full border border-[#E8A16A] px-3 py-2 text-center text-xs font-semibold uppercase tracking-wide text-[#E67E22] transition hover:bg-[#E67E22] hover:text-white"
@@ -620,14 +841,7 @@ function MarketplaceContent() {
 
 export default function MarketplacePage() {
   return (
-    <Suspense
-      fallback={
-        <PageLoader
-          title="Loading marketplace..."
-          subtitle="Please wait while we prepare the latest listings for you."
-        />
-      }
-    >
+    <Suspense fallback={<MarketplaceSkeleton />}>
       <MarketplaceContent />
     </Suspense>
   );

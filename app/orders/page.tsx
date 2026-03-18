@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
+import { useToast } from "@/components/ToastProvider";
+import { useConfirm } from "@/components/ConfirmProvider";
 import {
   CheckCircle2,
   Circle,
@@ -13,7 +15,6 @@ import {
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
-import PageLoader from "@/components/PageLoader";
 
 type OrderBook = {
   title: string;
@@ -80,7 +81,148 @@ const orderTabs = [
   { key: "cancelled", label: "Cancelled" },
 ] as const;
 
+function SkeletonBox({ className = "" }: { className?: string }) {
+  return (
+    <div className={`animate-pulse rounded-xl bg-[#E9E3D9] ${className}`} />
+  );
+}
+
+function OrdersPageSkeleton() {
+  return (
+    <main className="min-h-screen bg-[#F7F5F1] px-6 py-8">
+      <div className="mx-auto max-w-6xl">
+        <div className="mb-6">
+          <SkeletonBox className="h-4 w-32 rounded-full" />
+          <SkeletonBox className="mt-3 h-10 w-40" />
+          <SkeletonBox className="mt-2 h-5 w-80 max-w-full" />
+        </div>
+
+        <div className="mb-5 grid gap-3 sm:grid-cols-3">
+          {[...Array(3)].map((_, index) => (
+            <div
+              key={index}
+              className="rounded-2xl border border-[#E5E0D8] bg-white p-4 shadow-sm"
+            >
+              <div className="flex items-center gap-2">
+                <SkeletonBox className="h-4 w-4 rounded-full" />
+                <SkeletonBox className="h-4 w-24" />
+              </div>
+              <SkeletonBox className="mt-2 h-8 w-14" />
+            </div>
+          ))}
+        </div>
+
+        <div className="mb-5 flex flex-wrap gap-2">
+          {[...Array(6)].map((_, index) => (
+            <SkeletonBox key={index} className="h-10 w-24 rounded-full" />
+          ))}
+        </div>
+
+        <div className="space-y-4">
+          {[...Array(3)].map((_, index) => (
+            <div
+              key={index}
+              className="rounded-2xl border border-[#E5E0D8] bg-white p-4 shadow-sm"
+            >
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex min-w-0 items-center gap-3">
+                  <SkeletonBox className="h-14 w-11 rounded-lg" />
+
+                  <div className="min-w-0">
+                    <SkeletonBox className="h-7 w-28" />
+                    <SkeletonBox className="mt-2 h-4 w-24" />
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <SkeletonBox className="h-4 w-16" />
+                      <SkeletonBox className="h-4 w-3" />
+                      <SkeletonBox className="h-4 w-24" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <SkeletonBox className="h-8 w-24 rounded-full" />
+                  <SkeletonBox className="h-8 w-20 rounded-full" />
+                  <SkeletonBox className="h-9 w-20 rounded-full" />
+                </div>
+              </div>
+
+              <div className="mt-4 border-t border-[#EEE6DB] pt-4">
+                <div className="mb-4 rounded-xl border border-[#E5E0D8] bg-[#FFFDF9] px-3 py-3">
+                  <SkeletonBox className="h-4 w-24" />
+                  <div className="mt-3 grid grid-cols-7 items-center gap-2">
+                    {[...Array(7)].map((_, stepIndex) => (
+                      <div
+                        key={stepIndex}
+                        className="flex flex-col items-center gap-1"
+                      >
+                        <SkeletonBox className="h-5 w-5 rounded-full" />
+                        <SkeletonBox className="h-3 w-8" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mb-4 grid gap-3 rounded-xl bg-[#FFFDF9] p-3 ring-1 ring-[#EDE7DE] sm:grid-cols-2">
+                  {[...Array(4)].map((_, infoIndex) => (
+                    <div key={infoIndex}>
+                      <SkeletonBox className="h-3 w-24" />
+                      <SkeletonBox className="mt-2 h-4 w-32" />
+                    </div>
+                  ))}
+                </div>
+
+                <div className="space-y-3">
+                  {[...Array(2)].map((_, itemIndex) => (
+                    <div
+                      key={itemIndex}
+                      className="rounded-xl border border-[#E5E0D8] bg-[#FFFDF9] p-3"
+                    >
+                      <div className="flex gap-3">
+                        <SkeletonBox className="h-16 w-12 rounded" />
+
+                        <div className="flex-1">
+                          <SkeletonBox className="h-5 w-40" />
+                          <SkeletonBox className="mt-2 h-4 w-28" />
+
+                          <div className="mt-2 flex flex-wrap gap-3">
+                            <SkeletonBox className="h-4 w-12" />
+                            <SkeletonBox className="h-4 w-12" />
+                            <SkeletonBox className="h-4 w-20" />
+                          </div>
+
+                          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                            {[...Array(4)].map((_, metaIndex) => (
+                              <SkeletonBox
+                                key={metaIndex}
+                                className="h-4 w-40"
+                              />
+                            ))}
+                          </div>
+
+                          <SkeletonBox className="mt-3 h-9 w-36 rounded-full" />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-4 flex justify-between border-t pt-3">
+                  <SkeletonBox className="h-5 w-12" />
+                  <SkeletonBox className="h-7 w-24" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </main>
+  );
+}
+
 export default function OrdersPage() {
+  const { showToast } = useToast();
+  const { confirm } = useConfirm();
+
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [markingReceivedId, setMarkingReceivedId] = useState<number | null>(
@@ -137,7 +279,11 @@ export default function OrdersPage() {
       .order("created_at", { ascending: false });
 
     if (error) {
-      alert(error.message);
+      showToast({
+        title: "Failed to load orders",
+        message: error.message,
+        type: "error",
+      });
       setLoading(false);
       return;
     }
@@ -235,9 +381,14 @@ export default function OrdersPage() {
   };
 
   const handleCancelOrder = async (orderId: number) => {
-    const confirmed = window.confirm(
-      "Are you sure you want to cancel this order?",
-    );
+    const confirmed = await confirm({
+      title: "Cancel This Order?",
+      message:
+        "Are you sure you want to cancel this order? This action will update the order and its items as cancelled.",
+      confirmText: "Cancel Order",
+      cancelText: "Keep Order",
+      danger: true,
+    });
 
     if (!confirmed) return;
 
@@ -252,7 +403,11 @@ export default function OrdersPage() {
 
     if (itemsError) {
       setCancellingOrderId(null);
-      alert(itemsError.message);
+      showToast({
+        title: "Cancellation failed",
+        message: itemsError.message,
+        type: "error",
+      });
       return;
     }
 
@@ -266,14 +421,34 @@ export default function OrdersPage() {
     setCancellingOrderId(null);
 
     if (orderError) {
-      alert(orderError.message);
+      showToast({
+        title: "Cancellation failed",
+        message: orderError.message,
+        type: "error",
+      });
       return;
     }
+
+    showToast({
+      title: "Order cancelled",
+      message: "Your order has been cancelled successfully.",
+      type: "success",
+    });
 
     fetchOrders();
   };
 
   const handleMarkReceived = async (orderItemId: number, orderId: number) => {
+    const confirmed = await confirm({
+      title: "Mark as Received?",
+      message:
+        "Confirm that you have received this book. This helps update your order progress.",
+      confirmText: "Mark Received",
+      cancelText: "Not Yet",
+    });
+
+    if (!confirmed) return;
+
     setMarkingReceivedId(orderItemId);
 
     const { error: itemError } = await supabase
@@ -286,7 +461,11 @@ export default function OrdersPage() {
 
     if (itemError) {
       setMarkingReceivedId(null);
-      alert(itemError.message);
+      showToast({
+        title: "Update failed",
+        message: itemError.message,
+        type: "error",
+      });
       return;
     }
 
@@ -297,7 +476,11 @@ export default function OrdersPage() {
 
     if (siblingError) {
       setMarkingReceivedId(null);
-      alert(siblingError.message);
+      showToast({
+        title: "Update failed",
+        message: siblingError.message,
+        type: "error",
+      });
       return;
     }
 
@@ -318,9 +501,19 @@ export default function OrdersPage() {
     setMarkingReceivedId(null);
 
     if (orderError) {
-      alert(orderError.message);
+      showToast({
+        title: "Update failed",
+        message: orderError.message,
+        type: "error",
+      });
       return;
     }
+
+    showToast({
+      title: "Marked as received",
+      message: "The order item was marked as received.",
+      type: "success",
+    });
 
     fetchOrders();
   };
@@ -340,12 +533,7 @@ export default function OrdersPage() {
   }, [orders]);
 
   if (loading) {
-    return (
-      <PageLoader
-        title="Loading orders..."
-        subtitle="Please wait while we load your orders."
-      />
-    );
+    return <OrdersPageSkeleton />;
   }
 
   return (

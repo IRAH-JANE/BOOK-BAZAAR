@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { useToast } from "@/components/ToastProvider";
 import {
   BookOpen,
   ScanSearch,
@@ -60,6 +61,8 @@ type AutofillBook = {
 };
 
 export default function SellPage() {
+  const { showToast } = useToast();
+
   const [title, setTitle] = useState("");
   const [author, setAuthor] = useState("");
   const [description, setDescription] = useState("");
@@ -515,12 +518,20 @@ export default function SellPage() {
     const normalizedIsbn = isbn.replace(/[^0-9Xx]/g, "");
 
     if (!normalizedIsbn) {
-      alert("Enter an ISBN first.");
+      showToast({
+        title: "ISBN required",
+        message: "Enter an ISBN first.",
+        type: "info",
+      });
       return;
     }
 
     if (normalizedIsbn.length !== 10 && normalizedIsbn.length !== 13) {
-      alert("ISBN should be 10 or 13 digits only.");
+      showToast({
+        title: "Invalid ISBN",
+        message: "ISBN should be 10 or 13 digits only.",
+        type: "error",
+      });
       return;
     }
 
@@ -535,7 +546,11 @@ export default function SellPage() {
 
       if (googleBook) {
         applyAutofillBook(googleBook);
-        alert("Book details filled successfully from Google Books.");
+        showToast({
+          title: "Book details filled",
+          message: "Book details were autofilled from Google Books.",
+          type: "success",
+        });
         return;
       }
 
@@ -543,16 +558,26 @@ export default function SellPage() {
 
       if (openLibraryBook) {
         applyAutofillBook(openLibraryBook);
-        alert("Book details filled successfully from Open Library.");
+        showToast({
+          title: "Book details filled",
+          message: "Book details were autofilled from Open Library.",
+          type: "success",
+        });
         return;
       }
 
-      alert(
-        "No match found. Please check the ISBN or fill in the details manually.",
-      );
+      showToast({
+        title: "No match found",
+        message: "Please check the ISBN or fill in the details manually.",
+        type: "info",
+      });
     } catch (error) {
       console.error("ISBN lookup failed:", error);
-      alert("ISBN lookup failed. Please check your internet or API setup.");
+      showToast({
+        title: "Lookup failed",
+        message: "ISBN lookup failed. Please check your internet or API setup.",
+        type: "error",
+      });
     } finally {
       setLookupLoading(false);
     }
@@ -578,13 +603,21 @@ export default function SellPage() {
     const parsedStock = Number(stockQuantity);
 
     if (!parsedPrice || parsedPrice <= 0) {
-      alert("Please enter a valid price.");
+      showToast({
+        title: "Invalid price",
+        message: "Please enter a valid price.",
+        type: "error",
+      });
       setPosting(false);
       return;
     }
 
     if (!parsedStock || parsedStock < 1) {
-      alert("Stock quantity must be at least 1.");
+      showToast({
+        title: "Invalid stock quantity",
+        message: "Stock quantity must be at least 1.",
+        type: "error",
+      });
       setPosting(false);
       return;
     }
@@ -595,7 +628,11 @@ export default function SellPage() {
     } = await supabase.auth.getUser();
 
     if (userError || !user) {
-      alert("You must be logged in to sell a book.");
+      showToast({
+        title: "Login required",
+        message: "You must be logged in to sell a book.",
+        type: "error",
+      });
       setPosting(false);
       return;
     }
@@ -612,7 +649,11 @@ export default function SellPage() {
         .upload(filePath, imageFile);
 
       if (uploadError) {
-        alert(uploadError.message);
+        showToast({
+          title: "Image upload failed",
+          message: uploadError.message,
+          type: "error",
+        });
         setPosting(false);
         return;
       }
@@ -647,11 +688,19 @@ export default function SellPage() {
     setPosting(false);
 
     if (error) {
-      alert(error.message);
+      showToast({
+        title: "Listing failed",
+        message: error.message,
+        type: "error",
+      });
       return;
     }
 
-    alert("Book listed successfully!");
+    showToast({
+      title: "Book listed successfully",
+      message: "Your book has been published on BookBazaar.",
+      type: "success",
+    });
 
     setIsbn("");
     setTitle("");

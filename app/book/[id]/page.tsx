@@ -224,7 +224,7 @@ export default async function BookDetailsPage({ params }: BookPageProps) {
 
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
                   {categoryName && (
-                    <div className="rounded-2xl bg-[#F7F4EE] p-4">
+                    <div className="rounded-2xl bg-[#F7FEE] p-4">
                       <p className="text-xs font-semibold uppercase tracking-wide text-[#8A8175]">
                         Category
                       </p>

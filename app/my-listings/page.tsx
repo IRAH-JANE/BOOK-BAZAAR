@@ -17,7 +17,6 @@ import {
   Archive,
   XCircle,
 } from "lucide-react";
-import PageLoader from "@/components/PageLoader";
 
 type BookStatus = "active" | "reserved" | "sold" | "hidden";
 
@@ -34,6 +33,113 @@ type Book = {
   sold_count: number | null;
   created_at?: string | null;
 };
+
+function SkeletonBox({ className = "" }: { className?: string }) {
+  return (
+    <div className={`animate-pulse rounded-xl bg-[#E9E3D9] ${className}`} />
+  );
+}
+
+function MyListingsPageSkeleton() {
+  return (
+    <>
+      <main className="min-h-screen bg-[#F7F5F1] px-4 py-8 sm:px-6 sm:py-10">
+        <div className="mx-auto max-w-7xl">
+          <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <SkeletonBox className="h-4 w-32 rounded-full" />
+              <SkeletonBox className="mt-3 h-10 w-56" />
+              <SkeletonBox className="mt-2 h-5 w-72 max-w-full" />
+            </div>
+
+            <SkeletonBox className="h-12 w-40 rounded-full" />
+          </div>
+
+          <section className="mb-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {[...Array(4)].map((_, index) => (
+              <div
+                key={index}
+                className="rounded-2xl border border-[#E5E0D8] bg-white p-4 shadow-sm sm:rounded-3xl sm:p-5"
+              >
+                <div className="flex items-center gap-3">
+                  <SkeletonBox className="h-[18px] w-[18px] rounded-full" />
+                  <SkeletonBox className="h-4 w-24" />
+                </div>
+                <SkeletonBox className="mt-4 h-8 w-16" />
+              </div>
+            ))}
+          </section>
+
+          <section className="mb-8 rounded-2xl border border-[#E5E0D8] bg-white p-4 shadow-sm sm:rounded-3xl sm:p-5">
+            <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr_0.8fr_0.8fr]">
+              <div className="relative">
+                <SkeletonBox className="h-[48px] w-full rounded-2xl" />
+              </div>
+
+              <SkeletonBox className="h-[48px] w-full rounded-2xl" />
+              <SkeletonBox className="h-[48px] w-full rounded-2xl" />
+              <SkeletonBox className="h-[48px] w-full rounded-2xl" />
+            </div>
+
+            <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+              <SkeletonBox className="h-4 w-44" />
+              <SkeletonBox className="h-10 w-28 rounded-full" />
+            </div>
+          </section>
+
+          <div className="space-y-4">
+            {[...Array(4)].map((_, index) => (
+              <div
+                key={index}
+                className="rounded-2xl border border-[#E5E0D8] bg-white p-4 shadow-sm sm:rounded-3xl sm:p-5"
+              >
+                <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:gap-4">
+                    <SkeletonBox className="h-28 w-24 shrink-0 rounded-2xl" />
+
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <SkeletonBox className="h-8 w-56" />
+                        <SkeletonBox className="h-7 w-20 rounded-full" />
+                      </div>
+
+                      <SkeletonBox className="mt-2 h-5 w-40" />
+
+                      <div className="mt-4 flex flex-wrap items-center gap-3">
+                        <SkeletonBox className="h-8 w-20 rounded-full" />
+                        <SkeletonBox className="h-8 w-24 rounded-full" />
+                      </div>
+
+                      <div className="mt-3 flex items-center gap-2">
+                        <SkeletonBox className="h-4 w-4 rounded-full" />
+                        <SkeletonBox className="h-4 w-32" />
+                      </div>
+
+                      <div className="mt-4 grid gap-2 text-sm sm:flex sm:flex-wrap sm:gap-3">
+                        <SkeletonBox className="h-9 w-24 rounded-2xl" />
+                        <SkeletonBox className="h-9 w-24 rounded-2xl" />
+                        <SkeletonBox className="h-9 w-28 rounded-2xl" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2 xl:max-w-[360px] xl:justify-end">
+                    {[...Array(6)].map((_, btnIndex) => (
+                      <SkeletonBox
+                        key={btnIndex}
+                        className="h-10 w-28 rounded-full"
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </main>
+    </>
+  );
+}
 
 export default function MyListingsPage() {
   const [books, setBooks] = useState<Book[]>([]);
@@ -304,12 +410,7 @@ export default function MyListingsPage() {
   };
 
   if (loading) {
-    return (
-      <PageLoader
-        title="Loading your listings..."
-        subtitle="Please wait while we prepare your seller listings."
-      />
-    );
+    return <MyListingsPageSkeleton />;
   }
 
   return (

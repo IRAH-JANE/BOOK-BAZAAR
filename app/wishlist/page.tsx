@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import PageLoader from "@/components/PageLoader";
+import { useToast } from "@/components/ToastProvider";
+import { useConfirm } from "@/components/ConfirmProvider";
 
 type WishlistBook = {
   id: number;
@@ -18,9 +19,58 @@ type WishlistBook = {
   } | null;
 };
 
+function SkeletonBox({ className = "" }: { className?: string }) {
+  return (
+    <div className={`animate-pulse rounded-xl bg-[#E9E3D9] ${className}`} />
+  );
+}
+
+function WishlistPageSkeleton() {
+  return (
+    <main className="min-h-screen bg-[#F7F5F1] px-6 py-10">
+      <div className="mx-auto max-w-7xl">
+        <div className="mb-8">
+          <SkeletonBox className="h-4 w-28 rounded-full" />
+          <SkeletonBox className="mt-3 h-10 w-56" />
+          <SkeletonBox className="mt-2 h-5 w-80 max-w-full" />
+        </div>
+
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {[...Array(8)].map((_, index) => (
+            <div
+              key={index}
+              className="overflow-hidden rounded-[24px] border border-[#E5E0D8] bg-white shadow-sm"
+            >
+              <SkeletonBox className="h-64 w-full rounded-none" />
+
+              <div className="p-5">
+                <SkeletonBox className="h-6 w-full" />
+                <SkeletonBox className="mt-2 h-6 w-4/5" />
+
+                <SkeletonBox className="mt-3 h-4 w-32" />
+                <SkeletonBox className="mt-3 h-6 w-20" />
+                <SkeletonBox className="mt-2 h-4 w-40" />
+
+                <div className="mt-5 flex gap-2">
+                  <SkeletonBox className="h-10 flex-1 rounded-full" />
+                  <SkeletonBox className="h-10 flex-1 rounded-full" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </main>
+  );
+}
+
 export default function WishlistPage() {
+  const { showToast } = useToast();
+  const { confirm } = useConfirm();
+
   const [items, setItems] = useState<WishlistBook[]>([]);
   const [loading, setLoading] = useState(true);
+  const [removingId, setRemovingId] = useState<number | null>(null);
 
   const fetchWishlist = async () => {
     const {
@@ -51,7 +101,11 @@ export default function WishlistPage() {
       .eq("user_id", user.id);
 
     if (error) {
-      alert(error.message);
+      showToast({
+        title: "Failed to load wishlist",
+        message: error.message,
+        type: "error",
+      });
       setLoading(false);
       return;
     }
@@ -81,26 +135,45 @@ export default function WishlistPage() {
   }, []);
 
   const handleRemove = async (wishlistId: number) => {
+    const confirmed = await confirm({
+      title: "Remove from Wishlist?",
+      message: "Are you sure you want to remove this book from your wishlist?",
+      confirmText: "Remove",
+      cancelText: "Keep Book",
+      danger: true,
+    });
+
+    if (!confirmed) return;
+
+    setRemovingId(wishlistId);
+
     const { error } = await supabase
       .from("wishlists")
       .delete()
       .eq("id", wishlistId);
 
     if (error) {
-      alert(error.message);
+      setRemovingId(null);
+      showToast({
+        title: "Remove failed",
+        message: error.message,
+        type: "error",
+      });
       return;
     }
+
+    setRemovingId(null);
+    showToast({
+      title: "Removed from wishlist",
+      message: "The book has been removed from your wishlist.",
+      type: "success",
+    });
 
     fetchWishlist();
   };
 
   if (loading) {
-    return (
-      <PageLoader
-        title="Loading wishlist..."
-        subtitle="Please wait while we load your saved books."
-      />
-    );
+    return <WishlistPageSkeleton />;
   }
 
   return (
@@ -178,9 +251,10 @@ export default function WishlistPage() {
 
                     <button
                       onClick={() => handleRemove(item.id)}
-                      className="flex-1 rounded-full border border-red-400 px-4 py-2 text-sm font-semibold text-red-500 transition hover:bg-red-50"
+                      disabled={removingId === item.id}
+                      className="flex-1 rounded-full border border-red-400 px-4 py-2 text-sm font-semibold text-red-500 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      Remove
+                      {removingId === item.id ? "Removing..." : "Remove"}
                     </button>
                   </div>
                 </div>

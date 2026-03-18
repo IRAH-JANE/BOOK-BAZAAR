@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { useToast } from "@/components/ToastProvider";
 import { Minus, Plus, Trash2 } from "lucide-react";
-import PageLoader from "@/components/PageLoader";
 
 type CartBook = {
   id: number;
@@ -20,6 +20,106 @@ type CartItem = {
   books: CartBook | CartBook[] | null;
 };
 
+function SkeletonBox({ className = "" }: { className?: string }) {
+  return (
+    <div className={`animate-pulse rounded-xl bg-[#E9E3D9] ${className}`} />
+  );
+}
+
+function CartPageSkeleton() {
+  return (
+    <main className="min-h-screen bg-[#F7F5F1] px-4 py-8 sm:px-6 sm:py-10">
+      <div className="mx-auto max-w-6xl">
+        <div className="mb-8">
+          <SkeletonBox className="h-4 w-28 rounded-full" />
+          <SkeletonBox className="mt-2 h-10 w-40" />
+          <SkeletonBox className="mt-2 h-5 w-80 max-w-full" />
+        </div>
+
+        <div className="grid gap-6 lg:grid-cols-[1fr_340px] lg:items-start lg:gap-8">
+          <div>
+            <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-[#E5E0D8] bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:rounded-3xl sm:p-5">
+              <div className="flex items-center gap-3">
+                <SkeletonBox className="h-4 w-4 rounded-sm" />
+                <SkeletonBox className="h-4 w-24" />
+              </div>
+
+              <SkeletonBox className="h-10 w-full rounded-full sm:w-40" />
+            </div>
+
+            <div className="space-y-4">
+              {[...Array(3)].map((_, index) => (
+                <div
+                  key={index}
+                  className="rounded-2xl border border-[#E5E0D8] bg-white p-4 shadow-sm sm:rounded-3xl"
+                >
+                  <div className="flex flex-col gap-4">
+                    <div className="flex items-center gap-3 sm:gap-4">
+                      <div className="flex h-full items-center">
+                        <SkeletonBox className="h-5 w-5 rounded-sm" />
+                      </div>
+
+                      <div className="flex min-w-0 flex-1 gap-3 sm:gap-4">
+                        <SkeletonBox className="h-24 w-20 shrink-0 rounded-2xl sm:h-28 sm:w-24" />
+
+                        <div className="min-w-0 flex-1">
+                          <SkeletonBox className="h-6 w-2/3" />
+                          <SkeletonBox className="mt-2 h-4 w-32" />
+
+                          <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
+                            <SkeletonBox className="h-5 w-20" />
+                            <SkeletonBox className="h-5 w-28" />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-3 border-t border-[#F0EAE2] pt-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex flex-wrap items-center gap-3">
+                        <SkeletonBox className="h-10 w-32 rounded-full" />
+                        <SkeletonBox className="h-4 w-20" />
+                      </div>
+
+                      <SkeletonBox className="h-10 w-full rounded-full sm:w-28" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="lg:sticky lg:top-24">
+            <div className="h-fit rounded-2xl border border-[#E5E0D8] bg-white p-5 shadow-sm sm:rounded-3xl sm:p-6">
+              <SkeletonBox className="h-8 w-40" />
+
+              <div className="mt-6 space-y-3">
+                <div className="flex items-center justify-between">
+                  <SkeletonBox className="h-4 w-24" />
+                  <SkeletonBox className="h-4 w-8" />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <SkeletonBox className="h-4 w-24" />
+                  <SkeletonBox className="h-4 w-8" />
+                </div>
+
+                <div className="border-t border-[#E5E0D8] pt-4">
+                  <div className="flex items-center justify-between gap-4">
+                    <SkeletonBox className="h-6 w-16" />
+                    <SkeletonBox className="h-8 w-28" />
+                  </div>
+                </div>
+              </div>
+
+              <SkeletonBox className="mt-6 h-12 w-full rounded-full" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  );
+}
+
 export default function CartPage() {
   const [items, setItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,6 +130,7 @@ export default function CartPage() {
 
   const isMountedRef = useRef(true);
   const latestRequestRef = useRef(0);
+  const { showToast } = useToast();
 
   const getBook = (item: CartItem): CartBook | null => {
     if (!item.books) return null;
@@ -127,7 +228,11 @@ export default function CartPage() {
       await fetchCart();
     } catch (error) {
       console.error("Failed to remove item:", error);
-      alert("Failed to remove item from cart.");
+      showToast({
+        title: "Remove failed",
+        message: "Failed to remove item from cart.",
+        type: "error",
+      });
     } finally {
       setRemovingOneId(null);
     }
@@ -135,7 +240,11 @@ export default function CartPage() {
 
   const handleRemoveSelected = async () => {
     if (selectedIds.length === 0) {
-      alert("Please select at least one item.");
+      showToast({
+        title: "No items selected",
+        message: "Please select at least one item.",
+        type: "info",
+      });
       return;
     }
 
@@ -155,7 +264,11 @@ export default function CartPage() {
       await fetchCart();
     } catch (error) {
       console.error("Failed to remove selected items:", error);
-      alert("Failed to remove selected items.");
+      showToast({
+        title: "Remove failed",
+        message: "Failed to remove selected items.",
+        type: "error",
+      });
     } finally {
       setRemovingSelected(false);
     }
@@ -181,7 +294,11 @@ export default function CartPage() {
       );
     } catch (error) {
       console.error("Failed to update quantity:", error);
-      alert("Failed to update quantity.");
+      showToast({
+        title: "Update failed",
+        message: "Failed to update quantity.",
+        type: "error",
+      });
     } finally {
       setUpdatingQtyId(null);
     }
@@ -221,12 +338,7 @@ export default function CartPage() {
   );
 
   if (loading) {
-    return (
-      <PageLoader
-        title="Loading cart..."
-        subtitle="Please wait while we load your cart items."
-      />
-    );
+    return <CartPageSkeleton />;
   }
 
   return (
@@ -257,7 +369,7 @@ export default function CartPage() {
             </Link>
           </div>
         ) : (
-          <div className="grid gap-6 lg:grid-cols-[1fr_340px] lg:gap-8">
+          <div className="grid gap-6 lg:grid-cols-[1fr_340px] lg:items-start lg:gap-8">
             <div>
               <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-[#E5E0D8] bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:rounded-3xl sm:p-5">
                 <label className="flex items-center gap-3 text-sm font-medium text-[#1F1F1F]">
@@ -292,8 +404,8 @@ export default function CartPage() {
                       className="rounded-2xl border border-[#E5E0D8] bg-white p-4 shadow-sm transition hover:shadow-md sm:rounded-3xl"
                     >
                       <div className="flex flex-col gap-4">
-                        <div className="flex items-start gap-3 sm:gap-4">
-                          <div className="pt-1">
+                        <div className="flex items-center gap-3 sm:gap-4">
+                          <div className="flex h-full items-center">
                             <input
                               type="checkbox"
                               checked={isSelected}
@@ -396,52 +508,54 @@ export default function CartPage() {
               </div>
             </div>
 
-            <div className="h-fit rounded-2xl border border-[#E5E0D8] bg-white p-5 shadow-sm sm:rounded-3xl sm:p-6">
-              <h2 className="text-xl font-bold text-[#1F1F1F] sm:text-2xl">
-                Order Summary
-              </h2>
+            <div className="lg:sticky lg:top-24">
+              <div className="h-fit rounded-2xl border border-[#E5E0D8] bg-white p-5 shadow-sm sm:rounded-3xl sm:p-6">
+                <h2 className="text-xl font-bold text-[#1F1F1F] sm:text-2xl">
+                  Order Summary
+                </h2>
 
-              <div className="mt-6 space-y-3">
-                <div className="flex items-center justify-between text-sm text-[#6B6B6B] sm:text-base">
-                  <span>Selected Items</span>
-                  <span>{selectedItems.length}</span>
-                </div>
+                <div className="mt-6 space-y-3">
+                  <div className="flex items-center justify-between text-sm text-[#6B6B6B] sm:text-base">
+                    <span>Selected Items</span>
+                    <span>{selectedItems.length}</span>
+                  </div>
 
-                <div className="flex items-center justify-between text-sm text-[#6B6B6B] sm:text-base">
-                  <span>Total Quantity</span>
-                  <span>{totalQuantity}</span>
-                </div>
+                  <div className="flex items-center justify-between text-sm text-[#6B6B6B] sm:text-base">
+                    <span>Total Quantity</span>
+                    <span>{totalQuantity}</span>
+                  </div>
 
-                <div className="border-t border-[#E5E0D8] pt-4">
-                  <div className="flex items-center justify-between gap-4">
-                    <span className="text-lg font-semibold text-[#1F1F1F]">
-                      Total
-                    </span>
-                    <span className="break-words text-right text-2xl font-bold text-[#E67E22] sm:text-3xl">
-                      ₱{total.toFixed(2)}
-                    </span>
+                  <div className="border-t border-[#E5E0D8] pt-4">
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="text-lg font-semibold text-[#1F1F1F]">
+                        Total
+                      </span>
+                      <span className="break-words text-right text-2xl font-bold text-[#E67E22] sm:text-3xl">
+                        ₱{total.toFixed(2)}
+                      </span>
+                    </div>
                   </div>
                 </div>
+
+                {selectedItems.length > 0 ? (
+                  <Link
+                    href={`/checkout?items=${selectedIds.join(",")}`}
+                    className="mt-6 block w-full rounded-full bg-[#E67E22] px-5 py-3 text-center text-sm font-semibold text-white transition hover:bg-[#cf6f1c] sm:text-base"
+                  >
+                    Proceed to Checkout
+                  </Link>
+                ) : (
+                  <div className="mt-6 block w-full rounded-full bg-gray-300 px-5 py-3 text-center text-sm font-semibold text-white sm:text-base">
+                    Proceed to Checkout
+                  </div>
+                )}
+
+                {selectedItems.length === 0 && (
+                  <p className="mt-3 text-center text-sm text-[#8A8175]">
+                    Select at least one item to continue.
+                  </p>
+                )}
               </div>
-
-              {selectedItems.length > 0 ? (
-                <Link
-                  href={`/checkout?items=${selectedIds.join(",")}`}
-                  className="mt-6 block w-full rounded-full bg-[#E67E22] px-5 py-3 text-center text-sm font-semibold text-white transition hover:bg-[#cf6f1c] sm:text-base"
-                >
-                  Proceed to Checkout
-                </Link>
-              ) : (
-                <div className="mt-6 block w-full rounded-full bg-gray-300 px-5 py-3 text-center text-sm font-semibold text-white sm:text-base">
-                  Proceed to Checkout
-                </div>
-              )}
-
-              {selectedItems.length === 0 && (
-                <p className="mt-3 text-center text-sm text-[#8A8175]">
-                  Select at least one item to continue.
-                </p>
-              )}
             </div>
           </div>
         )}

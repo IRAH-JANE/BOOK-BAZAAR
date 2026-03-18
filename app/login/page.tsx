@@ -4,9 +4,11 @@ import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useToast } from "@/components/ToastProvider";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { showToast } = useToast();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -23,7 +25,11 @@ export default function LoginPage() {
 
     if (error) {
       setLoading(false);
-      alert(error.message);
+      showToast({
+        title: "Login failed",
+        message: error.message,
+        type: "error",
+      });
       return;
     }
 
@@ -33,7 +39,11 @@ export default function LoginPage() {
 
     if (!user) {
       setLoading(false);
-      alert("Login succeeded but user session was not found.");
+      showToast({
+        title: "Session not found",
+        message: "Login succeeded but user session was not found.",
+        type: "error",
+      });
       return;
     }
 
@@ -44,7 +54,12 @@ export default function LoginPage() {
       .maybeSingle();
 
     setLoading(false);
-    alert("Login successful");
+
+    showToast({
+      title: "Login successful",
+      message: "Welcome back to BookBazaar.",
+      type: "success",
+    });
 
     if (profile?.role === "admin") {
       router.push("/admin");

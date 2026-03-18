@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
+import { useToast } from "@/components/ToastProvider";
+import { useConfirm } from "@/components/ConfirmProvider";
 import {
   ChevronDown,
   ChevronUp,
@@ -11,7 +13,6 @@ import {
   Truck,
   CheckCircle2,
 } from "lucide-react";
-import PageLoader from "@/components/PageLoader";
 
 type SellerBook = {
   title: string;
@@ -46,8 +47,134 @@ type GroupedOrder = {
   items: SellerOrderItem[];
 };
 
+function SkeletonBox({ className = "" }: { className?: string }) {
+  return (
+    <div className={`animate-pulse rounded-xl bg-[#E9E3D9] ${className}`} />
+  );
+}
+
+function SellerOrdersPageSkeleton() {
+  return (
+    <main className="min-h-screen bg-[#F7F5F1] px-6 py-8">
+      <div className="mx-auto max-w-5xl">
+        <div className="mb-6">
+          <SkeletonBox className="h-4 w-32 rounded-full" />
+          <SkeletonBox className="mt-3 h-10 w-56" />
+          <SkeletonBox className="mt-2 h-5 w-80 max-w-full" />
+        </div>
+
+        <div className="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {[...Array(4)].map((_, index) => (
+            <div
+              key={index}
+              className="rounded-2xl border border-[#E5E0D8] bg-white p-4 shadow-sm"
+            >
+              <div className="flex items-center gap-2">
+                <SkeletonBox className="h-4 w-4 rounded-full" />
+                <SkeletonBox className="h-4 w-24" />
+              </div>
+              <SkeletonBox className="mt-2 h-8 w-12" />
+            </div>
+          ))}
+        </div>
+
+        <div className="mb-5 rounded-2xl border border-[#E5E0D8] bg-white p-4 shadow-sm">
+          <div className="grid gap-3 md:grid-cols-[1fr_200px]">
+            <SkeletonBox className="h-[42px] w-full rounded-xl" />
+            <SkeletonBox className="h-[42px] w-full rounded-xl" />
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          {[...Array(3)].map((_, index) => (
+            <div
+              key={index}
+              className="rounded-2xl border border-[#E5E0D8] bg-white p-4 shadow-sm"
+            >
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex min-w-0 items-center gap-3">
+                  <SkeletonBox className="h-14 w-11 rounded-lg" />
+                  <div className="min-w-0">
+                    <SkeletonBox className="h-7 w-28" />
+                    <SkeletonBox className="mt-2 h-4 w-24" />
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <SkeletonBox className="h-4 w-16" />
+                      <SkeletonBox className="h-4 w-3" />
+                      <SkeletonBox className="h-4 w-20" />
+                      <SkeletonBox className="h-4 w-3" />
+                      <SkeletonBox className="h-4 w-20" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <SkeletonBox className="h-8 w-28 rounded-full" />
+                  <SkeletonBox className="h-8 w-20 rounded-full" />
+                </div>
+              </div>
+
+              <div className="mt-4 border-t border-[#EEE6DB] pt-4">
+                <div className="mb-4 rounded-xl bg-[#FFFDF9] p-3 ring-1 ring-[#EDE7DE]">
+                  <SkeletonBox className="h-3 w-36" />
+                  <SkeletonBox className="mt-2 h-4 w-full" />
+                  <SkeletonBox className="mt-2 h-4 w-2/3" />
+
+                  <SkeletonBox className="mt-4 h-3 w-28" />
+                  <SkeletonBox className="mt-2 h-4 w-1/2" />
+                </div>
+
+                <div className="space-y-3">
+                  {[...Array(2)].map((_, itemIndex) => (
+                    <div
+                      key={itemIndex}
+                      className="rounded-xl border border-[#E5E0D8] bg-[#FFFDF9] p-3"
+                    >
+                      <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="flex min-w-0 items-center gap-3">
+                          <SkeletonBox className="h-14 w-12 rounded-lg" />
+                          <div className="min-w-0">
+                            <SkeletonBox className="h-5 w-40" />
+                            <SkeletonBox className="mt-2 h-4 w-28" />
+                            <div className="mt-2 flex flex-wrap gap-3">
+                              <SkeletonBox className="h-4 w-12" />
+                              <SkeletonBox className="h-4 w-12" />
+                            </div>
+                          </div>
+                        </div>
+
+                        <SkeletonBox className="h-7 w-24 rounded-full" />
+                      </div>
+
+                      <div className="grid gap-3 md:grid-cols-3">
+                        <SkeletonBox className="h-[42px] w-full rounded-xl" />
+                        <SkeletonBox className="h-[42px] w-full rounded-xl" />
+                        <SkeletonBox className="h-[42px] w-full rounded-xl" />
+                      </div>
+
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                        {[...Array(4)].map((_, btnIndex) => (
+                          <SkeletonBox
+                            key={btnIndex}
+                            className="h-8 w-24 rounded-full"
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </main>
+  );
+}
+
 export default function SellerOrdersPage() {
   const router = useRouter();
+  const { showToast } = useToast();
+  const { confirm } = useConfirm();
 
   const [groupedOrders, setGroupedOrders] = useState<GroupedOrder[]>([]);
   const [loading, setLoading] = useState(true);
@@ -152,7 +279,11 @@ export default function SellerOrdersPage() {
       .order("id", { ascending: false });
 
     if (error) {
-      alert(error.message);
+      showToast({
+        title: "Failed to load orders",
+        message: error.message,
+        type: "error",
+      });
       setLoading(false);
       return;
     }
@@ -271,16 +402,22 @@ export default function SellerOrdersPage() {
       })
       .eq("id", itemId);
 
-    setSavingId(itemId);
-
     if (error) {
       setSavingId(null);
-      alert(error.message);
+      showToast({
+        title: "Save failed",
+        message: error.message,
+        type: "error",
+      });
       return;
     }
 
     setSavingId(null);
-    alert("Shipping info saved.");
+    showToast({
+      title: "Shipping info saved",
+      message: "The shipping details were saved successfully.",
+      type: "success",
+    });
     fetchSellerOrders();
   };
 
@@ -295,6 +432,69 @@ export default function SellerOrdersPage() {
       | "delivered"
       | "cancelled",
   ) => {
+    const statusMessages: Record<
+      string,
+      {
+        title: string;
+        message: string;
+        danger?: boolean;
+        confirmText: string;
+        cancelText: string;
+      }
+    > = {
+      confirmed: {
+        title: "Confirm Item?",
+        message: "Mark this order item as confirmed?",
+        confirmText: "Confirm",
+        cancelText: "Back",
+      },
+      packed: {
+        title: "Mark as Packed?",
+        message:
+          "Confirm that this item is already packed and ready for shipment.",
+        confirmText: "Mark Packed",
+        cancelText: "Back",
+      },
+      shipped: {
+        title: "Mark as Shipped?",
+        message: "Confirm that this item has already been shipped.",
+        confirmText: "Mark Shipped",
+        cancelText: "Back",
+      },
+      out_for_delivery: {
+        title: "Mark as Out for Delivery?",
+        message: "Confirm that this item is already out for delivery.",
+        confirmText: "Update Status",
+        cancelText: "Back",
+      },
+      delivered: {
+        title: "Mark as Delivered?",
+        message:
+          "Confirm that this item has already been delivered to the buyer.",
+        confirmText: "Mark Delivered",
+        cancelText: "Back",
+      },
+      cancelled: {
+        title: "Cancel Item?",
+        message: "Are you sure you want to cancel this order item?",
+        confirmText: "Cancel Item",
+        cancelText: "Keep Item",
+        danger: true,
+      },
+    };
+
+    const config = statusMessages[nextStatus];
+
+    const confirmed = await confirm({
+      title: config.title,
+      message: config.message,
+      confirmText: config.confirmText,
+      cancelText: config.cancelText,
+      danger: config.danger,
+    });
+
+    if (!confirmed) return;
+
     setSavingId(itemId);
 
     const courier = courierInputs[itemId] || null;
@@ -305,9 +505,12 @@ export default function SellerOrdersPage() {
       (!courier || !tracking)
     ) {
       setSavingId(null);
-      alert(
-        "Please fill in and save courier and tracking number first before updating this status.",
-      );
+      showToast({
+        title: "Missing shipping details",
+        message:
+          "Please fill in and save courier and tracking number first before updating this status.",
+        type: "error",
+      });
       return;
     }
 
@@ -320,7 +523,11 @@ export default function SellerOrdersPage() {
 
     if (itemError) {
       setSavingId(null);
-      alert(itemError.message);
+      showToast({
+        title: "Status update failed",
+        message: itemError.message,
+        type: "error",
+      });
       return;
     }
 
@@ -328,11 +535,21 @@ export default function SellerOrdersPage() {
       await syncParentOrderStatus(orderId);
     } catch (error) {
       setSavingId(null);
-      alert(error instanceof Error ? error.message : "Failed to sync order.");
+      showToast({
+        title: "Order sync failed",
+        message:
+          error instanceof Error ? error.message : "Failed to sync order.",
+        type: "error",
+      });
       return;
     }
 
     setSavingId(null);
+    showToast({
+      title: "Status updated",
+      message: `Item status changed to ${formatStatus(nextStatus)}.`,
+      type: "success",
+    });
     fetchSellerOrders();
   };
 
@@ -386,12 +603,7 @@ export default function SellerOrdersPage() {
     "rounded-full border px-3 py-1.5 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-50";
 
   if (loading) {
-    return (
-      <PageLoader
-        title="Loading seller orders..."
-        subtitle="Please wait while we load your seller order records."
-      />
-    );
+    return <SellerOrdersPageSkeleton />;
   }
 
   return (
@@ -485,7 +697,7 @@ export default function SellerOrdersPage() {
         </div>
 
         {filteredOrders.length === 0 ? (
-          <div className="rounded-2xl border border-[#E5E0D8] bg-white p-6 shadow-sm text-[#6B6B6B]">
+          <div className="rounded-2xl border border-[#E5E0D8] bg-white p-6 text-[#6B6B6B] shadow-sm">
             No matching seller orders found.
           </div>
         ) : (

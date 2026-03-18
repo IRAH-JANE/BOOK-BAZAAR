@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useParams, useRouter } from "next/navigation";
+import { useToast } from "@/components/ToastProvider";
+import { useConfirm } from "@/components/ConfirmProvider";
 import {
   ArrowLeft,
   BookOpen,
@@ -13,17 +15,138 @@ import {
   Tag,
   UserRound,
 } from "lucide-react";
-import PageLoader from "@/components/PageLoader";
 
 type Category = {
   id: number;
   name: string;
 };
 
+function SkeletonBox({ className = "" }: { className?: string }) {
+  return (
+    <div className={`animate-pulse rounded-xl bg-[#E9E3D9] ${className}`} />
+  );
+}
+
+function EditListingPageSkeleton() {
+  return (
+    <main className="min-h-screen bg-[#F7F5F1] px-4 py-8 text-[#1F1F1F] sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-6xl">
+        <div className="mb-6">
+          <SkeletonBox className="h-10 w-44 rounded-full" />
+        </div>
+
+        <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+          <section className="rounded-3xl border border-[#E5E0D8] bg-white p-5 shadow-sm sm:p-7">
+            <div className="mb-6">
+              <SkeletonBox className="mb-3 h-8 w-36 rounded-full" />
+              <SkeletonBox className="h-10 w-48" />
+              <SkeletonBox className="mt-3 h-4 w-5/6" />
+              <SkeletonBox className="mt-2 h-4 w-2/3" />
+            </div>
+
+            <div className="space-y-5">
+              <div className="grid gap-5 sm:grid-cols-2">
+                <div>
+                  <SkeletonBox className="mb-2 h-4 w-24" />
+                  <SkeletonBox className="h-12 w-full rounded-2xl" />
+                </div>
+                <div>
+                  <SkeletonBox className="mb-2 h-4 w-20" />
+                  <SkeletonBox className="h-12 w-full rounded-2xl" />
+                </div>
+              </div>
+
+              <div>
+                <SkeletonBox className="mb-2 h-4 w-24" />
+                <SkeletonBox className="h-32 w-full rounded-2xl" />
+              </div>
+
+              <div className="grid gap-5 sm:grid-cols-2">
+                <div>
+                  <SkeletonBox className="mb-2 h-4 w-16" />
+                  <SkeletonBox className="h-12 w-full rounded-2xl" />
+                </div>
+                <div>
+                  <SkeletonBox className="mb-2 h-4 w-20" />
+                  <SkeletonBox className="h-12 w-full rounded-2xl" />
+                </div>
+              </div>
+
+              <div className="grid gap-5 sm:grid-cols-2">
+                <div>
+                  <SkeletonBox className="mb-2 h-4 w-20" />
+                  <SkeletonBox className="h-12 w-full rounded-2xl" />
+                </div>
+                <div>
+                  <SkeletonBox className="mb-2 h-4 w-20" />
+                  <SkeletonBox className="h-12 w-full rounded-2xl" />
+                </div>
+              </div>
+
+              <div>
+                <SkeletonBox className="mb-2 h-4 w-24" />
+                <SkeletonBox className="h-12 w-full rounded-2xl" />
+              </div>
+
+              <div className="flex flex-col gap-3 border-t border-[#E5E0D8] pt-4 sm:flex-row">
+                <SkeletonBox className="h-12 w-full rounded-2xl sm:w-28" />
+                <SkeletonBox className="h-12 w-full rounded-2xl sm:w-40" />
+              </div>
+            </div>
+          </section>
+
+          <aside className="space-y-6">
+            <div className="overflow-hidden rounded-3xl border border-[#E5E0D8] bg-white shadow-sm">
+              <div className="relative aspect-[4/5] w-full overflow-hidden bg-[#F7F4EE] p-4">
+                <SkeletonBox className="h-full w-full rounded-2xl" />
+              </div>
+
+              <div className="space-y-3 p-5">
+                <div>
+                  <SkeletonBox className="h-7 w-3/4" />
+                  <SkeletonBox className="mt-2 h-4 w-1/2" />
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <SkeletonBox className="h-7 w-24 rounded-full" />
+                  <SkeletonBox className="h-7 w-20 rounded-full" />
+                </div>
+
+                <div className="rounded-2xl border border-[#E5E0D8] bg-[#FFFDF9] p-4">
+                  <div className="mb-3 flex items-center justify-between">
+                    <SkeletonBox className="h-4 w-12" />
+                    <SkeletonBox className="h-6 w-16" />
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <SkeletonBox className="h-4 w-4 rounded-full" />
+                    <SkeletonBox className="h-4 w-32" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-[#E5E0D8] bg-white p-5 shadow-sm">
+              <SkeletonBox className="h-4 w-24" />
+              <div className="mt-4 space-y-3">
+                <SkeletonBox className="h-4 w-full" />
+                <SkeletonBox className="h-4 w-5/6" />
+                <SkeletonBox className="h-4 w-4/5" />
+              </div>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </main>
+  );
+}
+
 export default function EditListingPage() {
   const params = useParams();
   const router = useRouter();
   const id = params.id as string;
+  const { showToast } = useToast();
+  const { confirm } = useConfirm();
 
   const [title, setTitle] = useState("");
   const [author, setAuthor] = useState("");
@@ -55,7 +178,11 @@ export default function EditListingPage() {
         .single();
 
       if (error || !book) {
-        alert("Listing not found.");
+        showToast({
+          title: "Listing not found",
+          message: "This listing does not exist or was removed.",
+          type: "error",
+        });
         router.push("/my-listings");
         return;
       }
@@ -72,7 +199,7 @@ export default function EditListingPage() {
     };
 
     fetchData();
-  }, [id, router]);
+  }, [id, router, showToast]);
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -95,11 +222,19 @@ export default function EditListingPage() {
     setSaving(false);
 
     if (error) {
-      alert(error.message);
+      showToast({
+        title: "Update failed",
+        message: error.message,
+        type: "error",
+      });
       return;
     }
 
-    alert("Listing updated successfully.");
+    showToast({
+      title: "Listing updated",
+      message: "Your listing has been successfully updated.",
+      type: "success",
+    });
     router.push("/my-listings");
   };
 
@@ -111,38 +246,46 @@ export default function EditListingPage() {
   }, [categories, categoryId]);
 
   if (loading) {
-    return (
-      <PageLoader
-        title="Loading listing editor..."
-        subtitle="Please wait while we load your book details."
-      />
-    );
+    return <EditListingPageSkeleton />;
   }
 
   return (
-    <main className="min-h-screen bg-black px-4 py-8 text-white sm:px-6 lg:px-8">
+    <main className="min-h-screen bg-[#F7F5F1] px-4 py-8 text-[#1F1F1F] sm:px-6 lg:px-8">
       <div className="mx-auto max-w-6xl">
         <button
           type="button"
-          onClick={() => router.push("/my-listings")}
-          className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/80 transition hover:border-[#f28c28] hover:text-white"
+          onClick={async () => {
+            const confirmed = await confirm({
+              title: "Discard Changes?",
+              message:
+                "You have unsaved changes. Are you sure you want to leave without saving?",
+              confirmText: "Discard",
+              cancelText: "Stay",
+              danger: true,
+            });
+
+            if (!confirmed) return;
+
+            router.push("/my-listings");
+          }}
+          className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#D9D1C6] bg-white px-4 py-2 text-sm font-semibold text-[#1F1F1F] transition hover:bg-[#F7F4EE]"
         >
           <ArrowLeft size={16} />
           Back to My Listings
         </button>
 
         <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-          <section className="rounded-3xl border border-white/10 bg-[#0b0b0b] p-5 shadow-[0_0_0_1px_rgba(255,255,255,0.02)] sm:p-7">
+          <section className="rounded-3xl border border-[#E5E0D8] bg-white p-5 shadow-sm sm:p-7">
             <div className="mb-6">
-              <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-[#f28c28]/20 bg-[#f28c28]/10 px-3 py-1 text-xs font-medium text-[#f28c28]">
+              <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-[#E67E22]/20 bg-[#FFF7EF] px-3 py-1 text-xs font-medium text-[#E67E22]">
                 <PencilLine size={14} />
                 Seller Dashboard
               </div>
 
-              <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+              <h1 className="text-2xl font-bold tracking-tight text-[#1F1F1F] sm:text-3xl">
                 Edit Listing
               </h1>
-              <p className="mt-2 text-sm text-white/60">
+              <p className="mt-2 text-sm text-[#6B6B6B]">
                 Update your book details and keep your listing clean, accurate,
                 and attractive.
               </p>
@@ -170,7 +313,7 @@ export default function EditListingPage() {
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-medium text-white/85">
+                <label className="mb-2 block text-sm font-medium text-[#1F1F1F]">
                   Description
                 </label>
                 <textarea
@@ -178,7 +321,7 @@ export default function EditListingPage() {
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   rows={5}
-                  className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition placeholder:text-white/30 focus:border-[#f28c28] focus:ring-2 focus:ring-[#f28c28]/20"
+                  className="w-full rounded-2xl border border-[#DED8CF] bg-[#FFFDF9] px-4 py-3 text-sm text-[#1F1F1F] outline-none transition placeholder:text-[#8A8175] focus:border-[#E67E22] focus:ring-2 focus:ring-[#E67E22]/20"
                 />
               </div>
 
@@ -194,23 +337,23 @@ export default function EditListingPage() {
                 />
 
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-white/85">
+                  <label className="mb-2 block text-sm font-medium text-[#1F1F1F]">
                     Category
                   </label>
                   <select
                     value={categoryId}
                     onChange={(e) => setCategoryId(e.target.value)}
-                    className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition focus:border-[#f28c28] focus:ring-2 focus:ring-[#f28c28]/20"
+                    className="w-full rounded-2xl border border-[#DED8CF] bg-[#FFFDF9] px-4 py-3 text-sm text-[#1F1F1F] outline-none transition focus:border-[#E67E22] focus:ring-2 focus:ring-[#E67E22]/20"
                     required
                   >
-                    <option value="" className="bg-black text-white">
+                    <option value="" className="bg-white text-[#1F1F1F]">
                       Select category
                     </option>
                     {categories.map((category) => (
                       <option
                         key={category.id}
                         value={category.id}
-                        className="bg-black text-white"
+                        className="bg-white text-[#1F1F1F]"
                       >
                         {category.name}
                       </option>
@@ -247,11 +390,24 @@ export default function EditListingPage() {
                 onChange={setImageUrl}
               />
 
-              <div className="flex flex-col gap-3 border-t border-white/10 pt-4 sm:flex-row">
+              <div className="flex flex-col gap-3 border-t border-[#E5E0D8] pt-4 sm:flex-row">
                 <button
                   type="button"
-                  onClick={() => router.push("/my-listings")}
-                  className="w-full rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-medium text-white/80 transition hover:bg-white/10 hover:text-white sm:w-auto"
+                  onClick={async () => {
+                    const confirmed = await confirm({
+                      title: "Discard Changes?",
+                      message:
+                        "You have unsaved changes. Are you sure you want to leave without saving?",
+                      confirmText: "Discard",
+                      cancelText: "Stay",
+                      danger: true,
+                    });
+
+                    if (!confirmed) return;
+
+                    router.push("/my-listings");
+                  }}
+                  className="w-full rounded-2xl border border-[#D9D1C6] bg-white px-5 py-3 text-sm font-medium text-[#1F1F1F] transition hover:bg-[#F7F4EE] sm:w-auto"
                 >
                   Cancel
                 </button>
@@ -259,7 +415,7 @@ export default function EditListingPage() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#f28c28] px-5 py-3 text-sm font-semibold text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#E67E22] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#cf6f1c] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
                 >
                   <Save size={16} />
                   {saving ? "Saving..." : "Update Listing"}
@@ -269,8 +425,8 @@ export default function EditListingPage() {
           </section>
 
           <aside className="space-y-6">
-            <div className="overflow-hidden rounded-3xl border border-white/10 bg-[#0b0b0b]">
-              <div className="relative aspect-[4/5] w-full overflow-hidden bg-white/5">
+            <div className="overflow-hidden rounded-3xl border border-[#E5E0D8] bg-white shadow-sm">
+              <div className="relative aspect-[4/5] w-full overflow-hidden bg-[#F7F4EE]">
                 {imageUrl ? (
                   <img
                     src={imageUrl}
@@ -278,7 +434,7 @@ export default function EditListingPage() {
                     className="h-full w-full object-cover"
                   />
                 ) : (
-                  <div className="flex h-full items-center justify-center text-white/35">
+                  <div className="flex h-full items-center justify-center text-[#8A8175]">
                     <div className="text-center">
                       <ImageIcon size={34} className="mx-auto mb-3" />
                       <p className="text-sm">Book cover preview</p>
@@ -289,46 +445,46 @@ export default function EditListingPage() {
 
               <div className="space-y-3 p-5">
                 <div>
-                  <p className="line-clamp-2 text-xl font-semibold">
+                  <p className="line-clamp-2 text-xl font-semibold text-[#1F1F1F]">
                     {title || "Untitled Book"}
                   </p>
-                  <p className="mt-1 text-sm text-white/60">
+                  <p className="mt-1 text-sm text-[#6B6B6B]">
                     {author || "Unknown Author"}
                   </p>
                 </div>
 
                 <div className="flex flex-wrap gap-2">
-                  <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/75">
+                  <span className="rounded-full border border-[#E5E0D8] bg-[#FFFDF9] px-3 py-1 text-xs text-[#6B6B6B]">
                     {selectedCategory}
                   </span>
                   {condition && (
-                    <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/75">
+                    <span className="rounded-full border border-[#E5E0D8] bg-[#FFFDF9] px-3 py-1 text-xs text-[#6B6B6B]">
                       {condition}
                     </span>
                   )}
                 </div>
 
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                <div className="rounded-2xl border border-[#E5E0D8] bg-[#FFFDF9] p-4">
                   <div className="mb-3 flex items-center justify-between">
-                    <span className="text-sm text-white/60">Price</span>
-                    <span className="text-lg font-bold text-[#f28c28]">
+                    <span className="text-sm text-[#6B6B6B]">Price</span>
+                    <span className="text-lg font-bold text-[#E67E22]">
                       ₱{price || "0"}
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-2 text-sm text-white/70">
-                    <MapPin size={15} className="text-[#f28c28]" />
+                  <div className="flex items-center gap-2 text-sm text-[#6B6B6B]">
+                    <MapPin size={15} className="text-[#E67E22]" />
                     {location || "No location yet"}
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="rounded-3xl border border-white/10 bg-[#0b0b0b] p-5">
-              <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-white/50">
+            <div className="rounded-3xl border border-[#E5E0D8] bg-white p-5 shadow-sm">
+              <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-[#8A8175]">
                 Editing Tips
               </h2>
-              <div className="mt-4 space-y-3 text-sm text-white/65">
+              <div className="mt-4 space-y-3 text-sm text-[#6B6B6B]">
                 <p>Use a clear title so buyers can find your listing faster.</p>
                 <p>Keep the description short, honest, and easy to read.</p>
                 <p>
@@ -364,8 +520,8 @@ function InputField({
 }: InputFieldProps) {
   return (
     <div>
-      <label className="mb-2 flex items-center gap-2 text-sm font-medium text-white/85">
-        {icon && <span className="text-[#f28c28]">{icon}</span>}
+      <label className="mb-2 flex items-center gap-2 text-sm font-medium text-[#1F1F1F]">
+        {icon && <span className="text-[#E67E22]">{icon}</span>}
         {label}
       </label>
       <input
@@ -373,7 +529,7 @@ function InputField({
         placeholder={placeholder}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition placeholder:text-white/30 focus:border-[#f28c28] focus:ring-2 focus:ring-[#f28c28]/20"
+        className="w-full rounded-2xl border border-[#DED8CF] bg-[#FFFDF9] px-4 py-3 text-sm text-[#1F1F1F] outline-none transition placeholder:text-[#8A8175] focus:border-[#E67E22] focus:ring-2 focus:ring-[#E67E22]/20"
         required={required}
       />
     </div>

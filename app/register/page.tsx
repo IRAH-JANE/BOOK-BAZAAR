@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useToast } from "@/components/ToastProvider";
 
 type PSGCItem = {
   code: string;
@@ -12,6 +13,7 @@ type PSGCItem = {
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { showToast } = useToast();
 
   const [form, setForm] = useState({
     first_name: "",
@@ -200,12 +202,20 @@ export default function RegisterPage() {
     e.preventDefault();
 
     if (form.password !== form.confirmPassword) {
-      alert("Passwords do not match.");
+      showToast({
+        title: "Password mismatch",
+        message: "Passwords do not match.",
+        type: "error",
+      });
       return;
     }
 
     if (form.password.length < 6) {
-      alert("Password must be at least 6 characters.");
+      showToast({
+        title: "Weak password",
+        message: "Password must be at least 6 characters.",
+        type: "error",
+      });
       return;
     }
 
@@ -240,20 +250,32 @@ export default function RegisterPage() {
     setLoading(false);
 
     if (error) {
-      alert(error.message);
+      showToast({
+        title: "Registration failed",
+        message: error.message,
+        type: "error",
+      });
       return;
     }
 
     const hasSession = !!data.session;
 
     if (hasSession) {
-      alert("Registration successful.");
+      showToast({
+        title: "Registration successful",
+        message: "Your account has been created successfully.",
+        type: "success",
+      });
       router.push("/");
       router.refresh();
       return;
     }
 
-    alert("Registration successful. Check your email for verification.");
+    showToast({
+      title: "Registration successful",
+      message: "Check your email for verification.",
+      type: "success",
+    });
     router.push("/login");
   };
 

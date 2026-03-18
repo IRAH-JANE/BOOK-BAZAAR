@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
+import { useToast } from "@/components/ToastProvider";
+import { useConfirm } from "@/components/ConfirmProvider";
 import {
   LogOut,
   BookOpen,
@@ -21,7 +23,6 @@ import {
   CheckCircle2,
   X,
 } from "lucide-react";
-import PageLoader from "@/components/PageLoader";
 
 type PSGCItem = {
   code: string;
@@ -94,8 +95,200 @@ const emptyAddressForm: AddressForm = {
   is_default: false,
 };
 
+function SkeletonBox({ className = "" }: { className?: string }) {
+  return (
+    <div className={`animate-pulse rounded-xl bg-[#E9E3D9] ${className}`} />
+  );
+}
+
+function ProfilePageSkeleton() {
+  return (
+    <>
+      <main className="min-h-screen bg-[#F7F5F1]">
+        <div className="mx-auto max-w-6xl px-6 py-10">
+          <div className="mb-8">
+            <SkeletonBox className="h-4 w-20 rounded-full" />
+            <SkeletonBox className="mt-3 h-10 w-48" />
+            <SkeletonBox className="mt-2 h-5 w-80 max-w-full" />
+          </div>
+
+          <div className="grid gap-8 lg:grid-cols-[1.15fr_0.85fr]">
+            <div className="space-y-8">
+              <section className="rounded-3xl border border-[#E5E0D8] bg-white p-8 shadow-sm">
+                <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0 flex gap-5">
+                    <SkeletonBox className="h-20 w-20 shrink-0 rounded-full" />
+
+                    <div className="min-w-0">
+                      <SkeletonBox className="h-10 w-56 max-w-[260px]" />
+
+                      <div className="mt-3 flex flex-wrap gap-3">
+                        <SkeletonBox className="h-7 w-20 rounded-full" />
+                        <SkeletonBox className="h-7 w-16 rounded-full" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="shrink-0 rounded-2xl bg-[#F7F4EE] px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <SkeletonBox className="h-4 w-4 rounded-full" />
+                      <SkeletonBox className="h-4 w-28" />
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <section className="grid gap-6 sm:grid-cols-2">
+                {[...Array(2)].map((_, index) => (
+                  <div
+                    key={index}
+                    className="min-w-0 rounded-3xl border border-[#E5E0D8] bg-white p-6 shadow-sm"
+                  >
+                    <div className="flex items-center gap-3 text-[#6B6B6B]">
+                      <SkeletonBox className="h-[18px] w-[18px] rounded-full" />
+                      <SkeletonBox className="h-4 w-24" />
+                    </div>
+                    <SkeletonBox className="mt-4 h-8 w-12" />
+                    <SkeletonBox className="mt-2 h-4 w-40" />
+                  </div>
+                ))}
+              </section>
+
+              <section className="rounded-3xl border border-[#E5E0D8] bg-white p-6 shadow-sm">
+                <SkeletonBox className="h-8 w-40" />
+
+                <div className="mt-6 grid gap-4 md:grid-cols-2">
+                  {[...Array(6)].map((_, index) => (
+                    <div
+                      key={index}
+                      className="min-w-0 rounded-2xl bg-[#F7F4EE] p-4"
+                    >
+                      <SkeletonBox className="h-3 w-24" />
+                      <SkeletonBox className="mt-2 h-5 w-40 max-w-full" />
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              <section className="rounded-3xl border border-[#E5E0D8] bg-white p-6 shadow-sm">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <SkeletonBox className="h-8 w-48" />
+                    <SkeletonBox className="mt-2 h-4 w-72 max-w-full" />
+                  </div>
+
+                  <SkeletonBox className="h-12 w-32 rounded-2xl" />
+                </div>
+
+                <div className="mt-6 rounded-2xl bg-[#F7F4EE] p-5">
+                  <div className="flex items-start gap-3">
+                    <SkeletonBox className="mt-1 h-5 w-5 rounded-full" />
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <SkeletonBox className="h-3 w-24" />
+                        <SkeletonBox className="h-6 w-16 rounded-full" />
+                      </div>
+
+                      <SkeletonBox className="mt-2 h-5 w-32" />
+                      <SkeletonBox className="mt-2 h-4 w-80 max-w-full" />
+                      <SkeletonBox className="mt-2 h-4 w-56" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-6 grid gap-4">
+                  {[...Array(2)].map((_, index) => (
+                    <div
+                      key={index}
+                      className="rounded-2xl border border-[#E5E0D8] bg-[#FFFDF9] p-5"
+                    >
+                      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <SkeletonBox className="h-5 w-32" />
+                            <SkeletonBox className="h-6 w-16 rounded-full" />
+                          </div>
+
+                          <SkeletonBox className="mt-2 h-4 w-40" />
+                          <SkeletonBox className="mt-3 h-4 w-96 max-w-full" />
+                        </div>
+
+                        <div className="flex flex-wrap gap-2">
+                          <SkeletonBox className="h-10 w-24 rounded-xl" />
+                          <SkeletonBox className="h-10 w-20 rounded-xl" />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            </div>
+
+            <div className="space-y-8">
+              <section className="rounded-3xl border border-[#E5E0D8] bg-white p-6 shadow-sm">
+                <SkeletonBox className="h-8 w-36" />
+                <SkeletonBox className="mt-2 h-4 w-56" />
+
+                <div className="mt-6 space-y-3">
+                  {[...Array(4)].map((_, index) => (
+                    <div
+                      key={index}
+                      className="flex w-full items-center justify-between rounded-2xl border border-[#E5E0D8] bg-[#FFFDF9] px-5 py-4"
+                    >
+                      <div className="min-w-0">
+                        <SkeletonBox className="h-5 w-28" />
+                        <SkeletonBox className="mt-2 h-4 w-24" />
+                      </div>
+                      <SkeletonBox className="h-4 w-4 rounded-full" />
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              <section className="rounded-3xl border border-[#E5E0D8] bg-white p-6 shadow-sm">
+                <SkeletonBox className="h-8 w-36" />
+
+                <div className="mt-5 space-y-4">
+                  {[...Array(3)].map((_, index) => (
+                    <div
+                      key={index}
+                      className="min-w-0 rounded-2xl bg-[#F7F4EE] p-4"
+                    >
+                      <SkeletonBox className="h-3 w-24" />
+                      <SkeletonBox className="mt-2 h-5 w-28" />
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              <section className="rounded-3xl border border-[#E5E0D8] bg-white p-6 shadow-sm">
+                <SkeletonBox className="h-8 w-36" />
+                <SkeletonBox className="mt-2 h-4 w-40" />
+                <SkeletonBox className="mt-6 h-12 w-full rounded-2xl" />
+              </section>
+
+              <section className="rounded-3xl border border-[#E5E0D8] bg-white p-6 shadow-sm">
+                <div className="flex items-center gap-3">
+                  <SkeletonBox className="h-5 w-5 rounded-full" />
+                  <SkeletonBox className="h-8 w-36" />
+                </div>
+
+                <SkeletonBox className="mt-3 h-4 w-full" />
+                <SkeletonBox className="mt-2 h-4 w-5/6" />
+                <SkeletonBox className="mt-5 h-12 w-48 rounded-full" />
+              </section>
+            </div>
+          </div>
+        </div>
+      </main>
+    </>
+  );
+}
+
 export default function ProfilePage() {
   const router = useRouter();
+  const { showToast } = useToast();
+  const { confirm } = useConfirm();
 
   const [profile, setProfile] = useState<Profile | null>(null);
   const [addresses, setAddresses] = useState<Address[]>([]);
@@ -431,7 +624,11 @@ export default function ProfilePage() {
       !addressForm.barangay.trim() ||
       !addressForm.street_address.trim()
     ) {
-      alert("Please fill in the required address fields.");
+      showToast({
+        title: "Incomplete address",
+        message: "Please fill in the required address fields.",
+        type: "error",
+      });
       return;
     }
 
@@ -488,9 +685,21 @@ export default function ProfilePage() {
 
       await reloadAddresses();
       closeAddressModal();
+
+      showToast({
+        title: editingAddressId ? "Address updated" : "Address saved",
+        message: editingAddressId
+          ? "Your address has been updated successfully."
+          : "Your new address has been saved successfully.",
+        type: "success",
+      });
     } catch (error) {
       console.error(error);
-      alert("Failed to save address.");
+      showToast({
+        title: "Save failed",
+        message: "Failed to save address.",
+        type: "error",
+      });
     } finally {
       setSavingAddress(false);
     }
@@ -499,9 +708,14 @@ export default function ProfilePage() {
   const handleDeleteAddress = async (addressId: string) => {
     if (!userId) return;
 
-    const confirmed = window.confirm(
-      "Are you sure you want to delete this address?",
-    );
+    const confirmed = await confirm({
+      title: "Delete Address?",
+      message:
+        "Are you sure you want to delete this address? This action cannot be undone.",
+      confirmText: "Delete",
+      cancelText: "Keep Address",
+      danger: true,
+    });
     if (!confirmed) return;
 
     setDeletingAddressId(addressId);
@@ -532,9 +746,19 @@ export default function ProfilePage() {
       }
 
       await reloadAddresses();
+
+      showToast({
+        title: "Address deleted",
+        message: "The address has been deleted successfully.",
+        type: "success",
+      });
     } catch (error) {
       console.error(error);
-      alert("Failed to delete address.");
+      showToast({
+        title: "Delete failed",
+        message: "Failed to delete address.",
+        type: "error",
+      });
     } finally {
       setDeletingAddressId(null);
     }
@@ -562,26 +786,41 @@ export default function ProfilePage() {
       if (error) throw error;
 
       await reloadAddresses();
+
+      showToast({
+        title: "Default address updated",
+        message: "This address is now your default address.",
+        type: "success",
+      });
     } catch (error) {
       console.error(error);
-      alert("Failed to set default address.");
+      showToast({
+        title: "Update failed",
+        message: "Failed to set default address.",
+        type: "error",
+      });
     } finally {
       setSettingDefaultId(null);
     }
   };
 
   const handleLogout = async () => {
+    const confirmed = await confirm({
+      title: "Logout?",
+      message: "Are you sure you want to log out of your BookBazaar account?",
+      confirmText: "Logout",
+      cancelText: "Stay Logged In",
+      danger: true,
+    });
+
+    if (!confirmed) return;
+
     await supabase.auth.signOut();
     router.push("/login");
   };
 
   if (loading) {
-    return (
-      <PageLoader
-        title="Loading profile..."
-        subtitle="Please wait while we load your account details."
-      />
-    );
+    return <ProfilePageSkeleton />;
   }
 
   return (
