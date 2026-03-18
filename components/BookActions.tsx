@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { useToast } from "@/components/ToastProvider";
 import { Heart, MessageCircle, ShoppingCart } from "lucide-react";
 
 type BookActionsProps = {
@@ -12,6 +13,7 @@ export default function BookActions({ bookId }: BookActionsProps) {
   const [loadingCart, setLoadingCart] = useState(false);
   const [loadingWishlist, setLoadingWishlist] = useState(false);
   const [wishlisted, setWishlisted] = useState(false);
+  const { showToast } = useToast();
 
   useEffect(() => {
     const loadWishlistState = async () => {
@@ -42,7 +44,11 @@ export default function BookActions({ bookId }: BookActionsProps) {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      alert("Please log in first.");
+      showToast({
+        title: "Login required",
+        message: "Please log in first.",
+        type: "info",
+      });
       setLoadingCart(false);
       return;
     }
@@ -63,11 +69,19 @@ export default function BookActions({ bookId }: BookActionsProps) {
       setLoadingCart(false);
 
       if (error) {
-        alert(error.message);
+        showToast({
+          title: "Cart update failed",
+          message: error.message,
+          type: "error",
+        });
         return;
       }
 
-      alert("Book quantity updated in cart.");
+      showToast({
+        title: "Cart updated",
+        message: "Book quantity updated in cart.",
+        type: "success",
+      });
       return;
     }
 
@@ -82,11 +96,19 @@ export default function BookActions({ bookId }: BookActionsProps) {
     setLoadingCart(false);
 
     if (error) {
-      alert(error.message);
+      showToast({
+        title: "Add to cart failed",
+        message: error.message,
+        type: "error",
+      });
       return;
     }
 
-    alert("Book added to cart.");
+    showToast({
+      title: "Added to cart",
+      message: "Book added to cart.",
+      type: "success",
+    });
   };
 
   const handleWishlist = async () => {
@@ -97,7 +119,11 @@ export default function BookActions({ bookId }: BookActionsProps) {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      alert("Please log in first.");
+      showToast({
+        title: "Login required",
+        message: "Please log in first.",
+        type: "info",
+      });
       setLoadingWishlist(false);
       return;
     }
@@ -118,11 +144,20 @@ export default function BookActions({ bookId }: BookActionsProps) {
       setLoadingWishlist(false);
 
       if (error) {
-        alert(error.message);
+        showToast({
+          title: "Wishlist update failed",
+          message: error.message,
+          type: "error",
+        });
         return;
       }
 
       setWishlisted(false);
+      showToast({
+        title: "Removed from wishlist",
+        message: "The book was removed from your wishlist.",
+        type: "success",
+      });
       return;
     }
 
@@ -136,11 +171,20 @@ export default function BookActions({ bookId }: BookActionsProps) {
     setLoadingWishlist(false);
 
     if (error) {
-      alert(error.message);
+      showToast({
+        title: "Wishlist update failed",
+        message: error.message,
+        type: "error",
+      });
       return;
     }
 
     setWishlisted(true);
+    showToast({
+      title: "Saved to wishlist",
+      message: "The book was added to your wishlist.",
+      type: "success",
+    });
   };
 
   return (

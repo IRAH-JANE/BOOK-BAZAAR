@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/ToastProvider";
+import { useConfirm } from "@/components/ConfirmProvider";
 import { Minus, Plus, Trash2 } from "lucide-react";
 
 type CartBook = {
@@ -131,6 +132,7 @@ export default function CartPage() {
   const isMountedRef = useRef(true);
   const latestRequestRef = useRef(0);
   const { showToast } = useToast();
+  const { confirm } = useConfirm();
 
   const getBook = (item: CartItem): CartBook | null => {
     if (!item.books) return null;
@@ -214,6 +216,16 @@ export default function CartPage() {
   }, [fetchCart]);
 
   const handleRemove = async (cartId: number) => {
+    const confirmed = await confirm({
+      title: "Remove Item?",
+      message: "Are you sure you want to remove this item from your cart?",
+      confirmText: "Remove",
+      cancelText: "Keep Item",
+      danger: true,
+    });
+
+    if (!confirmed) return;
+
     try {
       setRemovingOneId(cartId);
 
@@ -226,6 +238,12 @@ export default function CartPage() {
 
       setSelectedIds((prev) => prev.filter((id) => id !== cartId));
       await fetchCart();
+
+      showToast({
+        title: "Item removed",
+        message: "The item has been removed from your cart.",
+        type: "success",
+      });
     } catch (error) {
       console.error("Failed to remove item:", error);
       showToast({
@@ -248,6 +266,17 @@ export default function CartPage() {
       return;
     }
 
+    const confirmed = await confirm({
+      title: "Remove Selected Items?",
+      message:
+        "Are you sure you want to remove all selected items from your cart?",
+      confirmText: "Remove Selected",
+      cancelText: "Keep Items",
+      danger: true,
+    });
+
+    if (!confirmed) return;
+
     try {
       setRemovingSelected(true);
 
@@ -262,6 +291,12 @@ export default function CartPage() {
 
       setSelectedIds([]);
       await fetchCart();
+
+      showToast({
+        title: "Selected items removed",
+        message: "The selected items have been removed from your cart.",
+        type: "success",
+      });
     } catch (error) {
       console.error("Failed to remove selected items:", error);
       showToast({
