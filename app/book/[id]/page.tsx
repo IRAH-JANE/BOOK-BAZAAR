@@ -60,6 +60,10 @@ type BookData = {
 export default async function BookDetailsPage({ params }: BookPageProps) {
   const { id } = await params;
 
+  if (!id) {
+    notFound();
+  }
+
   const { data, error } = await supabase
     .from("books")
     .select(
@@ -82,7 +86,7 @@ export default async function BookDetailsPage({ params }: BookPageProps) {
       )
       `,
     )
-    .eq("id", Number(id))
+    .eq("id", id)
     .single();
 
   if (error || !data) {

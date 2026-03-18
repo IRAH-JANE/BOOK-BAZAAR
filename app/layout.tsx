@@ -1,5 +1,7 @@
 import "./globals.css";
 import Navbar from "@/components/Navbar";
+import { ToastProvider } from "@/components/ToastProvider";
+import { ConfirmProvider } from "@/components/ConfirmProvider";
 
 export const metadata = {
   title: "BookBazaar",
@@ -14,8 +16,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="bg-[#F7F4EE] text-[#1F1F1F] antialiased">
-        <Navbar />
-        {children}
+        <ToastProvider>
+          <ConfirmProvider>
+            <Navbar />
+            {children}
+          </ConfirmProvider>
+        </ToastProvider>
       </body>
     </html>
   );

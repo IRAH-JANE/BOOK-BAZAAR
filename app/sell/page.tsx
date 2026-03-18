@@ -823,7 +823,7 @@ export default function SellPage() {
                 <div>
                   <label className="mb-2 flex items-center gap-2 text-sm font-medium text-[#6B6B6B]">
                     <BadgeDollarSign size={16} />
-                    Original Price
+                    Price
                   </label>
                   <input
                     type="text"

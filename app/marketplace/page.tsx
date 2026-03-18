@@ -5,6 +5,8 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import PageLoader from "@/components/PageLoader";
+import { useToast } from "@/components/ToastProvider";
+
 import {
   Heart,
   MapPin,
