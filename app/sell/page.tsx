@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/ToastProvider";
 import {
@@ -16,6 +16,7 @@ import {
   Sparkles,
   User,
   Package,
+  Link2,
 } from "lucide-react";
 
 type Category = {
@@ -27,6 +28,7 @@ type GoogleBookVolume = {
   id?: string;
   volumeInfo?: {
     title?: string;
+    subtitle?: string;
     authors?: string[];
     description?: string;
     publisher?: string;
@@ -52,6 +54,7 @@ type OpenLibrarySearchDoc = {
 type AutofillBook = {
   source: "google" | "openlibrary";
   title: string;
+  subtitle?: string;
   authors: string[];
   description: string;
   publisher: string;
@@ -60,8 +63,16 @@ type AutofillBook = {
   coverUrls: string[];
 };
 
+type AIPredictionResponse = {
+  category: string | null;
+  subgenres: string[];
+  confidence: number;
+};
+
 export default function SellPage() {
   const { showToast } = useToast();
+
+  const [subgenres, setSubgenres] = useState<string[]>([]);
 
   const [title, setTitle] = useState("");
   const [author, setAuthor] = useState("");
@@ -77,6 +88,7 @@ export default function SellPage() {
   const [publisher, setPublisher] = useState("");
   const [publishedDate, setPublishedDate] = useState("");
   const [fetchedCover, setFetchedCover] = useState("");
+  const [customCoverUrl, setCustomCoverUrl] = useState("");
   const [lookupLoading, setLookupLoading] = useState(false);
   const [posting, setPosting] = useState(false);
 
@@ -85,9 +97,10 @@ export default function SellPage() {
 
   const [coverCandidates, setCoverCandidates] = useState<string[]>([]);
   const [coverIndex, setCoverIndex] = useState(0);
-  const [autofillSource, setAutofillSource] = useState<
-    "" | "google" | "openlibrary"
-  >("");
+  const [detectedCategoryName, setDetectedCategoryName] = useState("");
+  const [categoryTouched, setCategoryTouched] = useState(false);
+
+  const aiDebounceRef = useRef<NodeJS.Timeout | null>(null);
 
   const cleanedIsbn = useMemo(() => isbn.replace(/[^0-9Xx]/g, ""), [isbn]);
 
@@ -96,6 +109,12 @@ export default function SellPage() {
     return URL.createObjectURL(imageFile);
   }, [imageFile]);
 
+  const normalizedCustomCoverUrl = useMemo(() => {
+    const trimmed = customCoverUrl.trim();
+    if (!trimmed) return "";
+    return trimmed.replace("http://", "https://");
+  }, [customCoverUrl]);
+
   useEffect(() => {
     return () => {
       if (localImagePreview) {
@@ -103,6 +122,14 @@ export default function SellPage() {
       }
     };
   }, [localImagePreview]);
+
+  useEffect(() => {
+    return () => {
+      if (aiDebounceRef.current) {
+        clearTimeout(aiDebounceRef.current);
+      }
+    };
+  }, []);
 
   const inputClass =
     "w-full rounded-2xl border border-[#DED8CF] bg-white px-4 py-3 text-[16px] text-[#5F5A52] placeholder:text-[#8A8175] outline-none transition focus:border-[#E67E22] focus:ring-1 focus:ring-[#E67E22]";
@@ -128,212 +155,893 @@ export default function SellPage() {
     fetchCategories();
   }, []);
 
-  const getMatchedCategoryId = (
-    sourceCategories: string[] = [],
-    bookTitle = "",
-    bookDescription = "",
-    dbCategories: Category[] = categories,
-  ) => {
-    if (!dbCategories.length) return "";
+  const normalizeText = (value: string | null | undefined) => {
+    return (value || "").toLowerCase().trim();
+  };
 
-    const combinedText = [...sourceCategories, bookTitle, bookDescription]
+  const hasAnyKeyword = (text: string, keywords: string[]) => {
+    return keywords.some((keyword) => text.includes(keyword));
+  };
+
+  const detectBookCategoryName = ({
+    sourceCategories = [],
+    bookTitle = "",
+    bookSubtitle = "",
+    bookDescription = "",
+    bookAuthor = "",
+    bookPublisher = "",
+  }: {
+    sourceCategories?: string[];
+    bookTitle?: string;
+    bookSubtitle?: string;
+    bookDescription?: string;
+    bookAuthor?: string;
+    bookPublisher?: string;
+  }) => {
+    const combinedText = [
+      ...sourceCategories,
+      bookTitle,
+      bookSubtitle,
+      bookDescription,
+      bookAuthor,
+      bookPublisher,
+    ]
       .join(" ")
       .toLowerCase();
 
-    const keywordMap: Record<string, string[]> = {
-      Fiction: [
-        "fiction",
-        "novel",
-        "literary",
-        "fantasy",
-        "romance",
-        "mystery",
-        "thriller",
-        "story",
-        "drama",
-        "young adult fiction",
-        "juvenile fiction",
-        "fantasy fiction",
-        "romantic",
-      ],
-      "Non-fiction": [
-        "nonfiction",
-        "non-fiction",
-        "memoir",
-        "biography",
-        "autobiography",
-        "essay",
-        "documentary",
-        "true crime",
-        "reportage",
-      ],
-      Academic: [
-        "education",
-        "academic",
-        "school",
-        "textbook",
-        "learning",
-        "study guide",
-        "reference",
-        "curriculum",
-        "instructional",
-      ],
-      Children: [
-        "children",
-        "childrens",
-        "kids",
-        "juvenile",
-        "picture book",
-        "young readers",
-        "bedtime story",
-        "children's books",
-        "juvenile nonfiction",
-      ],
-      "Self-help": [
-        "self-help",
-        "self help",
-        "personal growth",
-        "personal development",
-        "motivation",
-        "habits",
-        "mindset",
-        "success",
-        "productivity",
-        "psychology",
-        "inspiration",
-        "wellness",
-        "mental health",
-      ],
-      Religion: [
-        "religion",
-        "faith",
-        "bible",
-        "christian",
-        "spiritual",
-        "devotional",
-        "theology",
-        "prayer",
-        "church",
-        "catholic",
-      ],
-      Programming: [
+    if (!combinedText.trim()) {
+      return "Non-fiction";
+    }
+
+    if (
+      hasAnyKeyword(combinedText, [
+        "wattpad",
+        "wattys",
+        "fanfiction",
+        "online story",
+        "online stories",
+        "campus romance",
+        "teen fiction",
+        "viral story",
+        "published on wattpad",
+        "wattpad sensation",
+      ])
+    ) {
+      return "Wattpad";
+    }
+
+    if (
+      hasAnyKeyword(combinedText, [
+        "manga",
+        "comic",
+        "comics",
+        "graphic novel",
+        "graphic novels",
+        "manhwa",
+        "webtoon",
+        "illustrated novel",
+      ])
+    ) {
+      return "Manga / Comics";
+    }
+
+    if (
+      hasAnyKeyword(combinedText, [
         "programming",
+        "computer",
+        "computers",
         "coding",
         "software",
-        "developer",
         "web development",
         "javascript",
+        "typescript",
         "python",
-        "computer science",
-        "computers",
+        "java",
+        "c++",
+        "c#",
+        "php",
         "database",
+        "sql",
+        "cybersecurity",
+        "networking",
+        "information technology",
+        "data structures",
         "algorithms",
-        "technology",
-      ],
-      Science: [
-        "science",
-        "physics",
-        "chemistry",
-        "biology",
-        "astronomy",
+        "developer",
+        "computer science",
+      ])
+    ) {
+      return "Programming";
+    }
+
+    if (
+      hasAnyKeyword(combinedText, [
+        "engineering",
+        "civil engineering",
+        "mechanical engineering",
+        "electrical engineering",
+        "electronics engineering",
+        "industrial engineering",
+        "engineering drawing",
+        "thermodynamics",
+        "strength of materials",
+      ])
+    ) {
+      return "Academic";
+    }
+
+    if (
+      hasAnyKeyword(combinedText, [
         "mathematics",
         "math",
-        "scientific",
+        "algebra",
+        "geometry",
+        "calculus",
+        "statistics",
+        "trigonometry",
+        "quantitative",
+        "mathematical",
+      ])
+    ) {
+      return "Academic";
+    }
+
+    if (
+      hasAnyKeyword(combinedText, [
+        "biology",
+        "chemistry",
+        "physics",
         "earth science",
-      ],
-      History: [
+        "life science",
+        "general science",
+        "scientific",
+        "laboratory",
+        "astronomy",
+        "environmental science",
+      ])
+    ) {
+      return "Science";
+    }
+
+    if (
+      hasAnyKeyword(combinedText, [
+        "medical",
+        "medicine",
+        "nursing",
+        "anatomy",
+        "physiology",
+        "pharmacology",
+        "clinical",
+        "health care",
+        "healthcare",
+        "pathology",
+        "surgery",
+        "diagnosis",
+      ])
+    ) {
+      return "Science";
+    }
+
+    if (
+      hasAnyKeyword(combinedText, [
+        "law",
+        "legal",
+        "jurisprudence",
+        "constitution",
+        "criminal law",
+        "civil law",
+        "political law",
+        "revised penal code",
+        "evidence",
+        "taxation law",
+      ])
+    ) {
+      return "Academic";
+    }
+
+    if (
+      hasAnyKeyword(combinedText, [
+        "psychology",
+        "mental health",
+        "behavior",
+        "behaviour",
+        "cognitive",
+        "personality",
+        "therapy",
+        "counseling",
+        "emotions",
+      ])
+    ) {
+      return "Non-fiction";
+    }
+
+    if (
+      hasAnyKeyword(combinedText, [
+        "religion",
+        "christian",
+        "catholic",
+        "bible",
+        "theology",
+        "faith",
+        "spirituality",
+        "church",
+        "prayer",
+        "devotional",
+        "ministry",
+      ])
+    ) {
+      return "Religion";
+    }
+
+    if (
+      hasAnyKeyword(combinedText, [
+        "business",
+        "entrepreneurship",
+        "marketing",
+        "finance",
+        "economics",
+        "management",
+        "leadership",
+        "startup",
+        "accounting",
+        "investing",
+        "sales",
+        "business & economics",
+      ])
+    ) {
+      return "Business";
+    }
+
+    if (
+      hasAnyKeyword(combinedText, [
+        "self-help",
+        "self help",
+        "motivation",
+        "motivational",
+        "productivity",
+        "personal growth",
+        "success",
+        "habits",
+        "mindset",
+        "discipline",
+      ])
+    ) {
+      return "Self-help";
+    }
+
+    if (
+      hasAnyKeyword(combinedText, [
+        "biography",
+        "memoir",
+        "autobiography",
+        "life of",
+        "personal account",
+        "memories",
+      ])
+    ) {
+      return "Non-fiction";
+    }
+
+    if (
+      hasAnyKeyword(combinedText, [
+        "history",
+        "historical account",
+        "world war",
+        "ancient",
+        "civilization",
+        "philippine history",
+        "historian",
+      ])
+    ) {
+      return "History";
+    }
+
+    if (
+      hasAnyKeyword(combinedText, [
+        "poetry",
+        "poems",
+        "poet",
+        "verse",
+        "sonnet",
+        "spoken word",
+        "collection of poems",
+      ])
+    ) {
+      return "Fiction";
+    }
+
+    if (
+      hasAnyKeyword(combinedText, [
+        "children",
+        "kids",
+        "storybook",
+        "picture book",
+        "bedtime story",
+        "juvenile",
+        "early reader",
+        "ages 3-5",
+        "ages 6-8",
+        "children's books",
+      ])
+    ) {
+      return "Children";
+    }
+
+    if (
+      hasAnyKeyword(combinedText, [
+        "young adult",
+        "ya fiction",
+        "teen",
+        "coming of age",
+        "adolescent",
+        "high school",
+      ])
+    ) {
+      return "Fiction";
+    }
+
+    if (
+      hasAnyKeyword(combinedText, [
+        "romance",
+        "love story",
+        "falling in love",
+        "heartbreak",
+        "relationship",
+        "boyfriend",
+        "girlfriend",
+        "romantic",
+      ])
+    ) {
+      return "Romance";
+    }
+
+    if (
+      hasAnyKeyword(combinedText, [
+        "mystery",
+        "thriller",
+        "crime",
+        "detective",
+        "suspense",
+        "investigation",
+        "serial killer",
+        "murder",
+      ])
+    ) {
+      return "Mystery";
+    }
+
+    if (
+      hasAnyKeyword(combinedText, [
+        "fantasy",
+        "magic",
+        "sorcery",
+        "dragon",
+        "kingdom",
+        "fae",
+        "mythical",
+        "enchanted",
+      ])
+    ) {
+      return "Fantasy";
+    }
+
+    if (
+      hasAnyKeyword(combinedText, [
+        "science fiction",
+        "sci-fi",
+        "scifi",
+        "space",
+        "alien",
+        "robot",
+        "future world",
+        "dystopian",
+        "utopian",
+      ])
+    ) {
+      return "Fiction";
+    }
+
+    if (
+      hasAnyKeyword(combinedText, [
+        "horror",
+        "ghost",
+        "haunted",
+        "monster",
+        "paranormal",
+        "demon",
+        "terror",
+        "supernatural horror",
+      ])
+    ) {
+      return "Fiction";
+    }
+
+    if (
+      hasAnyKeyword(combinedText, [
+        "historical fiction",
+        "period fiction",
+        "wartime fiction",
+        "set in world war",
+        "set in the 18th century",
+        "set in the 19th century",
+      ])
+    ) {
+      return "Fiction";
+    }
+
+    if (
+      hasAnyKeyword(combinedText, [
+        "textbook",
+        "reviewer",
+        "review book",
+        "study guide",
+        "curriculum",
+        "education",
+        "educational",
+        "school",
+        "lesson",
+        "course",
+        "exam prep",
+        "board exam",
+        "reference",
+      ])
+    ) {
+      return "Academic";
+    }
+
+    if (
+      hasAnyKeyword(combinedText, [
+        "non-fiction",
+        "nonfiction",
+        "essay",
+        "essays",
+        "documentary",
+        "true story",
+        "real life",
+      ])
+    ) {
+      return "Non-fiction";
+    }
+
+    if (
+      hasAnyKeyword(combinedText, [
+        "fiction",
+        "novel",
+        "literary fiction",
+        "contemporary fiction",
+        "short stories",
+        "story",
+        "drama",
+      ])
+    ) {
+      return "Fiction";
+    }
+
+    return "Non-fiction";
+  };
+
+  const detectFallbackSubgenres = ({
+    category = "",
+    bookTitle = "",
+    bookDescription = "",
+    bookPublisher = "",
+  }: {
+    category?: string;
+    bookTitle?: string;
+    bookDescription?: string;
+    bookPublisher?: string;
+  }) => {
+    const text =
+      `${bookTitle} ${bookDescription} ${bookPublisher}`.toLowerCase();
+    const tags: string[] = [];
+
+    const addTag = (tag: string) => {
+      if (!tags.includes(tag)) tags.push(tag);
+    };
+
+    if (
+      hasAnyKeyword(text, [
+        "memoir",
+        "autobiography",
+        "true story",
+        "real life",
+        "personal story",
+      ])
+    ) {
+      addTag("Memoir");
+    }
+
+    if (
+      hasAnyKeyword(text, [
+        "biography",
+        "biographical",
+        "life of",
+        "based on a real person",
+      ])
+    ) {
+      addTag("Biography");
+    }
+
+    if (
+      hasAnyKeyword(text, [
         "history",
         "historical",
-        "war",
-        "civilization",
-        "ancient",
-        "world history",
-        "military history",
-        "historical study",
-      ],
-      Business: [
-        "business",
-        "economics",
-        "finance",
+        "world war",
+        "wwii",
+        "wwi",
+        "president",
+        "century",
+      ])
+    ) {
+      addTag("History");
+    }
+
+    if (
+      hasAnyKeyword(text, [
+        "true crime",
+        "crime case",
+        "murder case",
+        "real murder",
+      ])
+    ) {
+      addTag("True Crime");
+    }
+
+    if (
+      hasAnyKeyword(text, [
+        "adventure",
+        "survival",
+        "journey",
+        "expedition",
+        "exploration",
+      ])
+    ) {
+      addTag("Adventure");
+    }
+
+    if (
+      hasAnyKeyword(text, [
+        "mountain",
+        "mountaineering",
+        "everest",
+        "climb",
+        "climber",
+        "summit",
+      ])
+    ) {
+      addTag("Mountaineering");
+    }
+
+    if (
+      hasAnyKeyword(text, [
+        "psychology",
+        "decision making",
+        "behavior",
+        "behaviour",
+        "mind",
+        "thinking",
+        "cognitive",
+        "bias",
+      ])
+    ) {
+      addTag("Psychology");
+    }
+
+    if (
+      hasAnyKeyword(text, [
+        "personal development",
+        "self improvement",
+        "growth mindset",
+        "personal growth",
+      ])
+    ) {
+      addTag("Personal Development");
+    }
+
+    if (
+      hasAnyKeyword(text, [
+        "productivity",
+        "focus",
+        "discipline",
+        "deep work",
+        "time management",
+      ])
+    ) {
+      addTag("Productivity");
+    }
+
+    if (
+      hasAnyKeyword(text, ["habit", "habits", "routine", "behavior change"])
+    ) {
+      addTag("Habits");
+    }
+
+    if (
+      hasAnyKeyword(text, [
+        "startup",
+        "startups",
+        "founder",
         "entrepreneur",
         "entrepreneurship",
-        "leadership",
-        "management",
-        "marketing",
-        "business & economics",
+        "lean startup",
+      ])
+    ) {
+      addTag("Startup");
+    }
+
+    if (
+      hasAnyKeyword(text, ["leadership", "leader", "leading", "management"])
+    ) {
+      addTag("Leadership");
+    }
+
+    if (
+      hasAnyKeyword(text, [
+        "innovation",
+        "innovative",
+        "disruption",
+        "new ideas",
+      ])
+    ) {
+      addTag("Innovation");
+    }
+
+    if (
+      hasAnyKeyword(text, [
+        "finance",
+        "money",
+        "wealth",
         "investing",
-        "startup",
-      ],
-    };
-
-    for (const [dbName, keywords] of Object.entries(keywordMap)) {
-      if (keywords.some((keyword) => combinedText.includes(keyword))) {
-        const matched = dbCategories.find(
-          (cat) => cat.name.toLowerCase() === dbName.toLowerCase(),
-        );
-        if (matched) return String(matched.id);
-      }
+        "financial",
+        "income",
+        "assets",
+      ])
+    ) {
+      addTag("Finance");
     }
 
-    const normalizedCategoryMap: Record<string, string> = {
-      "juvenile fiction": "Children",
-      "juvenile nonfiction": "Children",
-      "young adult fiction": "Fiction",
-      "young adult nonfiction": "Non-fiction",
-      "business & economics": "Business",
-      computers: "Programming",
-      technology: "Programming",
-      psychology: "Self-help",
-      "health & fitness": "Self-help",
-      education: "Academic",
-      religion: "Religion",
-      science: "Science",
-      history: "History",
-      fiction: "Fiction",
-      nonfiction: "Non-fiction",
-      "non-fiction": "Non-fiction",
-      biography: "Non-fiction",
-      autobiography: "Non-fiction",
-      spirituality: "Religion",
-      theology: "Religion",
-      programming: "Programming",
-      mathematics: "Science",
-      textbook: "Academic",
-      reference: "Academic",
-      "children's books": "Children",
-    };
-
-    for (const [sourceName, dbName] of Object.entries(normalizedCategoryMap)) {
-      if (combinedText.includes(sourceName)) {
-        const matched = dbCategories.find(
-          (cat) => cat.name.toLowerCase() === dbName.toLowerCase(),
-        );
-        if (matched) return String(matched.id);
-      }
+    if (hasAnyKeyword(text, ["young adult", "teen", "high school"])) {
+      addTag("Young Adult");
     }
 
-    const directMatch = dbCategories.find((cat) =>
-      combinedText.includes(cat.name.toLowerCase()),
+    if (hasAnyKeyword(text, ["magic", "wizard", "spell", "sorcery"])) {
+      addTag("Magic");
+    }
+
+    if (hasAnyKeyword(text, ["dragon", "kingdom", "quest", "throne"])) {
+      addTag("Epic Fantasy");
+    }
+
+    if (hasAnyKeyword(text, ["detective", "clue", "investigator", "case"])) {
+      addTag("Detective");
+    }
+
+    if (hasAnyKeyword(text, ["thriller", "suspense", "serial killer"])) {
+      addTag("Thriller");
+    }
+
+    if (hasAnyKeyword(text, ["manga", "volume", "mangaka"])) {
+      addTag("Manga");
+    }
+
+    if (hasAnyKeyword(text, ["comic", "comics", "graphic novel"])) {
+      addTag("Comics");
+    }
+
+    if (category === "Business" && tags.length === 0) {
+      addTag("Business");
+    }
+
+    return tags.slice(0, 5);
+  };
+
+  const findMatchingCategoryId = (
+    detectedName: string,
+    dbCategories: Category[] = categories,
+  ) => {
+    if (!dbCategories.length || !detectedName) return "";
+
+    const normalizedDetected = normalizeText(detectedName);
+
+    const exactMatch = dbCategories.find(
+      (category) => normalizeText(category.name) === normalizedDetected,
     );
 
-    return directMatch ? String(directMatch.id) : "";
+    if (exactMatch) {
+      return String(exactMatch.id);
+    }
+
+    const aliasMap: Record<string, string[]> = {
+      Academic: ["academic", "school books", "textbooks", "reviewers"],
+      Fiction: ["novels", "fiction books"],
+      "Non-fiction": [
+        "nonfiction",
+        "general non-fiction",
+        "general nonfiction",
+      ],
+      Romance: ["romance books"],
+      Mystery: ["mystery books", "thriller", "crime thriller"],
+      Fantasy: ["fantasy books"],
+      Children: ["children", "kids books", "juvenile books"],
+      "Self-help": ["self help", "personal development"],
+      Business: ["business books", "finance", "management"],
+      Religion: ["religious books", "christian books", "catholic books"],
+      Programming: ["computers", "computer", "programming books", "it books"],
+      Science: ["science books", "medical books", "medicine"],
+      History: ["history books"],
+      "Manga / Comics": ["manga", "comics", "graphic novels"],
+      Wattpad: ["wattpad", "wattpad books", "wattpad stories"],
+    };
+
+    const aliases = aliasMap[detectedName] || [];
+
+    const aliasMatch = dbCategories.find((category) => {
+      const normalizedCategoryName = normalizeText(category.name);
+
+      return aliases.some(
+        (alias) => normalizedCategoryName === normalizeText(alias),
+      );
+    });
+
+    if (aliasMatch) {
+      return String(aliasMatch.id);
+    }
+
+    const partialMatch = dbCategories.find((category) => {
+      const name = normalizeText(category.name);
+      return (
+        name.includes(normalizedDetected) || normalizedDetected.includes(name)
+      );
+    });
+
+    return partialMatch ? String(partialMatch.id) : "";
+  };
+
+  const getAICategoryPrediction = async (
+    bookTitle: string,
+    bookDescription: string,
+  ): Promise<AIPredictionResponse | null> => {
+    try {
+      const response = await fetch("http://localhost:8000/predict-category", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title: bookTitle,
+          description: bookDescription,
+        }),
+      });
+
+      if (!response.ok) {
+        return null;
+      }
+
+      const data = (await response.json()) as AIPredictionResponse;
+      return data;
+    } catch (error) {
+      console.error("AI prediction failed:", error);
+      return null;
+    }
+  };
+
+  const runCategoryPrediction = async ({
+    nextTitle = title,
+    nextDescription = description,
+    nextAuthor = author,
+    nextPublisher = publisher,
+    nextGoogleCategories = googleCategories,
+    nextSubtitle = "",
+    skipIfTouched = true,
+  }: {
+    nextTitle?: string;
+    nextDescription?: string;
+    nextAuthor?: string;
+    nextPublisher?: string;
+    nextGoogleCategories?: string[];
+    nextSubtitle?: string;
+    skipIfTouched?: boolean;
+  }) => {
+    if (!categories.length) return;
+    if (skipIfTouched && categoryTouched) return;
+
+    const hasEnoughText =
+      nextTitle.trim() ||
+      nextDescription.trim() ||
+      nextAuthor.trim() ||
+      nextPublisher.trim() ||
+      nextGoogleCategories.length;
+
+    if (!hasEnoughText) {
+      setDetectedCategoryName("");
+      setSubgenres([]);
+      return;
+    }
+
+    const aiResult = await getAICategoryPrediction(nextTitle, nextDescription);
+
+    if (aiResult?.category) {
+      const matchedId = findMatchingCategoryId(aiResult.category, categories);
+
+      setDetectedCategoryName(aiResult.category);
+      setSubgenres(aiResult.subgenres || []);
+
+      if (matchedId) {
+        setCategoryId(matchedId);
+        return;
+      }
+    }
+
+    const fallbackDetectedName = detectBookCategoryName({
+      sourceCategories: nextGoogleCategories,
+      bookTitle: nextTitle,
+      bookSubtitle: nextSubtitle,
+      bookDescription: nextDescription,
+      bookAuthor: nextAuthor,
+      bookPublisher: nextPublisher,
+    });
+
+    const fallbackMatchedId = findMatchingCategoryId(
+      fallbackDetectedName,
+      categories,
+    );
+
+    const fallbackSubgenres = detectFallbackSubgenres({
+      category: fallbackDetectedName,
+      bookTitle: nextTitle,
+      bookDescription: nextDescription,
+      bookPublisher: nextPublisher,
+    });
+
+    setDetectedCategoryName(fallbackDetectedName);
+    setSubgenres(fallbackSubgenres);
+
+    if (fallbackMatchedId) {
+      setCategoryId(fallbackMatchedId);
+    }
   };
 
   useEffect(() => {
     if (!categories.length) return;
-    if (!googleCategories.length && !title && !description) return;
+    if (categoryTouched) return;
 
-    const matchedId = getMatchedCategoryId(
-      googleCategories,
-      title,
-      description,
-      categories,
-    );
+    const hasEnoughText =
+      title.trim() ||
+      description.trim() ||
+      author.trim() ||
+      publisher.trim() ||
+      googleCategories.length;
 
-    if (matchedId) {
-      setCategoryId(matchedId);
+    if (!hasEnoughText) return;
+
+    if (aiDebounceRef.current) {
+      clearTimeout(aiDebounceRef.current);
     }
-  }, [googleCategories, title, description, categories]);
+
+    aiDebounceRef.current = setTimeout(() => {
+      runCategoryPrediction({
+        nextTitle: title,
+        nextDescription: description,
+        nextAuthor: author,
+        nextPublisher: publisher,
+        nextGoogleCategories: googleCategories,
+      });
+    }, 600);
+
+    return () => {
+      if (aiDebounceRef.current) {
+        clearTimeout(aiDebounceRef.current);
+      }
+    };
+  }, [
+    title,
+    description,
+    author,
+    publisher,
+    googleCategories,
+    categories,
+    categoryTouched,
+  ]);
 
   const sanitizeUrl = (url?: string) => {
     if (!url) return "";
@@ -353,30 +1061,18 @@ export default function SellPage() {
     const normalThumbnail = sanitizeUrl(googleThumbnail);
     const normalSmallThumbnail = sanitizeUrl(googleSmallThumbnail);
 
-    const upgradedThumbnail = normalThumbnail
-      ? normalThumbnail.replace("&edge=curl", "").replace("zoom=1", "zoom=2")
-      : "";
-
-    const upgradedSmallThumbnail = normalSmallThumbnail
-      ? normalSmallThumbnail
-          .replace("&edge=curl", "")
-          .replace("zoom=1", "zoom=2")
-      : "";
-
     return uniqueNonEmpty([
-      normalThumbnail,
-      normalSmallThumbnail,
-      upgradedThumbnail,
-      upgradedSmallThumbnail,
+      isbnValue
+        ? `https://covers.openlibrary.org/b/isbn/${isbnValue}-L.jpg`
+        : "",
+      isbnValue
+        ? `https://books.google.com/books/publisher/content/images/frontcover/${isbnValue}?fife=w1200`
+        : "",
       googleVolumeId
         ? `https://books.google.com/books/content?id=${googleVolumeId}&printsec=frontcover&img=1&zoom=3&source=gbs_api`
         : "",
-      isbnValue
-        ? `https://books.google.com/books/publisher/content/images/frontcover/${isbnValue}?fife=w800`
-        : "",
-      isbnValue
-        ? `https://covers.openlibrary.org/b/isbn/${isbnValue}-L.jpg?default=false`
-        : "",
+      normalThumbnail,
+      normalSmallThumbnail,
     ]);
   };
 
@@ -387,15 +1083,12 @@ export default function SellPage() {
   ) => {
     return uniqueNonEmpty([
       isbnValue
-        ? `https://covers.openlibrary.org/b/isbn/${isbnValue}-L.jpg?default=false`
+        ? `https://covers.openlibrary.org/b/isbn/${isbnValue}-L.jpg`
         : "",
       ...extraIsbns.map(
-        (value) =>
-          `https://covers.openlibrary.org/b/isbn/${value}-L.jpg?default=false`,
+        (value) => `https://covers.openlibrary.org/b/isbn/${value}-L.jpg`,
       ),
-      coverId
-        ? `https://covers.openlibrary.org/b/id/${coverId}-L.jpg?default=false`
-        : "",
+      coverId ? `https://covers.openlibrary.org/b/id/${coverId}-L.jpg` : "",
     ]);
   };
 
@@ -432,6 +1125,7 @@ export default function SellPage() {
     return {
       source: "google",
       title: info.title ?? "",
+      subtitle: info.subtitle ?? "",
       authors: info.authors ?? [],
       description: info.description ?? "",
       publisher: info.publisher ?? "",
@@ -470,6 +1164,7 @@ export default function SellPage() {
     return {
       source: "openlibrary",
       title: doc.title ?? "",
+      subtitle: "",
       authors: doc.author_name ?? [],
       description: "",
       publisher: doc.publisher?.[0] ?? "",
@@ -481,8 +1176,9 @@ export default function SellPage() {
     };
   };
 
-  const applyAutofillBook = (book: AutofillBook) => {
+  const applyAutofillBook = async (book: AutofillBook) => {
     const nextTitle = book.title ?? "";
+    const nextSubtitle = book.subtitle ?? "";
     const nextAuthor = book.authors?.join(", ") ?? "";
     const nextDescription = book.description ?? "";
     const nextPublisher = book.publisher ?? "";
@@ -490,7 +1186,6 @@ export default function SellPage() {
     const nextCategories = book.categories ?? [];
     const nextCoverUrls = book.coverUrls ?? [];
 
-    setAutofillSource(book.source);
     setTitle(nextTitle);
     setAuthor(nextAuthor);
     setDescription(nextDescription);
@@ -502,16 +1197,15 @@ export default function SellPage() {
     setCoverIndex(0);
     setFetchedCover(nextCoverUrls[0] || "");
 
-    const matchedId = getMatchedCategoryId(
-      nextCategories,
+    await runCategoryPrediction({
       nextTitle,
       nextDescription,
-      categories,
-    );
-
-    if (matchedId) {
-      setCategoryId(matchedId);
-    }
+      nextAuthor,
+      nextPublisher,
+      nextGoogleCategories: nextCategories,
+      nextSubtitle,
+      skipIfTouched: true,
+    });
   };
 
   const handleIsbnLookup = async () => {
@@ -540,12 +1234,13 @@ export default function SellPage() {
       setFetchedCover("");
       setCoverCandidates([]);
       setCoverIndex(0);
-      setAutofillSource("");
+      setDetectedCategoryName("");
+      setSubgenres([]);
 
       const googleBook = await fetchFromGoogleBooks(normalizedIsbn);
 
       if (googleBook) {
-        applyAutofillBook(googleBook);
+        await applyAutofillBook(googleBook);
         showToast({
           title: "Book details filled",
           message: "Book details were autofilled from Google Books.",
@@ -557,7 +1252,7 @@ export default function SellPage() {
       const openLibraryBook = await fetchFromOpenLibrary(normalizedIsbn);
 
       if (openLibraryBook) {
-        applyAutofillBook(openLibraryBook);
+        await applyAutofillBook(openLibraryBook);
         showToast({
           title: "Book details filled",
           message: "Book details were autofilled from Open Library.",
@@ -639,6 +1334,10 @@ export default function SellPage() {
 
     let imageUrl = fetchedCover;
 
+    if (normalizedCustomCoverUrl) {
+      imageUrl = normalizedCustomCoverUrl;
+    }
+
     if (imageFile) {
       const fileExt = imageFile.name.split(".").pop();
       const fileName = `${user.id}-${Date.now()}.${fileExt}`;
@@ -665,7 +1364,7 @@ export default function SellPage() {
       imageUrl = publicUrlData.publicUrl;
     }
 
-    const finalPrice = parsedPrice * 0.96;
+    const finalPrice = parsedPrice;
 
     const { error } = await supabase.from("books").insert([
       {
@@ -682,6 +1381,7 @@ export default function SellPage() {
         location,
         image_url: imageUrl || null,
         stock_quantity: parsedStock,
+        subgenres: subgenres,
       },
     ]);
 
@@ -713,12 +1413,15 @@ export default function SellPage() {
     setLocation("");
     setCategoryId("");
     setFetchedCover("");
+    setCustomCoverUrl("");
     setCoverCandidates([]);
     setCoverIndex(0);
     setImageFile(null);
     setGoogleCategories([]);
     setStockQuantity("1");
-    setAutofillSource("");
+    setDetectedCategoryName("");
+    setCategoryTouched(false);
+    setSubgenres([]);
   };
 
   return (
@@ -733,7 +1436,8 @@ export default function SellPage() {
           </h1>
           <p className="mt-4 max-w-3xl text-lg leading-8 text-[#6B6B6B]">
             Enter an ISBN to automatically fill key book details, then review,
-            adjust, upload your own image if needed, and publish the listing.
+            adjust, upload your own image if needed, publish the listing, or
+            paste your own cover URL if the public cover looks blurry.
           </p>
         </div>
       </section>
@@ -756,16 +1460,24 @@ export default function SellPage() {
                   Add the ISBN first, then click the lookup button to
                   automatically fill the book’s basic information.
                 </p>
-                <p className="mt-2 text-xs text-[#8A8175]">
-                  Source used:{" "}
-                  <span className="font-semibold text-[#1F1F1F]">
-                    {autofillSource
-                      ? autofillSource === "google"
-                        ? "Google Books"
-                        : "Open Library"
-                      : "None yet"}
-                  </span>
-                </p>
+
+                {detectedCategoryName && (
+                  <p className="mt-2 text-sm text-[#6B6B6B]">
+                    Suggested category:{" "}
+                    <span className="font-semibold text-[#1F1F1F]">
+                      {detectedCategoryName}
+                    </span>
+                  </p>
+                )}
+
+                {subgenres.length > 0 && (
+                  <p className="mt-2 text-sm text-[#6B6B6B]">
+                    Suggested subgenres:{" "}
+                    <span className="font-semibold text-[#1F1F1F]">
+                      {subgenres.join(", ")}
+                    </span>
+                  </p>
+                )}
               </div>
             </div>
 
@@ -916,7 +1628,10 @@ export default function SellPage() {
                   </label>
                   <select
                     value={categoryId}
-                    onChange={(e) => setCategoryId(e.target.value)}
+                    onChange={(e) => {
+                      setCategoryTouched(true);
+                      setCategoryId(e.target.value);
+                    }}
                     className={selectClass}
                     required
                   >
@@ -962,24 +1677,52 @@ export default function SellPage() {
                 />
               </div>
 
-              <div>
-                <label className="mb-2 flex items-center gap-2 text-sm font-medium text-[#6B6B6B]">
-                  <ImagePlus size={16} />
-                  Upload Book Image
-                </label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => setImageFile(e.target.files?.[0] || null)}
-                  className="w-full rounded-2xl border border-[#DED8CF] bg-white px-4 py-3 text-sm text-[#5F5A52] file:mr-4 file:rounded-full file:border-0 file:bg-[#E67E22] file:px-4 file:py-2 file:font-semibold file:text-white hover:file:bg-[#cf6f1c]"
-                />
+              <div className="grid gap-5 md:grid-cols-2">
+                <div>
+                  <label className="mb-2 flex items-center gap-2 text-sm font-medium text-[#6B6B6B]">
+                    <ImagePlus size={16} />
+                    Upload Book Image
+                  </label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setImageFile(e.target.files?.[0] || null)}
+                    className="w-full rounded-2xl border border-[#DED8CF] bg-white px-4 py-1.5 text-sm text-[#5F5A52] file:mr-4 file:rounded-full file:border-0 file:bg-[#E67E22] file:px-3 file:py-2 file:font-semibold file:text-white hover:file:bg-[#cf6f1c]"
+                  />
+                  <p className="mt-2 text-xs leading-6 text-[#8A8175]">
+                    Use this for photos of the actual book,especially for used
+                    books.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="mb-2 flex items-center gap-2 text-sm font-medium text-[#6B6B6B]">
+                    <Link2 size={16} />
+                    Custom Cover URL
+                  </label>
+                  <input
+                    type="url"
+                    value={customCoverUrl}
+                    onChange={(e) => setCustomCoverUrl(e.target.value)}
+                    placeholder="Paste a clearer image URL here"
+                    className={inputClass}
+                  />
+                  <p className="mt-2 text-xs leading-6 text-[#8A8175]">
+                    Use this if a cover photo is missing or if the public ISBN
+                    image is blurry.
+                  </p>
+                </div>
               </div>
 
               <div className="rounded-2xl bg-[#F7F4EE] p-4 text-sm leading-7 text-[#6B6B6B]">
-                BookBazaar applies a 4% platform commission. If you enter{" "}
+                BookBazaar applies a 4% platform commission per sale. If you set
+                your book price at{" "}
                 <span className="font-semibold text-[#1F1F1F]">₱100</span>, the
-                listed amount becomes{" "}
-                <span className="font-semibold text-[#E67E22]">₱96</span>.
+                buyer will see{" "}
+                <span className="font-semibold text-[#1F1F1F]">₱100</span>, and
+                you will receive{" "}
+                <span className="font-semibold text-[#E67E22]">₱96</span> after
+                the sale.
               </div>
 
               <button
@@ -1008,6 +1751,13 @@ export default function SellPage() {
                     alt="Selected upload preview"
                     className="h-72 w-full object-contain bg-[#F7F4EE]"
                   />
+                ) : normalizedCustomCoverUrl ? (
+                  <img
+                    src={normalizedCustomCoverUrl}
+                    alt={title || "Custom cover"}
+                    className="h-72 w-full object-contain bg-[#F7F4EE]"
+                    onError={() => setCustomCoverUrl("")}
+                  />
                 ) : fetchedCover ? (
                   <img
                     src={fetchedCover}
@@ -1032,14 +1782,28 @@ export default function SellPage() {
                     {author || "Author name"}
                   </p>
                   <p className="mt-4 text-2xl font-bold text-[#E67E22]">
-                    {price ? `₱${(Number(price) * 0.96).toFixed(2)}` : "₱0.00"}
+                    {price ? `₱${Number(price).toFixed(2)}` : "₱0.00"}
                   </p>
+                  {!!price && (
+                    <p className="mt-2 text-sm text-[#8A8175]">
+                      You will receive ₱{(Number(price) * 0.96).toFixed(2)}{" "}
+                      after 4% commission
+                    </p>
+                  )}
                   <p className="mt-2 break-words text-sm text-[#8A8175]">
                     {location || "Location"}
                   </p>
                   <p className="mt-2 break-words text-sm text-[#8A8175]">
                     Stock: {stockQuantity || "0"}
                   </p>
+                  <p className="mt-2 break-words text-sm text-[#8A8175]">
+                    Category: {detectedCategoryName || "Not detected yet"}
+                  </p>
+                  {subgenres.length > 0 && (
+                    <p className="mt-2 break-words text-sm text-[#8A8175]">
+                      Subgenres: {subgenres.join(", ")}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>

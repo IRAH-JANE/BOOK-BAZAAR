@@ -55,6 +55,7 @@ type BookData = {
   publisher: string | null;
   published_date: string | null;
   categories: CategoryRelation;
+  subgenres?: string[] | null;
 };
 
 export default async function BookDetailsPage({ params }: BookPageProps) {
@@ -81,6 +82,7 @@ export default async function BookDetailsPage({ params }: BookPageProps) {
       isbn,
       publisher,
       published_date,
+      subgenres,
       categories (
         name
       )
@@ -103,6 +105,11 @@ export default async function BookDetailsPage({ params }: BookPageProps) {
     book.description && book.description.length > 320
       ? `${book.description.slice(0, 320)}...`
       : book.description || "No description available.";
+
+  const bookSubgenres =
+    Array.isArray(book.subgenres) && book.subgenres.length > 0
+      ? book.subgenres
+      : [];
 
   let relatedBooks: RelatedBook[] = [];
 
@@ -146,8 +153,8 @@ export default async function BookDetailsPage({ params }: BookPageProps) {
               imageUrl={book.image_url}
               isbn={book.isbn}
               title={book.title}
-              wrapperClassName="flex min-h-[280px] items-center justify-center rounded-[18px] border border-[#ECE6DC] bg-[#F7F4EE] p-4 sm:min-h-[460px] sm:rounded-[20px] sm:p-5"
-              className="max-h-[260px] w-auto max-w-full object-contain sm:max-h-[420px]"
+              wrapperClassName="overflow-hidden rounded-[18px] border border-[#ECE6DC] bg-[#F7F4EE] sm:rounded-[20px]"
+              className="h-[420px] w-full rounded-[16px] object-cover sm:h-[520px]"
               emptyClassName="flex h-[240px] w-full items-center justify-center text-[#8A8175] sm:h-[380px]"
               emptyText="No Image Available"
             />
@@ -179,6 +186,16 @@ export default async function BookDetailsPage({ params }: BookPageProps) {
                     {categoryName}
                   </div>
                 )}
+
+                {bookSubgenres.length > 0 &&
+                  bookSubgenres.map((subgenre) => (
+                    <div
+                      key={subgenre}
+                      className="rounded-full bg-[#FFF4E8] px-3 py-2 text-xs font-medium text-[#8A5B24] sm:text-sm"
+                    >
+                      {subgenre}
+                    </div>
+                  ))}
               </div>
 
               <p className="mt-5 text-2xl font-bold text-[#E67E22] sm:text-3xl">
@@ -224,7 +241,7 @@ export default async function BookDetailsPage({ params }: BookPageProps) {
 
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
                   {categoryName && (
-                    <div className="rounded-2xl bg-[#F7FEE] p-4">
+                    <div className="rounded-2xl bg-[#F7F4EE] p-4">
                       <p className="text-xs font-semibold uppercase tracking-wide text-[#8A8175]">
                         Category
                       </p>

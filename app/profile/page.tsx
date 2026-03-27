@@ -37,6 +37,8 @@ type Profile = {
   title: string | null;
   email: string | null;
   role: string | null;
+  is_admin: boolean | null;
+  admin_status: string | null;
   birth_date: string | null;
   gender: string | null;
   phone_number: string | null;
@@ -457,6 +459,11 @@ export default function ProfilePage() {
     `${profile?.first_name || ""} ${profile?.last_name || ""}`.trim() ||
     "BookBazaar User";
 
+  const hasApprovedAdminAccess =
+    profile?.is_admin === true && profile?.admin_status === "approved";
+
+  const isMainAdmin = profile?.role === "admin";
+
   const joinedDate = profile?.created_at
     ? new Date(profile.created_at).toLocaleDateString()
     : "Recently joined";
@@ -861,9 +868,20 @@ export default function ProfilePage() {
                           </span>
                         )}
 
-                        <span className="rounded-full bg-orange-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[#E67E22]">
-                          {profile?.role || "user"}
-                        </span>
+                        {isMainAdmin ? (
+                          <span className="rounded-full bg-orange-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[#E67E22]">
+                            ADMIN
+                          </span>
+                        ) : profile?.is_admin &&
+                          profile?.admin_status === "approved" ? (
+                          <span className="rounded-full bg-[#1F1F1F] px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white">
+                            APPROVED ADMIN
+                          </span>
+                        ) : (
+                          <span className="rounded-full bg-orange-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[#E67E22]">
+                            {profile?.role || "user"}
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -970,7 +988,12 @@ export default function ProfilePage() {
                       Account Role
                     </p>
                     <p className="mt-2 break-words font-semibold capitalize text-[#1F1F1F]">
-                      {profile?.role || "user"}
+                      {isMainAdmin
+                        ? "Main Admin"
+                        : profile?.is_admin &&
+                            profile?.admin_status === "approved"
+                          ? "Approved Admin"
+                          : profile?.role || "user"}
                     </p>
                   </div>
                 </div>
@@ -1197,7 +1220,7 @@ export default function ProfilePage() {
                     />
                   </button>
 
-                  {profile?.role === "admin" && (
+                  {(isMainAdmin || hasApprovedAdminAccess) && (
                     <button
                       onClick={() => router.push("/admin")}
                       className="flex w-full items-center justify-between rounded-2xl border border-[#E5E0D8] bg-[#FFFDF9] px-5 py-4 text-left transition hover:bg-[#F7F4EE]"
@@ -1253,6 +1276,20 @@ export default function ProfilePage() {
                         : "No saved books yet"}
                     </p>
                   </div>
+
+                  <div className="min-w-0 rounded-2xl bg-[#F7F4EE] p-4">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-[#8A8175]">
+                      Admin Access Status
+                    </p>
+                    <p className="mt-2 break-words font-semibold text-[#1F1F1F] capitalize">
+                      {isMainAdmin
+                        ? "Main Admin"
+                        : profile?.is_admin &&
+                            profile?.admin_status === "approved"
+                          ? "Approved Admin"
+                          : profile?.admin_status || "none"}
+                    </p>
+                  </div>
                 </div>
               </section>
 
@@ -1273,7 +1310,7 @@ export default function ProfilePage() {
                 </button>
               </section>
 
-              {profile?.role === "admin" && (
+              {(isMainAdmin || hasApprovedAdminAccess) && (
                 <section className="rounded-3xl border border-[#E5E0D8] bg-white p-6 shadow-sm">
                   <div className="flex items-center gap-3">
                     <Shield className="text-[#E67E22]" size={20} />
@@ -1283,8 +1320,9 @@ export default function ProfilePage() {
                   </div>
 
                   <p className="mt-3 break-words text-sm leading-7 text-[#6B6B6B]">
-                    You have administrator privileges and can access platform
-                    insights and management tools.
+                    {isMainAdmin
+                      ? "You are the main administrator and can access all platform management tools."
+                      : "You have approved administrator privileges and can access platform insights and management tools."}
                   </p>
 
                   <button

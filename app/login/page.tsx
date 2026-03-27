@@ -6,6 +6,12 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useToast } from "@/components/ToastProvider";
 
+type Profile = {
+  role: string | null;
+  is_admin: boolean | null;
+  admin_status: string | null;
+};
+
 export default function LoginPage() {
   const router = useRouter();
   const { showToast } = useToast();
@@ -47,13 +53,22 @@ export default function LoginPage() {
       return;
     }
 
-    const { data: profile } = await supabase
+    const { data: profile, error: profileError } = await supabase
       .from("profiles")
-      .select("role")
+      .select("role, is_admin, admin_status")
       .eq("id", user.id)
-      .maybeSingle();
+      .maybeSingle<Profile>();
 
     setLoading(false);
+
+    if (profileError) {
+      console.error("Failed to load profile after login:", profileError);
+    }
+
+    const isMainAdmin = profile?.role === "admin";
+    const isApprovedAdmin =
+      profile?.is_admin === true && profile?.admin_status === "approved";
+    const hasAdminAccess = isMainAdmin || isApprovedAdmin;
 
     showToast({
       title: "Login successful",
@@ -61,7 +76,7 @@ export default function LoginPage() {
       type: "success",
     });
 
-    if (profile?.role === "admin") {
+    if (hasAdminAccess) {
       router.push("/admin");
       router.refresh();
       return;
