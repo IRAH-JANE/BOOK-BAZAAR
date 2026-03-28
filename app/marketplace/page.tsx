@@ -13,6 +13,8 @@ import {
   Eye,
   SlidersHorizontal,
   X,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 
 type Book = {
@@ -24,9 +26,21 @@ type Book = {
   location: string;
   image_url: string | null;
   category_id: number | null;
+  genre_id: number | null;
+  book_type_id: number | null;
 };
 
 type Category = {
+  id: number;
+  name: string;
+};
+
+type Genre = {
+  id: number;
+  name: string;
+};
+
+type BookType = {
   id: number;
   name: string;
 };
@@ -44,6 +58,9 @@ type CartItem = {
   user_id: string;
 };
 
+const hiddenScrollbarClass =
+  "[scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden";
+
 function SkeletonBox({ className = "" }: { className?: string }) {
   return (
     <div className={`animate-pulse rounded-xl bg-[#E9E3D9] ${className}`} />
@@ -56,35 +73,50 @@ function MarketplaceSkeleton() {
       <div className="mx-auto max-w-7xl px-6 lg:h-full">
         <div className="grid gap-8 py-6 lg:grid-cols-[240px_minmax(0,1fr)] lg:h-full lg:py-0">
           <aside className="hidden lg:block lg:h-full lg:overflow-hidden lg:border-r lg:border-[#E5E0D8] lg:pr-6 lg:pt-6">
-            <div className="sticky top-0 space-y-8">
-              <div>
-                <SkeletonBox className="mb-3 h-4 w-16" />
+            <div
+              className={`h-full overflow-y-auto pr-2 ${hiddenScrollbarClass}`}
+            >
+              <div className="space-y-8">
+                <div>
+                  <SkeletonBox className="mb-3 h-4 w-16" />
+                  <SkeletonBox className="h-10 w-full" />
+                </div>
+
+                <div>
+                  <SkeletonBox className="mb-3 h-4 w-24" />
+                  <div className="space-y-2">
+                    {[...Array(8)].map((_, index) => (
+                      <SkeletonBox key={index} className="h-4 w-28" />
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <SkeletonBox className="mb-3 h-4 w-20" />
+                  <div className="space-y-2">
+                    {[...Array(6)].map((_, index) => (
+                      <SkeletonBox key={index} className="h-4 w-24" />
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <SkeletonBox className="mb-3 h-4 w-24" />
+                  <div className="space-y-2">
+                    {[...Array(6)].map((_, index) => (
+                      <SkeletonBox key={index} className="h-4 w-28" />
+                    ))}
+                  </div>
+                </div>
+
                 <SkeletonBox className="h-10 w-full" />
               </div>
-
-              <div>
-                <SkeletonBox className="mb-3 h-4 w-24" />
-                <div className="space-y-2">
-                  {[...Array(5)].map((_, index) => (
-                    <SkeletonBox key={index} className="h-4 w-28" />
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <SkeletonBox className="mb-3 h-4 w-20" />
-                <div className="space-y-2">
-                  {[...Array(4)].map((_, index) => (
-                    <SkeletonBox key={index} className="h-4 w-24" />
-                  ))}
-                </div>
-              </div>
-
-              <SkeletonBox className="h-10 w-full" />
             </div>
           </aside>
 
-          <div className="min-w-0 lg:h-full lg:overflow-y-auto lg:-mr-38">
+          <div
+            className={`min-w-0 lg:h-full lg:overflow-y-auto lg:-mr-38 ${hiddenScrollbarClass}`}
+          >
             <section className="min-w-0 lg:pr-10 lg:pt-6 lg:pb-6">
               <div className="mb-6 flex flex-col gap-4 border-b border-[#E5E0D8] pb-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
@@ -160,8 +192,13 @@ function MarketplaceContent() {
   const [books, setBooks] = useState<Book[]>([]);
   const [filteredBooks, setFilteredBooks] = useState<Book[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [genres, setGenres] = useState<Genre[]>([]);
+  const [bookTypes, setBookTypes] = useState<BookType[]>([]);
+
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
+  const [selectedGenre, setSelectedGenre] = useState("");
+  const [selectedBookType, setSelectedBookType] = useState("");
   const [selectedCondition, setSelectedCondition] = useState("");
   const [sortBy, setSortBy] = useState("newest");
   const [loading, setLoading] = useState(true);
@@ -173,6 +210,14 @@ function MarketplaceContent() {
   const [cartBookIds, setCartBookIds] = useState<number[]>([]);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [showMobileShortcutBar, setShowMobileShortcutBar] = useState(true);
+
+  const [showCategories, setShowCategories] = useState(true);
+  const [showGenres, setShowGenres] = useState(true);
+  const [showBookTypes, setShowBookTypes] = useState(true);
+
+  const [showAllCategories, setShowAllCategories] = useState(false);
+  const [showAllGenres, setShowAllGenres] = useState(false);
+  const [showAllBookTypes, setShowAllBookTypes] = useState(false);
 
   const lastScrollY = useRef(0);
   const hideTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -194,25 +239,43 @@ function MarketplaceContent() {
         setUserId(user.id);
       }
 
-      const { data: booksData, error: booksError } = await supabase
-        .from("books")
-        .select(
-          "id, title, author, price, condition, location, image_url, category_id, created_at",
-        )
-        .order("created_at", { ascending: false });
+      const [booksRes, categoriesRes, genresRes, bookTypesRes] =
+        await Promise.all([
+          supabase
+            .from("books")
+            .select(
+              "id, title, author, price, condition, location, image_url, category_id, genre_id, book_type_id, created_at",
+            )
+            .order("created_at", { ascending: false }),
+          supabase
+            .from("categories")
+            .select("id, name")
+            .order("name", { ascending: true }),
+          supabase
+            .from("genres")
+            .select("id, name")
+            .order("name", { ascending: true }),
+          supabase
+            .from("book_types")
+            .select("id, name")
+            .order("name", { ascending: true }),
+        ]);
 
-      const { data: categoriesData, error: categoriesError } = await supabase
-        .from("categories")
-        .select("id, name")
-        .order("name", { ascending: true });
-
-      if (!booksError && booksData) {
-        setBooks(booksData as Book[]);
-        setFilteredBooks(booksData as Book[]);
+      if (!booksRes.error && booksRes.data) {
+        setBooks(booksRes.data as Book[]);
+        setFilteredBooks(booksRes.data as Book[]);
       }
 
-      if (!categoriesError && categoriesData) {
-        setCategories(categoriesData);
+      if (!categoriesRes.error && categoriesRes.data) {
+        setCategories(categoriesRes.data);
+      }
+
+      if (!genresRes.error && genresRes.data) {
+        setGenres(genresRes.data);
+      }
+
+      if (!bookTypesRes.error && bookTypesRes.data) {
+        setBookTypes(bookTypesRes.data);
       }
 
       if (user) {
@@ -241,6 +304,50 @@ function MarketplaceContent() {
     };
 
     fetchData();
+
+    const channel = supabase
+      .channel("marketplace-lookups")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "categories" },
+        async () => {
+          const { data } = await supabase
+            .from("categories")
+            .select("id, name")
+            .order("name", { ascending: true });
+
+          if (data) setCategories(data);
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "genres" },
+        async () => {
+          const { data } = await supabase
+            .from("genres")
+            .select("id, name")
+            .order("name", { ascending: true });
+
+          if (data) setGenres(data);
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "book_types" },
+        async () => {
+          const { data } = await supabase
+            .from("book_types")
+            .select("id, name")
+            .order("name", { ascending: true });
+
+          if (data) setBookTypes(data);
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   useEffect(() => {
@@ -260,6 +367,16 @@ function MarketplaceContent() {
       );
     }
 
+    if (selectedGenre) {
+      result = result.filter((book) => String(book.genre_id) === selectedGenre);
+    }
+
+    if (selectedBookType) {
+      result = result.filter(
+        (book) => String(book.book_type_id) === selectedBookType,
+      );
+    }
+
     if (selectedCondition) {
       result = result.filter(
         (book) =>
@@ -276,7 +393,15 @@ function MarketplaceContent() {
     }
 
     setFilteredBooks(result);
-  }, [books, search, selectedCategory, selectedCondition, sortBy]);
+  }, [
+    books,
+    search,
+    selectedCategory,
+    selectedGenre,
+    selectedBookType,
+    selectedCondition,
+    sortBy,
+  ]);
 
   useEffect(() => {
     const startHideTimer = () => {
@@ -520,9 +645,22 @@ function MarketplaceContent() {
   const resetFilters = () => {
     setSearch("");
     setSelectedCategory("");
+    setSelectedGenre("");
+    setSelectedBookType("");
     setSelectedCondition("");
     setSortBy("newest");
+    setShowAllCategories(false);
+    setShowAllGenres(false);
+    setShowAllBookTypes(false);
   };
+
+  const visibleCategories = showAllCategories
+    ? categories
+    : categories.slice(0, 8);
+
+  const visibleGenres = showAllGenres ? genres : genres.slice(0, 8);
+
+  const visibleBookTypes = showAllBookTypes ? bookTypes : bookTypes.slice(0, 8);
 
   const filterContent = (
     <div className="space-y-8">
@@ -540,42 +678,184 @@ function MarketplaceContent() {
       </div>
 
       <div>
-        <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[#1F1F1F]">
-          Categories
-        </h3>
-        <div className="space-y-2">
-          <button
-            onClick={() => setSelectedCategory("")}
-            className={`block text-left text-sm ${
-              selectedCategory === ""
-                ? "font-semibold text-[#E67E22]"
-                : "text-[#6B6B6B] hover:text-[#1F1F1F]"
-            }`}
-          >
-            All Categories
-          </button>
+        <button
+          type="button"
+          onClick={() => setShowCategories((prev) => !prev)}
+          className="mb-3 flex w-full items-center justify-between text-left"
+        >
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-[#1F1F1F]">
+            Categories
+          </h3>
+          {showCategories ? (
+            <ChevronUp size={16} className="text-[#6B6B6B]" />
+          ) : (
+            <ChevronDown size={16} className="text-[#6B6B6B]" />
+          )}
+        </button>
 
-          {categories.map((category) => (
-            <button
-              key={category.id}
-              onClick={() => setSelectedCategory(String(category.id))}
-              className={`block text-left text-sm ${
-                selectedCategory === String(category.id)
-                  ? "font-semibold text-[#E67E22]"
-                  : "text-[#6B6B6B] hover:text-[#1F1F1F]"
-              }`}
-            >
-              {category.name}
-            </button>
-          ))}
-        </div>
+        {showCategories && (
+          <>
+            <div className="space-y-2">
+              <button
+                onClick={() => setSelectedCategory("")}
+                className={`block text-left text-sm ${
+                  selectedCategory === ""
+                    ? "font-semibold text-[#E67E22]"
+                    : "text-[#6B6B6B] hover:text-[#1F1F1F]"
+                }`}
+              >
+                All Categories
+              </button>
+
+              {visibleCategories.map((category) => (
+                <button
+                  key={category.id}
+                  onClick={() => setSelectedCategory(String(category.id))}
+                  className={`block text-left text-sm ${
+                    selectedCategory === String(category.id)
+                      ? "font-semibold text-[#E67E22]"
+                      : "text-[#6B6B6B] hover:text-[#1F1F1F]"
+                  }`}
+                >
+                  {category.name}
+                </button>
+              ))}
+            </div>
+
+            {categories.length > 8 && (
+              <button
+                type="button"
+                onClick={() => setShowAllCategories((prev) => !prev)}
+                className="mt-3 text-sm font-semibold text-[#E67E22] transition hover:text-[#cf6f1c]"
+              >
+                {showAllCategories ? "Show Less" : "Show More"}
+              </button>
+            )}
+          </>
+        )}
+      </div>
+
+      <div>
+        <button
+          type="button"
+          onClick={() => setShowGenres((prev) => !prev)}
+          className="mb-3 flex w-full items-center justify-between text-left"
+        >
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-[#1F1F1F]">
+            Genre
+          </h3>
+          {showGenres ? (
+            <ChevronUp size={16} className="text-[#6B6B6B]" />
+          ) : (
+            <ChevronDown size={16} className="text-[#6B6B6B]" />
+          )}
+        </button>
+
+        {showGenres && (
+          <>
+            <div className="space-y-2">
+              <button
+                onClick={() => setSelectedGenre("")}
+                className={`block text-left text-sm ${
+                  selectedGenre === ""
+                    ? "font-semibold text-[#E67E22]"
+                    : "text-[#6B6B6B] hover:text-[#1F1F1F]"
+                }`}
+              >
+                All Genres
+              </button>
+
+              {visibleGenres.map((genre) => (
+                <button
+                  key={genre.id}
+                  onClick={() => setSelectedGenre(String(genre.id))}
+                  className={`block text-left text-sm ${
+                    selectedGenre === String(genre.id)
+                      ? "font-semibold text-[#E67E22]"
+                      : "text-[#6B6B6B] hover:text-[#1F1F1F]"
+                  }`}
+                >
+                  {genre.name}
+                </button>
+              ))}
+            </div>
+
+            {genres.length > 8 && (
+              <button
+                type="button"
+                onClick={() => setShowAllGenres((prev) => !prev)}
+                className="mt-3 text-sm font-semibold text-[#E67E22] transition hover:text-[#cf6f1c]"
+              >
+                {showAllGenres ? "Show Less" : "Show More"}
+              </button>
+            )}
+          </>
+        )}
+      </div>
+
+      <div>
+        <button
+          type="button"
+          onClick={() => setShowBookTypes((prev) => !prev)}
+          className="mb-3 flex w-full items-center justify-between text-left"
+        >
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-[#1F1F1F]">
+            Types of Book
+          </h3>
+          {showBookTypes ? (
+            <ChevronUp size={16} className="text-[#6B6B6B]" />
+          ) : (
+            <ChevronDown size={16} className="text-[#6B6B6B]" />
+          )}
+        </button>
+
+        {showBookTypes && (
+          <>
+            <div className="space-y-2">
+              <button
+                onClick={() => setSelectedBookType("")}
+                className={`block text-left text-sm ${
+                  selectedBookType === ""
+                    ? "font-semibold text-[#E67E22]"
+                    : "text-[#6B6B6B] hover:text-[#1F1F1F]"
+                }`}
+              >
+                All Book Types
+              </button>
+
+              {visibleBookTypes.map((type) => (
+                <button
+                  key={type.id}
+                  onClick={() => setSelectedBookType(String(type.id))}
+                  className={`block text-left text-sm ${
+                    selectedBookType === String(type.id)
+                      ? "font-semibold text-[#E67E22]"
+                      : "text-[#6B6B6B] hover:text-[#1F1F1F]"
+                  }`}
+                >
+                  {type.name}
+                </button>
+              ))}
+            </div>
+
+            {bookTypes.length > 8 && (
+              <button
+                type="button"
+                onClick={() => setShowAllBookTypes((prev) => !prev)}
+                className="mt-3 text-sm font-semibold text-[#E67E22] transition hover:text-[#cf6f1c]"
+              >
+                {showAllBookTypes ? "Show Less" : "Show More"}
+              </button>
+            )}
+          </>
+        )}
       </div>
 
       <div>
         <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[#1F1F1F]">
           Condition
         </h3>
-        <div className="space-y-2">
+        <div className="space-y-2 pb-6">
           {["", "New", "Good", "Used"].map((condition) => (
             <button
               key={condition || "all"}
@@ -592,7 +872,7 @@ function MarketplaceContent() {
         </div>
       </div>
 
-      <div>
+      <div className="space-y-2">
         <button
           onClick={() => {
             resetFilters();
@@ -640,10 +920,16 @@ function MarketplaceContent() {
 
         <div className="grid gap-8 py-6 lg:grid-cols-[240px_minmax(0,1fr)] lg:h-full lg:py-0">
           <aside className="hidden lg:block lg:h-full lg:overflow-hidden lg:border-r lg:border-[#E5E0D8] lg:pr-6 lg:pt-6">
-            <div className="sticky top-0">{filterContent}</div>
+            <div
+              className={`h-full overflow-y-auto pr-2 pb-6 ${hiddenScrollbarClass}`}
+            >
+              {filterContent}
+            </div>
           </aside>
 
-          <div className="min-w-0 lg:h-full lg:overflow-y-auto lg:-mr-38">
+          <div
+            className={`min-w-0 lg:h-full lg:overflow-y-auto lg:-mr-38 ${hiddenScrollbarClass}`}
+          >
             <section className="min-w-0 lg:pr-10 lg:pt-6 lg:pb-6">
               <div className="mb-6 flex flex-col gap-4 border-b border-[#E5E0D8] pb-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>

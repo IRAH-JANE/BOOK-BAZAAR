@@ -12,6 +12,8 @@ import {
   Building2,
   Hash,
   PackageCheck,
+  Shapes,
+  Library,
 } from "lucide-react";
 
 type BookPageProps = {
@@ -31,18 +33,20 @@ type RelatedBook = {
   isbn?: string | null;
 };
 
-type CategoryRelation =
+type LookupRelation =
   | {
-      name?: string;
+      name?: string | null;
     }
   | {
-      name?: string;
+      name?: string | null;
     }[]
   | null;
 
 type BookData = {
   id: number;
   category_id: number | null;
+  genre_id: number | null;
+  book_type_id: number | null;
   title: string;
   author: string;
   description: string | null;
@@ -54,9 +58,18 @@ type BookData = {
   isbn: string | null;
   publisher: string | null;
   published_date: string | null;
-  categories: CategoryRelation;
-  subgenres?: string[] | null;
+  stock_quantity: number | null;
+  categories: LookupRelation;
+  genres: LookupRelation;
+  book_types: LookupRelation;
 };
+
+function extractRelationName(relation: LookupRelation) {
+  if (Array.isArray(relation)) {
+    return relation[0]?.name || null;
+  }
+  return relation?.name || null;
+}
 
 export default async function BookDetailsPage({ params }: BookPageProps) {
   const { id } = await params;
@@ -71,6 +84,8 @@ export default async function BookDetailsPage({ params }: BookPageProps) {
       `
       id,
       category_id,
+      genre_id,
+      book_type_id,
       title,
       author,
       description,
@@ -82,8 +97,14 @@ export default async function BookDetailsPage({ params }: BookPageProps) {
       isbn,
       publisher,
       published_date,
-      subgenres,
+      stock_quantity,
       categories (
+        name
+      ),
+      genres (
+        name
+      ),
+      book_types (
         name
       )
       `,
@@ -97,19 +118,16 @@ export default async function BookDetailsPage({ params }: BookPageProps) {
 
   const book = data as BookData;
 
-  const categoryName = Array.isArray(book.categories)
-    ? book.categories[0]?.name || null
-    : book.categories?.name || null;
+  const categoryName = extractRelationName(book.categories);
+  const genreName = extractRelationName(book.genres);
+  const bookTypeName = extractRelationName(book.book_types);
+
+  const fullDescription = book.description || "No description available.";
 
   const shortDescription =
-    book.description && book.description.length > 320
-      ? `${book.description.slice(0, 320)}...`
-      : book.description || "No description available.";
-
-  const bookSubgenres =
-    Array.isArray(book.subgenres) && book.subgenres.length > 0
-      ? book.subgenres
-      : [];
+    fullDescription.length > 320
+      ? `${fullDescription.slice(0, 320)}...`
+      : fullDescription;
 
   let relatedBooks: RelatedBook[] = [];
 
@@ -124,14 +142,39 @@ export default async function BookDetailsPage({ params }: BookPageProps) {
     relatedBooks = (sameCategoryBooks as RelatedBook[]) || [];
   }
 
-  if (relatedBooks.length === 0) {
+  if (relatedBooks.length < 4 && book.genre_id) {
+    const excludeIds = [book.id, ...relatedBooks.map((item) => item.id)];
+
+    const { data: sameGenreBooks } = await supabase
+      .from("books")
+      .select("id, title, author, price, image_url, location, condition, isbn")
+      .eq("genre_id", book.genre_id)
+      .not("id", "in", `(${excludeIds.join(",")})`)
+      .limit(4 - relatedBooks.length);
+
+    relatedBooks = [
+      ...relatedBooks,
+      ...((sameGenreBooks as RelatedBook[]) || []).filter(
+        (item) => !relatedBooks.some((existing) => existing.id === item.id),
+      ),
+    ];
+  }
+
+  if (relatedBooks.length < 4) {
+    const excludeIds = [book.id, ...relatedBooks.map((item) => item.id)];
+
     const { data: fallbackBooks } = await supabase
       .from("books")
       .select("id, title, author, price, image_url, location, condition, isbn")
-      .neq("id", book.id)
-      .limit(4);
+      .not("id", "in", `(${excludeIds.join(",")})`)
+      .limit(4 - relatedBooks.length);
 
-    relatedBooks = (fallbackBooks as RelatedBook[]) || [];
+    relatedBooks = [
+      ...relatedBooks,
+      ...((fallbackBooks as RelatedBook[]) || []).filter(
+        (item) => !relatedBooks.some((existing) => existing.id === item.id),
+      ),
+    ];
   }
 
   return (
@@ -187,19 +230,21 @@ export default async function BookDetailsPage({ params }: BookPageProps) {
                   </div>
                 )}
 
-                {bookSubgenres.length > 0 &&
-                  bookSubgenres.map((subgenre) => (
-                    <div
-                      key={subgenre}
-                      className="rounded-full bg-[#FFF4E8] px-3 py-2 text-xs font-medium text-[#8A5B24] sm:text-sm"
-                    >
-                      {subgenre}
-                    </div>
-                  ))}
+                {genreName && (
+                  <div className="rounded-full bg-[#FFF4E8] px-3 py-2 text-xs font-medium text-[#8A5B24] sm:text-sm">
+                    {genreName}
+                  </div>
+                )}
+
+                {bookTypeName && (
+                  <div className="rounded-full bg-[#F2EEE8] px-3 py-2 text-xs font-medium text-[#5F5A52] sm:text-sm">
+                    {bookTypeName}
+                  </div>
+                )}
               </div>
 
               <p className="mt-5 text-2xl font-bold text-[#E67E22] sm:text-3xl">
-                ₱{book.price}
+                ₱{Number(book.price).toFixed(2)}
               </p>
 
               <div className="mt-5 grid gap-3 sm:grid-cols-2">
@@ -218,6 +263,24 @@ export default async function BookDetailsPage({ params }: BookPageProps) {
                   </p>
                   <p className="mt-2 text-sm font-semibold capitalize text-[#1F1F1F] sm:text-base">
                     {book.status || "Available"}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl bg-[#F7F4EE] p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-[#8A8175]">
+                    Stock
+                  </p>
+                  <p className="mt-2 text-sm font-semibold text-[#1F1F1F] sm:text-base">
+                    {book.stock_quantity ?? 1}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl bg-[#F7F4EE] p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-[#8A8175]">
+                    Availability
+                  </p>
+                  <p className="mt-2 text-sm font-semibold text-[#1F1F1F] sm:text-base">
+                    {book.status || "Available for buyer inquiry"}
                   </p>
                 </div>
 
@@ -246,9 +309,40 @@ export default async function BookDetailsPage({ params }: BookPageProps) {
                         Category
                       </p>
                       <div className="mt-2 flex items-center gap-2 text-[#1F1F1F]">
-                        <Tag size={16} className="shrink-0 text-[#E67E22]" />
+                        <Library
+                          size={16}
+                          className="shrink-0 text-[#E67E22]"
+                        />
                         <span className="text-sm font-semibold sm:text-base">
                           {categoryName}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {genreName && (
+                    <div className="rounded-2xl bg-[#F7F4EE] p-4">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-[#8A8175]">
+                        Genre
+                      </p>
+                      <div className="mt-2 flex items-center gap-2 text-[#1F1F1F]">
+                        <Tag size={16} className="shrink-0 text-[#E67E22]" />
+                        <span className="text-sm font-semibold sm:text-base">
+                          {genreName}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {bookTypeName && (
+                    <div className="rounded-2xl bg-[#F7F4EE] p-4">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-[#8A8175]">
+                        Book Type
+                      </p>
+                      <div className="mt-2 flex items-center gap-2 text-[#1F1F1F]">
+                        <Shapes size={16} className="shrink-0 text-[#E67E22]" />
+                        <span className="text-sm font-semibold sm:text-base">
+                          {bookTypeName}
                         </span>
                       </div>
                     </div>
@@ -332,7 +426,7 @@ export default async function BookDetailsPage({ params }: BookPageProps) {
                       </p>
 
                       <p className="hidden break-words text-sm leading-7 text-[#4F4A43] group-open:block sm:text-base">
-                        {book.description || "No description available."}
+                        {fullDescription}
                       </p>
 
                       <span className="mt-4 inline-block text-sm font-semibold text-[#E67E22] sm:text-base">
@@ -400,7 +494,7 @@ export default async function BookDetailsPage({ params }: BookPageProps) {
                     </p>
 
                     <p className="mt-3 text-lg font-bold text-[#E67E22]">
-                      ₱{related.price}
+                      ₱{Number(related.price).toFixed(2)}
                     </p>
 
                     <div className="mt-2 flex items-center gap-2 text-sm text-[#8A8175]">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/ToastProvider";
 import {
@@ -17,9 +17,21 @@ import {
   User,
   Package,
   Link2,
+  Shapes,
+  Library,
 } from "lucide-react";
 
 type Category = {
+  id: number;
+  name: string;
+};
+
+type Genre = {
+  id: number;
+  name: string;
+};
+
+type BookType = {
   id: number;
   name: string;
 };
@@ -42,6 +54,7 @@ type GoogleBookVolume = {
 };
 
 type OpenLibrarySearchDoc = {
+  key?: string;
   title?: string;
   author_name?: string[];
   publisher?: string[];
@@ -49,6 +62,20 @@ type OpenLibrarySearchDoc = {
   subject?: string[];
   isbn?: string[];
   cover_i?: number;
+};
+
+type OpenLibraryDescriptionValue =
+  | string
+  | {
+      value?: string;
+    };
+
+type OpenLibraryWorkResponse = {
+  description?: OpenLibraryDescriptionValue;
+};
+
+type OpenLibraryEditionResponse = {
+  description?: OpenLibraryDescriptionValue;
 };
 
 type AutofillBook = {
@@ -63,16 +90,14 @@ type AutofillBook = {
   coverUrls: string[];
 };
 
-type AIPredictionResponse = {
-  category: string | null;
-  subgenres: string[];
-  confidence: number;
-};
+function sortByName<T extends { name: string }>(items: T[]) {
+  return [...items].sort((a, b) =>
+    a.name.localeCompare(b.name, undefined, { sensitivity: "base" }),
+  );
+}
 
 export default function SellPage() {
   const { showToast } = useToast();
-
-  const [subgenres, setSubgenres] = useState<string[]>([]);
 
   const [title, setTitle] = useState("");
   const [author, setAuthor] = useState("");
@@ -80,8 +105,15 @@ export default function SellPage() {
   const [price, setPrice] = useState("");
   const [condition, setCondition] = useState("");
   const [location, setLocation] = useState("");
+
   const [categoryId, setCategoryId] = useState("");
+  const [genreId, setGenreId] = useState("");
+  const [bookTypeId, setBookTypeId] = useState("");
+
   const [categories, setCategories] = useState<Category[]>([]);
+  const [genres, setGenres] = useState<Genre[]>([]);
+  const [bookTypes, setBookTypes] = useState<BookType[]>([]);
+
   const [imageFile, setImageFile] = useState<File | null>(null);
 
   const [isbn, setIsbn] = useState("");
@@ -92,15 +124,19 @@ export default function SellPage() {
   const [lookupLoading, setLookupLoading] = useState(false);
   const [posting, setPosting] = useState(false);
 
-  const [googleCategories, setGoogleCategories] = useState<string[]>([]);
+  const [apiCategories, setApiCategories] = useState<string[]>([]);
   const [stockQuantity, setStockQuantity] = useState("1");
 
   const [coverCandidates, setCoverCandidates] = useState<string[]>([]);
   const [coverIndex, setCoverIndex] = useState(0);
-  const [detectedCategoryName, setDetectedCategoryName] = useState("");
-  const [categoryTouched, setCategoryTouched] = useState(false);
 
-  const aiDebounceRef = useRef<NodeJS.Timeout | null>(null);
+  const [detectedCategoryName, setDetectedCategoryName] = useState("");
+  const [detectedGenreName, setDetectedGenreName] = useState("");
+  const [detectedBookTypeName, setDetectedBookTypeName] = useState("");
+
+  const [categoryTouched, setCategoryTouched] = useState(false);
+  const [genreTouched, setGenreTouched] = useState(false);
+  const [bookTypeTouched, setBookTypeTouched] = useState(false);
 
   const cleanedIsbn = useMemo(() => isbn.replace(/[^0-9Xx]/g, ""), [isbn]);
 
@@ -115,941 +151,186 @@ export default function SellPage() {
     return trimmed.replace("http://", "https://");
   }, [customCoverUrl]);
 
+  const selectedCategoryName = useMemo(() => {
+    if (!categoryId) return "";
+    return (
+      categories.find((item) => String(item.id) === categoryId)?.name || ""
+    );
+  }, [categoryId, categories]);
+
+  const selectedGenreName = useMemo(() => {
+    if (!genreId) return "";
+    return genres.find((item) => String(item.id) === genreId)?.name || "";
+  }, [genreId, genres]);
+
+  const selectedBookTypeName = useMemo(() => {
+    if (!bookTypeId) return "";
+    return bookTypes.find((item) => String(item.id) === bookTypeId)?.name || "";
+  }, [bookTypeId, bookTypes]);
+
   useEffect(() => {
     return () => {
-      if (localImagePreview) {
-        URL.revokeObjectURL(localImagePreview);
-      }
+      if (localImagePreview) URL.revokeObjectURL(localImagePreview);
     };
   }, [localImagePreview]);
 
-  useEffect(() => {
-    return () => {
-      if (aiDebounceRef.current) {
-        clearTimeout(aiDebounceRef.current);
-      }
-    };
-  }, []);
-
   const inputClass =
-    "w-full rounded-2xl border border-[#DED8CF] bg-white px-4 py-3 text-[16px] text-[#5F5A52] placeholder:text-[#8A8175] outline-none transition focus:border-[#E67E22] focus:ring-1 focus:ring-[#E67E22]";
+    "h-[52px] w-full rounded-2xl border border-[#DED8CF] bg-white px-4 text-[15px] text-[#5F5A52] placeholder:text-[#8A8175] outline-none transition focus:border-[#E67E22] focus:ring-1 focus:ring-[#E67E22]";
 
   const textareaClass =
-    "w-full rounded-2xl border border-[#DED8CF] bg-white px-4 py-3 text-[16px] text-[#5F5A52] placeholder:text-[#8A8175] outline-none transition focus:border-[#E67E22] focus:ring-1 focus:ring-[#E67E22]";
+    "w-full rounded-2xl border border-[#DED8CF] bg-white px-4 py-3 text-[15px] text-[#5F5A52] placeholder:text-[#8A8175] outline-none transition focus:border-[#E67E22] focus:ring-1 focus:ring-[#E67E22]";
 
   const selectClass =
-    "w-full rounded-2xl border border-[#DED8CF] bg-white px-4 py-3 text-[16px] text-[#5F5A52] outline-none transition focus:border-[#E67E22] focus:ring-1 focus:ring-[#E67E22]";
+    "h-[52px] w-full appearance-none rounded-2xl border border-[#DED8CF] bg-white px-4 pr-10 text-[15px] text-[#5F5A52] outline-none transition focus:border-[#E67E22] focus:ring-1 focus:ring-[#E67E22]";
 
-  useEffect(() => {
-    const fetchCategories = async () => {
-      const { data, error } = await supabase
+  const loadLookups = useCallback(async () => {
+    const [categoriesRes, genresRes, bookTypesRes] = await Promise.all([
+      supabase
         .from("categories")
         .select("id, name")
-        .order("name", { ascending: true });
-
-      if (!error && data) {
-        setCategories(data);
-      }
-    };
-
-    fetchCategories();
-  }, []);
-
-  const normalizeText = (value: string | null | undefined) => {
-    return (value || "").toLowerCase().trim();
-  };
-
-  const hasAnyKeyword = (text: string, keywords: string[]) => {
-    return keywords.some((keyword) => text.includes(keyword));
-  };
-
-  const detectBookCategoryName = ({
-    sourceCategories = [],
-    bookTitle = "",
-    bookSubtitle = "",
-    bookDescription = "",
-    bookAuthor = "",
-    bookPublisher = "",
-  }: {
-    sourceCategories?: string[];
-    bookTitle?: string;
-    bookSubtitle?: string;
-    bookDescription?: string;
-    bookAuthor?: string;
-    bookPublisher?: string;
-  }) => {
-    const combinedText = [
-      ...sourceCategories,
-      bookTitle,
-      bookSubtitle,
-      bookDescription,
-      bookAuthor,
-      bookPublisher,
-    ]
-      .join(" ")
-      .toLowerCase();
-
-    if (!combinedText.trim()) {
-      return "Non-fiction";
-    }
-
-    if (
-      hasAnyKeyword(combinedText, [
-        "wattpad",
-        "wattys",
-        "fanfiction",
-        "online story",
-        "online stories",
-        "campus romance",
-        "teen fiction",
-        "viral story",
-        "published on wattpad",
-        "wattpad sensation",
-      ])
-    ) {
-      return "Wattpad";
-    }
-
-    if (
-      hasAnyKeyword(combinedText, [
-        "manga",
-        "comic",
-        "comics",
-        "graphic novel",
-        "graphic novels",
-        "manhwa",
-        "webtoon",
-        "illustrated novel",
-      ])
-    ) {
-      return "Manga / Comics";
-    }
-
-    if (
-      hasAnyKeyword(combinedText, [
-        "programming",
-        "computer",
-        "computers",
-        "coding",
-        "software",
-        "web development",
-        "javascript",
-        "typescript",
-        "python",
-        "java",
-        "c++",
-        "c#",
-        "php",
-        "database",
-        "sql",
-        "cybersecurity",
-        "networking",
-        "information technology",
-        "data structures",
-        "algorithms",
-        "developer",
-        "computer science",
-      ])
-    ) {
-      return "Programming";
-    }
-
-    if (
-      hasAnyKeyword(combinedText, [
-        "engineering",
-        "civil engineering",
-        "mechanical engineering",
-        "electrical engineering",
-        "electronics engineering",
-        "industrial engineering",
-        "engineering drawing",
-        "thermodynamics",
-        "strength of materials",
-      ])
-    ) {
-      return "Academic";
-    }
-
-    if (
-      hasAnyKeyword(combinedText, [
-        "mathematics",
-        "math",
-        "algebra",
-        "geometry",
-        "calculus",
-        "statistics",
-        "trigonometry",
-        "quantitative",
-        "mathematical",
-      ])
-    ) {
-      return "Academic";
-    }
-
-    if (
-      hasAnyKeyword(combinedText, [
-        "biology",
-        "chemistry",
-        "physics",
-        "earth science",
-        "life science",
-        "general science",
-        "scientific",
-        "laboratory",
-        "astronomy",
-        "environmental science",
-      ])
-    ) {
-      return "Science";
-    }
-
-    if (
-      hasAnyKeyword(combinedText, [
-        "medical",
-        "medicine",
-        "nursing",
-        "anatomy",
-        "physiology",
-        "pharmacology",
-        "clinical",
-        "health care",
-        "healthcare",
-        "pathology",
-        "surgery",
-        "diagnosis",
-      ])
-    ) {
-      return "Science";
-    }
-
-    if (
-      hasAnyKeyword(combinedText, [
-        "law",
-        "legal",
-        "jurisprudence",
-        "constitution",
-        "criminal law",
-        "civil law",
-        "political law",
-        "revised penal code",
-        "evidence",
-        "taxation law",
-      ])
-    ) {
-      return "Academic";
-    }
-
-    if (
-      hasAnyKeyword(combinedText, [
-        "psychology",
-        "mental health",
-        "behavior",
-        "behaviour",
-        "cognitive",
-        "personality",
-        "therapy",
-        "counseling",
-        "emotions",
-      ])
-    ) {
-      return "Non-fiction";
-    }
-
-    if (
-      hasAnyKeyword(combinedText, [
-        "religion",
-        "christian",
-        "catholic",
-        "bible",
-        "theology",
-        "faith",
-        "spirituality",
-        "church",
-        "prayer",
-        "devotional",
-        "ministry",
-      ])
-    ) {
-      return "Religion";
-    }
-
-    if (
-      hasAnyKeyword(combinedText, [
-        "business",
-        "entrepreneurship",
-        "marketing",
-        "finance",
-        "economics",
-        "management",
-        "leadership",
-        "startup",
-        "accounting",
-        "investing",
-        "sales",
-        "business & economics",
-      ])
-    ) {
-      return "Business";
-    }
-
-    if (
-      hasAnyKeyword(combinedText, [
-        "self-help",
-        "self help",
-        "motivation",
-        "motivational",
-        "productivity",
-        "personal growth",
-        "success",
-        "habits",
-        "mindset",
-        "discipline",
-      ])
-    ) {
-      return "Self-help";
-    }
-
-    if (
-      hasAnyKeyword(combinedText, [
-        "biography",
-        "memoir",
-        "autobiography",
-        "life of",
-        "personal account",
-        "memories",
-      ])
-    ) {
-      return "Non-fiction";
-    }
-
-    if (
-      hasAnyKeyword(combinedText, [
-        "history",
-        "historical account",
-        "world war",
-        "ancient",
-        "civilization",
-        "philippine history",
-        "historian",
-      ])
-    ) {
-      return "History";
-    }
-
-    if (
-      hasAnyKeyword(combinedText, [
-        "poetry",
-        "poems",
-        "poet",
-        "verse",
-        "sonnet",
-        "spoken word",
-        "collection of poems",
-      ])
-    ) {
-      return "Fiction";
-    }
-
-    if (
-      hasAnyKeyword(combinedText, [
-        "children",
-        "kids",
-        "storybook",
-        "picture book",
-        "bedtime story",
-        "juvenile",
-        "early reader",
-        "ages 3-5",
-        "ages 6-8",
-        "children's books",
-      ])
-    ) {
-      return "Children";
-    }
-
-    if (
-      hasAnyKeyword(combinedText, [
-        "young adult",
-        "ya fiction",
-        "teen",
-        "coming of age",
-        "adolescent",
-        "high school",
-      ])
-    ) {
-      return "Fiction";
-    }
-
-    if (
-      hasAnyKeyword(combinedText, [
-        "romance",
-        "love story",
-        "falling in love",
-        "heartbreak",
-        "relationship",
-        "boyfriend",
-        "girlfriend",
-        "romantic",
-      ])
-    ) {
-      return "Romance";
-    }
-
-    if (
-      hasAnyKeyword(combinedText, [
-        "mystery",
-        "thriller",
-        "crime",
-        "detective",
-        "suspense",
-        "investigation",
-        "serial killer",
-        "murder",
-      ])
-    ) {
-      return "Mystery";
-    }
-
-    if (
-      hasAnyKeyword(combinedText, [
-        "fantasy",
-        "magic",
-        "sorcery",
-        "dragon",
-        "kingdom",
-        "fae",
-        "mythical",
-        "enchanted",
-      ])
-    ) {
-      return "Fantasy";
-    }
-
-    if (
-      hasAnyKeyword(combinedText, [
-        "science fiction",
-        "sci-fi",
-        "scifi",
-        "space",
-        "alien",
-        "robot",
-        "future world",
-        "dystopian",
-        "utopian",
-      ])
-    ) {
-      return "Fiction";
-    }
-
-    if (
-      hasAnyKeyword(combinedText, [
-        "horror",
-        "ghost",
-        "haunted",
-        "monster",
-        "paranormal",
-        "demon",
-        "terror",
-        "supernatural horror",
-      ])
-    ) {
-      return "Fiction";
-    }
-
-    if (
-      hasAnyKeyword(combinedText, [
-        "historical fiction",
-        "period fiction",
-        "wartime fiction",
-        "set in world war",
-        "set in the 18th century",
-        "set in the 19th century",
-      ])
-    ) {
-      return "Fiction";
-    }
-
-    if (
-      hasAnyKeyword(combinedText, [
-        "textbook",
-        "reviewer",
-        "review book",
-        "study guide",
-        "curriculum",
-        "education",
-        "educational",
-        "school",
-        "lesson",
-        "course",
-        "exam prep",
-        "board exam",
-        "reference",
-      ])
-    ) {
-      return "Academic";
-    }
-
-    if (
-      hasAnyKeyword(combinedText, [
-        "non-fiction",
-        "nonfiction",
-        "essay",
-        "essays",
-        "documentary",
-        "true story",
-        "real life",
-      ])
-    ) {
-      return "Non-fiction";
-    }
-
-    if (
-      hasAnyKeyword(combinedText, [
-        "fiction",
-        "novel",
-        "literary fiction",
-        "contemporary fiction",
-        "short stories",
-        "story",
-        "drama",
-      ])
-    ) {
-      return "Fiction";
-    }
-
-    return "Non-fiction";
-  };
-
-  const detectFallbackSubgenres = ({
-    category = "",
-    bookTitle = "",
-    bookDescription = "",
-    bookPublisher = "",
-  }: {
-    category?: string;
-    bookTitle?: string;
-    bookDescription?: string;
-    bookPublisher?: string;
-  }) => {
-    const text =
-      `${bookTitle} ${bookDescription} ${bookPublisher}`.toLowerCase();
-    const tags: string[] = [];
-
-    const addTag = (tag: string) => {
-      if (!tags.includes(tag)) tags.push(tag);
-    };
-
-    if (
-      hasAnyKeyword(text, [
-        "memoir",
-        "autobiography",
-        "true story",
-        "real life",
-        "personal story",
-      ])
-    ) {
-      addTag("Memoir");
-    }
-
-    if (
-      hasAnyKeyword(text, [
-        "biography",
-        "biographical",
-        "life of",
-        "based on a real person",
-      ])
-    ) {
-      addTag("Biography");
-    }
-
-    if (
-      hasAnyKeyword(text, [
-        "history",
-        "historical",
-        "world war",
-        "wwii",
-        "wwi",
-        "president",
-        "century",
-      ])
-    ) {
-      addTag("History");
-    }
-
-    if (
-      hasAnyKeyword(text, [
-        "true crime",
-        "crime case",
-        "murder case",
-        "real murder",
-      ])
-    ) {
-      addTag("True Crime");
-    }
-
-    if (
-      hasAnyKeyword(text, [
-        "adventure",
-        "survival",
-        "journey",
-        "expedition",
-        "exploration",
-      ])
-    ) {
-      addTag("Adventure");
-    }
-
-    if (
-      hasAnyKeyword(text, [
-        "mountain",
-        "mountaineering",
-        "everest",
-        "climb",
-        "climber",
-        "summit",
-      ])
-    ) {
-      addTag("Mountaineering");
-    }
-
-    if (
-      hasAnyKeyword(text, [
-        "psychology",
-        "decision making",
-        "behavior",
-        "behaviour",
-        "mind",
-        "thinking",
-        "cognitive",
-        "bias",
-      ])
-    ) {
-      addTag("Psychology");
-    }
-
-    if (
-      hasAnyKeyword(text, [
-        "personal development",
-        "self improvement",
-        "growth mindset",
-        "personal growth",
-      ])
-    ) {
-      addTag("Personal Development");
-    }
-
-    if (
-      hasAnyKeyword(text, [
-        "productivity",
-        "focus",
-        "discipline",
-        "deep work",
-        "time management",
-      ])
-    ) {
-      addTag("Productivity");
-    }
-
-    if (
-      hasAnyKeyword(text, ["habit", "habits", "routine", "behavior change"])
-    ) {
-      addTag("Habits");
-    }
-
-    if (
-      hasAnyKeyword(text, [
-        "startup",
-        "startups",
-        "founder",
-        "entrepreneur",
-        "entrepreneurship",
-        "lean startup",
-      ])
-    ) {
-      addTag("Startup");
-    }
-
-    if (
-      hasAnyKeyword(text, ["leadership", "leader", "leading", "management"])
-    ) {
-      addTag("Leadership");
-    }
-
-    if (
-      hasAnyKeyword(text, [
-        "innovation",
-        "innovative",
-        "disruption",
-        "new ideas",
-      ])
-    ) {
-      addTag("Innovation");
-    }
-
-    if (
-      hasAnyKeyword(text, [
-        "finance",
-        "money",
-        "wealth",
-        "investing",
-        "financial",
-        "income",
-        "assets",
-      ])
-    ) {
-      addTag("Finance");
-    }
-
-    if (hasAnyKeyword(text, ["young adult", "teen", "high school"])) {
-      addTag("Young Adult");
-    }
-
-    if (hasAnyKeyword(text, ["magic", "wizard", "spell", "sorcery"])) {
-      addTag("Magic");
-    }
-
-    if (hasAnyKeyword(text, ["dragon", "kingdom", "quest", "throne"])) {
-      addTag("Epic Fantasy");
-    }
-
-    if (hasAnyKeyword(text, ["detective", "clue", "investigator", "case"])) {
-      addTag("Detective");
-    }
-
-    if (hasAnyKeyword(text, ["thriller", "suspense", "serial killer"])) {
-      addTag("Thriller");
-    }
-
-    if (hasAnyKeyword(text, ["manga", "volume", "mangaka"])) {
-      addTag("Manga");
-    }
-
-    if (hasAnyKeyword(text, ["comic", "comics", "graphic novel"])) {
-      addTag("Comics");
-    }
-
-    if (category === "Business" && tags.length === 0) {
-      addTag("Business");
-    }
-
-    return tags.slice(0, 5);
-  };
-
-  const findMatchingCategoryId = (
-    detectedName: string,
-    dbCategories: Category[] = categories,
-  ) => {
-    if (!dbCategories.length || !detectedName) return "";
-
-    const normalizedDetected = normalizeText(detectedName);
-
-    const exactMatch = dbCategories.find(
-      (category) => normalizeText(category.name) === normalizedDetected,
-    );
-
-    if (exactMatch) {
-      return String(exactMatch.id);
-    }
-
-    const aliasMap: Record<string, string[]> = {
-      Academic: ["academic", "school books", "textbooks", "reviewers"],
-      Fiction: ["novels", "fiction books"],
-      "Non-fiction": [
-        "nonfiction",
-        "general non-fiction",
-        "general nonfiction",
-      ],
-      Romance: ["romance books"],
-      Mystery: ["mystery books", "thriller", "crime thriller"],
-      Fantasy: ["fantasy books"],
-      Children: ["children", "kids books", "juvenile books"],
-      "Self-help": ["self help", "personal development"],
-      Business: ["business books", "finance", "management"],
-      Religion: ["religious books", "christian books", "catholic books"],
-      Programming: ["computers", "computer", "programming books", "it books"],
-      Science: ["science books", "medical books", "medicine"],
-      History: ["history books"],
-      "Manga / Comics": ["manga", "comics", "graphic novels"],
-      Wattpad: ["wattpad", "wattpad books", "wattpad stories"],
-    };
-
-    const aliases = aliasMap[detectedName] || [];
-
-    const aliasMatch = dbCategories.find((category) => {
-      const normalizedCategoryName = normalizeText(category.name);
-
-      return aliases.some(
-        (alias) => normalizedCategoryName === normalizeText(alias),
-      );
-    });
-
-    if (aliasMatch) {
-      return String(aliasMatch.id);
-    }
-
-    const partialMatch = dbCategories.find((category) => {
-      const name = normalizeText(category.name);
-      return (
-        name.includes(normalizedDetected) || normalizedDetected.includes(name)
-      );
-    });
-
-    return partialMatch ? String(partialMatch.id) : "";
-  };
-
-  const getAICategoryPrediction = async (
-    bookTitle: string,
-    bookDescription: string,
-  ): Promise<AIPredictionResponse | null> => {
-    try {
-      const response = await fetch("http://localhost:8000/predict-category", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          title: bookTitle,
-          description: bookDescription,
-        }),
-      });
-
-      if (!response.ok) {
-        return null;
-      }
-
-      const data = (await response.json()) as AIPredictionResponse;
-      return data;
-    } catch (error) {
-      console.error("AI prediction failed:", error);
-      return null;
-    }
-  };
-
-  const runCategoryPrediction = async ({
-    nextTitle = title,
-    nextDescription = description,
-    nextAuthor = author,
-    nextPublisher = publisher,
-    nextGoogleCategories = googleCategories,
-    nextSubtitle = "",
-    skipIfTouched = true,
-  }: {
-    nextTitle?: string;
-    nextDescription?: string;
-    nextAuthor?: string;
-    nextPublisher?: string;
-    nextGoogleCategories?: string[];
-    nextSubtitle?: string;
-    skipIfTouched?: boolean;
-  }) => {
-    if (!categories.length) return;
-    if (skipIfTouched && categoryTouched) return;
-
-    const hasEnoughText =
-      nextTitle.trim() ||
-      nextDescription.trim() ||
-      nextAuthor.trim() ||
-      nextPublisher.trim() ||
-      nextGoogleCategories.length;
-
-    if (!hasEnoughText) {
-      setDetectedCategoryName("");
-      setSubgenres([]);
-      return;
-    }
-
-    const aiResult = await getAICategoryPrediction(nextTitle, nextDescription);
-
-    if (aiResult?.category) {
-      const matchedId = findMatchingCategoryId(aiResult.category, categories);
-
-      setDetectedCategoryName(aiResult.category);
-      setSubgenres(aiResult.subgenres || []);
-
-      if (matchedId) {
-        setCategoryId(matchedId);
-        return;
+        .order("name", { ascending: true }),
+      supabase
+        .from("genres")
+        .select("id, name")
+        .order("name", { ascending: true }),
+      supabase
+        .from("book_types")
+        .select("id, name")
+        .order("name", { ascending: true }),
+    ]);
+
+    if (!categoriesRes.error && categoriesRes.data) {
+      const sortedCategories = sortByName(categoriesRes.data);
+      setCategories(sortedCategories);
+
+      if (
+        categoryId &&
+        !sortedCategories.some((item) => String(item.id) === categoryId)
+      ) {
+        setCategoryId("");
       }
     }
 
-    const fallbackDetectedName = detectBookCategoryName({
-      sourceCategories: nextGoogleCategories,
-      bookTitle: nextTitle,
-      bookSubtitle: nextSubtitle,
-      bookDescription: nextDescription,
-      bookAuthor: nextAuthor,
-      bookPublisher: nextPublisher,
-    });
+    if (!genresRes.error && genresRes.data) {
+      const sortedGenres = sortByName(genresRes.data);
+      setGenres(sortedGenres);
 
-    const fallbackMatchedId = findMatchingCategoryId(
-      fallbackDetectedName,
-      categories,
-    );
-
-    const fallbackSubgenres = detectFallbackSubgenres({
-      category: fallbackDetectedName,
-      bookTitle: nextTitle,
-      bookDescription: nextDescription,
-      bookPublisher: nextPublisher,
-    });
-
-    setDetectedCategoryName(fallbackDetectedName);
-    setSubgenres(fallbackSubgenres);
-
-    if (fallbackMatchedId) {
-      setCategoryId(fallbackMatchedId);
+      if (
+        genreId &&
+        !sortedGenres.some((item) => String(item.id) === genreId)
+      ) {
+        setGenreId("");
+      }
     }
-  };
+
+    if (!bookTypesRes.error && bookTypesRes.data) {
+      const sortedBookTypes = sortByName(bookTypesRes.data);
+      setBookTypes(sortedBookTypes);
+
+      if (
+        bookTypeId &&
+        !sortedBookTypes.some((item) => String(item.id) === bookTypeId)
+      ) {
+        setBookTypeId("");
+      }
+    }
+  }, [categoryId, genreId, bookTypeId]);
 
   useEffect(() => {
-    if (!categories.length) return;
-    if (categoryTouched) return;
+    loadLookups();
 
-    const hasEnoughText =
-      title.trim() ||
-      description.trim() ||
-      author.trim() ||
-      publisher.trim() ||
-      googleCategories.length;
-
-    if (!hasEnoughText) return;
-
-    if (aiDebounceRef.current) {
-      clearTimeout(aiDebounceRef.current);
-    }
-
-    aiDebounceRef.current = setTimeout(() => {
-      runCategoryPrediction({
-        nextTitle: title,
-        nextDescription: description,
-        nextAuthor: author,
-        nextPublisher: publisher,
-        nextGoogleCategories: googleCategories,
-      });
-    }, 600);
+    const channel = supabase
+      .channel("sell-page-lookups")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "categories" },
+        async () => {
+          await loadLookups();
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "genres" },
+        async () => {
+          await loadLookups();
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "book_types" },
+        async () => {
+          await loadLookups();
+        },
+      )
+      .subscribe();
 
     return () => {
-      if (aiDebounceRef.current) {
-        clearTimeout(aiDebounceRef.current);
-      }
+      supabase.removeChannel(channel);
     };
-  }, [
-    title,
-    description,
-    author,
-    publisher,
-    googleCategories,
-    categories,
-    categoryTouched,
-  ]);
+  }, [loadLookups]);
+
+  const normalizeText = (value: string | null | undefined) =>
+    (value || "").toLowerCase().trim();
+
+  const hasAnyKeyword = (text: string, keywords: string[]) =>
+    keywords.some((keyword) => text.includes(keyword));
 
   const sanitizeUrl = (url?: string) => {
     if (!url) return "";
     return url.replace("http://", "https://");
   };
 
-  const uniqueNonEmpty = (items: string[]) => {
-    return [...new Set(items.filter(Boolean))];
+  const uniqueNonEmpty = (items: string[]) => [
+    ...new Set(items.filter(Boolean)),
+  ];
+
+  const normalizeDescription = (value?: OpenLibraryDescriptionValue) => {
+    if (!value) return "";
+    if (typeof value === "string") return value.trim();
+    return value.value?.trim() || "";
+  };
+
+  const stripHtml = (value: string) => {
+    if (!value) return "";
+    return value
+      .replace(/<[^>]*>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  };
+
+  const getFallbackDescription = ({
+    title: fallbackTitle,
+    authors = [],
+    publisher: fallbackPublisher,
+    publishedDate: fallbackPublishedDate,
+    categories: fallbackCategories = [],
+  }: {
+    title?: string;
+    authors?: string[];
+    publisher?: string;
+    publishedDate?: string;
+    categories?: string[];
+  }) => {
+    const parts: string[] = [];
+
+    if (fallbackTitle) parts.push(`"${fallbackTitle}"`);
+    if (authors.length) parts.push(`by ${authors.join(", ")}`);
+    if (fallbackPublisher) parts.push(`published by ${fallbackPublisher}`);
+    if (fallbackPublishedDate) parts.push(`(${fallbackPublishedDate})`);
+
+    let base = parts.join(" ").trim();
+
+    if (!base) {
+      base = "No public description was returned by the book API.";
+    } else {
+      base = `${base}.`;
+    }
+
+    if (fallbackCategories.length) {
+      base += ` Categories: ${fallbackCategories.slice(0, 5).join(", ")}.`;
+    }
+
+    return base;
   };
 
   const buildGoogleCoverCandidates = (
@@ -1092,6 +373,45 @@ export default function SellPage() {
     ]);
   };
 
+  const fetchOpenLibraryDescription = async (
+    workKey?: string,
+    isbnValue?: string,
+  ): Promise<string> => {
+    try {
+      if (workKey) {
+        const workResponse = await fetch(
+          `https://openlibrary.org${workKey}.json`,
+        );
+        if (workResponse.ok) {
+          const workData =
+            (await workResponse.json()) as OpenLibraryWorkResponse;
+          const workDescription = normalizeDescription(workData.description);
+          if (workDescription) return stripHtml(workDescription);
+        }
+      }
+
+      if (isbnValue) {
+        const editionResponse = await fetch(
+          `https://openlibrary.org/isbn/${encodeURIComponent(isbnValue)}.json`,
+        );
+
+        if (editionResponse.ok) {
+          const editionData =
+            (await editionResponse.json()) as OpenLibraryEditionResponse;
+          const editionDescription = normalizeDescription(
+            editionData.description,
+          );
+          if (editionDescription) return stripHtml(editionDescription);
+        }
+      }
+
+      return "";
+    } catch (error) {
+      console.error("Open Library description fetch failed:", error);
+      return "";
+    }
+  };
+
   const fetchFromGoogleBooks = async (
     isbnValue: string,
   ): Promise<AutofillBook | null> => {
@@ -1102,10 +422,7 @@ export default function SellPage() {
       url.searchParams.set("q", query);
       url.searchParams.set("maxResults", "1");
       url.searchParams.set("printType", "books");
-      url.searchParams.set("projection", "lite");
-      if (apiKey) {
-        url.searchParams.set("key", apiKey);
-      }
+      if (apiKey) url.searchParams.set("key", apiKey);
       return url.toString();
     };
 
@@ -1122,12 +439,22 @@ export default function SellPage() {
 
     if (!info) return null;
 
+    const descriptionText = stripHtml(info.description ?? "");
+
     return {
       source: "google",
       title: info.title ?? "",
       subtitle: info.subtitle ?? "",
       authors: info.authors ?? [],
-      description: info.description ?? "",
+      description:
+        descriptionText ||
+        getFallbackDescription({
+          title: info.title,
+          authors: info.authors ?? [],
+          publisher: info.publisher ?? "",
+          publishedDate: info.publishedDate ?? "",
+          categories: info.categories ?? [],
+        }),
       publisher: info.publisher ?? "",
       publishedDate: info.publishedDate ?? "",
       categories: info.categories ?? [],
@@ -1151,7 +478,6 @@ export default function SellPage() {
     const data = await response.json();
 
     const doc = data?.docs?.[0] as OpenLibrarySearchDoc | undefined;
-
     if (!doc) return null;
 
     const subjects = doc.subject ?? [];
@@ -1161,12 +487,27 @@ export default function SellPage() {
       doc.isbn ?? [],
     );
 
+    const fetchedDescription = await fetchOpenLibraryDescription(
+      doc.key,
+      isbnValue,
+    );
+
     return {
       source: "openlibrary",
       title: doc.title ?? "",
       subtitle: "",
       authors: doc.author_name ?? [],
-      description: "",
+      description:
+        fetchedDescription ||
+        getFallbackDescription({
+          title: doc.title ?? "",
+          authors: doc.author_name ?? [],
+          publisher: doc.publisher?.[0] ?? "",
+          publishedDate: doc.first_publish_year
+            ? String(doc.first_publish_year)
+            : "",
+          categories: subjects,
+        }),
       publisher: doc.publisher?.[0] ?? "",
       publishedDate: doc.first_publish_year
         ? String(doc.first_publish_year)
@@ -1176,9 +517,223 @@ export default function SellPage() {
     };
   };
 
+  const findByName = <T extends { id: number; name: string }>(
+    list: T[],
+    target: string,
+  ) => list.find((item) => normalizeText(item.name) === normalizeText(target));
+
+  const detectCategoryFromText = (text: string) => {
+    if (
+      hasAnyKeyword(text, ["programming", "software", "coding", "computer"])
+    ) {
+      return "Programming";
+    }
+    if (
+      hasAnyKeyword(text, [
+        "science",
+        "biology",
+        "chemistry",
+        "physics",
+        "medical",
+      ])
+    ) {
+      return "Science";
+    }
+    if (hasAnyKeyword(text, ["history", "historical"])) {
+      return "History";
+    }
+    if (
+      hasAnyKeyword(text, ["business", "finance", "marketing", "leadership"])
+    ) {
+      return "Business";
+    }
+    if (
+      hasAnyKeyword(text, [
+        "religion",
+        "bible",
+        "theology",
+        "devotional",
+        "church",
+      ])
+    ) {
+      return "Religion";
+    }
+    if (
+      hasAnyKeyword(text, [
+        "textbook",
+        "reviewer",
+        "study guide",
+        "education",
+        "academic",
+        "school",
+      ])
+    ) {
+      return "Academic";
+    }
+    if (hasAnyKeyword(text, ["children", "juvenile", "kids", "picture book"])) {
+      return "Children";
+    }
+    if (
+      hasAnyKeyword(text, [
+        "non-fiction",
+        "nonfiction",
+        "essay",
+        "memoir",
+        "biography",
+      ])
+    ) {
+      return "Non-fiction";
+    }
+    return "Fiction";
+  };
+
+  const detectGenreFromText = (text: string) => {
+    if (
+      hasAnyKeyword(text, [
+        "romance",
+        "romantic",
+        "love",
+        "relationship",
+        "passion",
+        "desire",
+        "erotica",
+        "erotic",
+        "heartbreak",
+        "colleen hoover",
+        "it ends with us",
+        "reminders of him",
+        "fifty shades",
+      ])
+    ) {
+      return "Romance";
+    }
+    if (hasAnyKeyword(text, ["mystery", "detective", "crime", "suspense"])) {
+      return "Mystery";
+    }
+    if (hasAnyKeyword(text, ["fantasy", "magic", "dragon", "mythical"])) {
+      return "Fantasy";
+    }
+    if (
+      hasAnyKeyword(text, ["horror", "haunted", "ghost", "monster", "terror"])
+    ) {
+      return "Horror";
+    }
+    if (hasAnyKeyword(text, ["thriller", "psychological thriller"])) {
+      return "Thriller";
+    }
+    if (
+      hasAnyKeyword(text, ["sci-fi", "science fiction", "alien", "dystopian"])
+    ) {
+      return "Sci-Fi";
+    }
+    if (hasAnyKeyword(text, ["adventure", "journey", "quest", "expedition"])) {
+      return "Adventure";
+    }
+    if (
+      hasAnyKeyword(text, [
+        "self-help",
+        "self help",
+        "motivation",
+        "personal development",
+        "productivity",
+        "habits",
+      ])
+    ) {
+      return "Self-help";
+    }
+    if (hasAnyKeyword(text, ["drama", "emotional", "family story"])) {
+      return "Drama";
+    }
+    return "";
+  };
+
+  const detectBookTypeFromText = (text: string) => {
+    if (hasAnyKeyword(text, ["wattpad", "wattys", "fanfiction"]))
+      return "Wattpad";
+    if (hasAnyKeyword(text, ["manga"])) return "Manga";
+    if (hasAnyKeyword(text, ["comics", "comic book"])) return "Comics";
+    if (hasAnyKeyword(text, ["graphic novel"])) return "Graphic Novel";
+    if (hasAnyKeyword(text, ["textbook"])) return "Textbook";
+    if (hasAnyKeyword(text, ["reviewer", "review book"])) return "Reviewer";
+    return "Novel";
+  };
+
+  const applyDetectedClassification = ({
+    nextTitle = title,
+    nextDescription = description,
+    nextPublisher = publisher,
+    nextApiCategories = apiCategories,
+  }: {
+    nextTitle?: string;
+    nextDescription?: string;
+    nextPublisher?: string;
+    nextApiCategories?: string[];
+  }) => {
+    const combinedText = [
+      nextTitle,
+      nextDescription,
+      nextPublisher,
+      ...nextApiCategories,
+    ]
+      .join(" ")
+      .toLowerCase();
+
+    const detectedCategory = detectCategoryFromText(combinedText);
+    const detectedGenre = detectGenreFromText(combinedText);
+    const detectedBookType = detectBookTypeFromText(combinedText);
+
+    setDetectedCategoryName(detectedCategory || "");
+    setDetectedGenreName(detectedGenre || "");
+    setDetectedBookTypeName(detectedBookType || "");
+
+    if (!categoryTouched) {
+      const matchedCategory = findByName(categories, detectedCategory);
+      if (matchedCategory) setCategoryId(String(matchedCategory.id));
+    }
+
+    if (!genreTouched && detectedGenre) {
+      const matchedGenre = findByName(genres, detectedGenre);
+      if (matchedGenre) setGenreId(String(matchedGenre.id));
+    }
+
+    if (!bookTypeTouched && detectedBookType) {
+      const matchedBookType = findByName(bookTypes, detectedBookType);
+      if (matchedBookType) setBookTypeId(String(matchedBookType.id));
+    }
+  };
+
+  useEffect(() => {
+    if (!categories.length || !genres.length || !bookTypes.length) return;
+
+    const hasEnoughText =
+      title.trim() ||
+      description.trim() ||
+      publisher.trim() ||
+      apiCategories.length;
+
+    if (!hasEnoughText) return;
+
+    applyDetectedClassification({
+      nextTitle: title,
+      nextDescription: description,
+      nextPublisher: publisher,
+      nextApiCategories: apiCategories,
+    });
+  }, [
+    categories,
+    genres,
+    bookTypes,
+    title,
+    description,
+    publisher,
+    apiCategories,
+    categoryTouched,
+    genreTouched,
+    bookTypeTouched,
+  ]);
+
   const applyAutofillBook = async (book: AutofillBook) => {
     const nextTitle = book.title ?? "";
-    const nextSubtitle = book.subtitle ?? "";
     const nextAuthor = book.authors?.join(", ") ?? "";
     const nextDescription = book.description ?? "";
     const nextPublisher = book.publisher ?? "";
@@ -1191,20 +746,17 @@ export default function SellPage() {
     setDescription(nextDescription);
     setPublisher(nextPublisher);
     setPublishedDate(nextPublishedDate);
-    setGoogleCategories(nextCategories);
+    setApiCategories(nextCategories);
 
     setCoverCandidates(nextCoverUrls);
     setCoverIndex(0);
     setFetchedCover(nextCoverUrls[0] || "");
 
-    await runCategoryPrediction({
+    applyDetectedClassification({
       nextTitle,
       nextDescription,
-      nextAuthor,
       nextPublisher,
-      nextGoogleCategories: nextCategories,
-      nextSubtitle,
-      skipIfTouched: true,
+      nextApiCategories: nextCategories,
     });
   };
 
@@ -1235,10 +787,10 @@ export default function SellPage() {
       setCoverCandidates([]);
       setCoverIndex(0);
       setDetectedCategoryName("");
-      setSubgenres([]);
+      setDetectedGenreName("");
+      setDetectedBookTypeName("");
 
       const googleBook = await fetchFromGoogleBooks(normalizedIsbn);
-
       if (googleBook) {
         await applyAutofillBook(googleBook);
         showToast({
@@ -1250,7 +802,6 @@ export default function SellPage() {
       }
 
       const openLibraryBook = await fetchFromOpenLibrary(normalizedIsbn);
-
       if (openLibraryBook) {
         await applyAutofillBook(openLibraryBook);
         showToast({
@@ -1280,13 +831,11 @@ export default function SellPage() {
 
   const handleCoverError = () => {
     const nextIndex = coverIndex + 1;
-
     if (nextIndex < coverCandidates.length) {
       setCoverIndex(nextIndex);
       setFetchedCover(coverCandidates[nextIndex]);
       return;
     }
-
     setFetchedCover("");
   };
 
@@ -1311,6 +860,36 @@ export default function SellPage() {
       showToast({
         title: "Invalid stock quantity",
         message: "Stock quantity must be at least 1.",
+        type: "error",
+      });
+      setPosting(false);
+      return;
+    }
+
+    if (!categoryId) {
+      showToast({
+        title: "Category required",
+        message: "Please select a category.",
+        type: "error",
+      });
+      setPosting(false);
+      return;
+    }
+
+    if (!genreId) {
+      showToast({
+        title: "Genre required",
+        message: "Please select a genre.",
+        type: "error",
+      });
+      setPosting(false);
+      return;
+    }
+
+    if (!bookTypeId) {
+      showToast({
+        title: "Book type required",
+        message: "Please select a book type.",
         type: "error",
       });
       setPosting(false);
@@ -1364,24 +943,23 @@ export default function SellPage() {
       imageUrl = publicUrlData.publicUrl;
     }
 
-    const finalPrice = parsedPrice;
-
     const { error } = await supabase.from("books").insert([
       {
         seller_id: user.id,
-        category_id: categoryId ? Number(categoryId) : null,
+        category_id: Number(categoryId),
+        genre_id: Number(genreId),
+        book_type_id: Number(bookTypeId),
         isbn: cleanedIsbn || null,
         title,
         author,
         publisher: publisher || null,
         published_date: publishedDate || null,
         description,
-        price: finalPrice,
+        price: parsedPrice,
         condition,
         location,
         image_url: imageUrl || null,
         stock_quantity: parsedStock,
-        subgenres: subgenres,
       },
     ]);
 
@@ -1412,16 +990,21 @@ export default function SellPage() {
     setCondition("");
     setLocation("");
     setCategoryId("");
+    setGenreId("");
+    setBookTypeId("");
     setFetchedCover("");
     setCustomCoverUrl("");
     setCoverCandidates([]);
     setCoverIndex(0);
     setImageFile(null);
-    setGoogleCategories([]);
+    setApiCategories([]);
     setStockQuantity("1");
     setDetectedCategoryName("");
+    setDetectedGenreName("");
+    setDetectedBookTypeName("");
     setCategoryTouched(false);
-    setSubgenres([]);
+    setGenreTouched(false);
+    setBookTypeTouched(false);
   };
 
   return (
@@ -1436,8 +1019,8 @@ export default function SellPage() {
           </h1>
           <p className="mt-4 max-w-3xl text-lg leading-8 text-[#6B6B6B]">
             Enter an ISBN to automatically fill key book details, then review,
-            adjust, upload your own image if needed, publish the listing, or
-            paste your own cover URL if the public cover looks blurry.
+            adjust, and publish your listing with a proper category, genre, and
+            type.
           </p>
         </div>
       </section>
@@ -1461,20 +1044,29 @@ export default function SellPage() {
                   automatically fill the book’s basic information.
                 </p>
 
-                {detectedCategoryName && (
+                {(selectedGenreName || detectedGenreName) && (
                   <p className="mt-2 text-sm text-[#6B6B6B]">
-                    Suggested category:{" "}
+                    Suggested genre:{" "}
                     <span className="font-semibold text-[#1F1F1F]">
-                      {detectedCategoryName}
+                      {selectedGenreName || detectedGenreName}
                     </span>
                   </p>
                 )}
 
-                {subgenres.length > 0 && (
-                  <p className="mt-2 text-sm text-[#6B6B6B]">
-                    Suggested subgenres:{" "}
+                {(selectedBookTypeName || detectedBookTypeName) && (
+                  <p className="mt-1 text-sm text-[#6B6B6B]">
+                    Suggested type:{" "}
                     <span className="font-semibold text-[#1F1F1F]">
-                      {subgenres.join(", ")}
+                      {selectedBookTypeName || detectedBookTypeName}
+                    </span>
+                  </p>
+                )}
+
+                {(selectedCategoryName || detectedCategoryName) && (
+                  <p className="mt-1 text-sm text-[#6B6B6B]">
+                    Suggested category:{" "}
+                    <span className="font-semibold text-[#1F1F1F]">
+                      {selectedCategoryName || detectedCategoryName}
                     </span>
                   </p>
                 )}
@@ -1497,18 +1089,18 @@ export default function SellPage() {
                 type="button"
                 onClick={handleIsbnLookup}
                 disabled={lookupLoading}
-                className="rounded-2xl bg-[#E67E22] px-5 py-3 font-semibold text-white transition hover:bg-[#cf6f1c] disabled:opacity-50"
+                className="h-[52px] rounded-2xl bg-[#E67E22] px-5 font-semibold text-white transition hover:bg-[#cf6f1c] disabled:opacity-50"
               >
                 {lookupLoading ? "Looking up..." : "Autofill"}
               </button>
             </div>
 
-            <div className="mt-8 grid gap-5">
+            <div className="mt-8 space-y-5">
               <div className="grid gap-5 md:grid-cols-2">
-                <div>
+                <div className="min-w-0">
                   <label className="mb-2 flex items-center gap-2 text-sm font-medium text-[#6B6B6B]">
-                    <BookOpen size={16} />
-                    Book Title
+                    <BookOpen size={16} className="shrink-0" />
+                    <span>Book Title</span>
                   </label>
                   <input
                     type="text"
@@ -1520,10 +1112,10 @@ export default function SellPage() {
                   />
                 </div>
 
-                <div>
+                <div className="min-w-0">
                   <label className="mb-2 flex items-center gap-2 text-sm font-medium text-[#6B6B6B]">
-                    <User size={16} />
-                    Author
+                    <User size={16} className="shrink-0" />
+                    <span>Author</span>
                   </label>
                   <input
                     type="text"
@@ -1537,10 +1129,10 @@ export default function SellPage() {
               </div>
 
               <div className="grid gap-5 md:grid-cols-2">
-                <div>
+                <div className="min-w-0">
                   <label className="mb-2 flex items-center gap-2 text-sm font-medium text-[#6B6B6B]">
-                    <Building2 size={16} />
-                    Publisher
+                    <Building2 size={16} className="shrink-0" />
+                    <span>Publisher</span>
                   </label>
                   <input
                     type="text"
@@ -1551,10 +1143,10 @@ export default function SellPage() {
                   />
                 </div>
 
-                <div>
+                <div className="min-w-0">
                   <label className="mb-2 flex items-center gap-2 text-sm font-medium text-[#6B6B6B]">
-                    <CalendarDays size={16} />
-                    Published Date
+                    <CalendarDays size={16} className="shrink-0" />
+                    <span>Published Date</span>
                   </label>
                   <input
                     type="text"
@@ -1566,10 +1158,81 @@ export default function SellPage() {
                 </div>
               </div>
 
-              <div>
+              <div className="grid gap-5 md:grid-cols-2">
+                <div className="min-w-0">
+                  <label className="mb-2 flex items-center gap-2 text-sm font-medium text-[#6B6B6B]">
+                    <Tag size={16} className="shrink-0" />
+                    <span>Genre</span>
+                  </label>
+                  <select
+                    value={genreId}
+                    onChange={(e) => {
+                      setGenreTouched(true);
+                      setGenreId(e.target.value);
+                    }}
+                    className={selectClass}
+                    required
+                  >
+                    <option value="">Select genre</option>
+                    {genres.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="min-w-0">
+                  <label className="mb-2 flex items-center gap-2 text-sm font-medium text-[#6B6B6B]">
+                    <Shapes size={16} className="shrink-0" />
+                    <span>Book Type</span>
+                  </label>
+                  <select
+                    value={bookTypeId}
+                    onChange={(e) => {
+                      setBookTypeTouched(true);
+                      setBookTypeId(e.target.value);
+                    }}
+                    className={selectClass}
+                    required
+                  >
+                    <option value="">Select type</option>
+                    {bookTypes.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="min-w-0">
                 <label className="mb-2 flex items-center gap-2 text-sm font-medium text-[#6B6B6B]">
-                  <FileText size={16} />
-                  Description
+                  <Library size={16} className="shrink-0" />
+                  <span>Category</span>
+                </label>
+                <select
+                  value={categoryId}
+                  onChange={(e) => {
+                    setCategoryTouched(true);
+                    setCategoryId(e.target.value);
+                  }}
+                  className={selectClass}
+                  required
+                >
+                  <option value="">Select category</option>
+                  {categories.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="min-w-0">
+                <label className="mb-2 flex items-center gap-2 text-sm font-medium text-[#6B6B6B]">
+                  <FileText size={16} className="shrink-0" />
+                  <span>Description</span>
                 </label>
                 <textarea
                   value={description}
@@ -1581,10 +1244,10 @@ export default function SellPage() {
               </div>
 
               <div className="grid gap-5 md:grid-cols-2">
-                <div>
+                <div className="min-w-0">
                   <label className="mb-2 flex items-center gap-2 text-sm font-medium text-[#6B6B6B]">
-                    <BadgeDollarSign size={16} />
-                    Price
+                    <BadgeDollarSign size={16} className="shrink-0" />
+                    <span>Price</span>
                   </label>
                   <input
                     type="text"
@@ -1600,10 +1263,10 @@ export default function SellPage() {
                   />
                 </div>
 
-                <div>
+                <div className="min-w-0">
                   <label className="mb-2 flex items-center gap-2 text-sm font-medium text-[#6B6B6B]">
-                    <Package size={16} />
-                    Stock Quantity
+                    <Package size={16} className="shrink-0" />
+                    <span>Stock Quantity</span>
                   </label>
                   <input
                     type="text"
@@ -1621,30 +1284,7 @@ export default function SellPage() {
               </div>
 
               <div className="grid gap-5 md:grid-cols-2">
-                <div>
-                  <label className="mb-2 flex items-center gap-2 text-sm font-medium text-[#6B6B6B]">
-                    <Tag size={16} />
-                    Category
-                  </label>
-                  <select
-                    value={categoryId}
-                    onChange={(e) => {
-                      setCategoryTouched(true);
-                      setCategoryId(e.target.value);
-                    }}
-                    className={selectClass}
-                    required
-                  >
-                    <option value="">Select category</option>
-                    {categories.map((category) => (
-                      <option key={category.id} value={category.id}>
-                        {category.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
+                <div className="min-w-0">
                   <label className="mb-2 text-sm font-medium text-[#6B6B6B]">
                     Condition
                   </label>
@@ -1660,45 +1300,45 @@ export default function SellPage() {
                     <option value="Used">Used</option>
                   </select>
                 </div>
-              </div>
 
-              <div>
-                <label className="mb-2 flex items-center gap-2 text-sm font-medium text-[#6B6B6B]">
-                  <MapPin size={16} />
-                  Location
-                </label>
-                <input
-                  type="text"
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  placeholder="Location"
-                  className={inputClass}
-                  required
-                />
+                <div className="min-w-0">
+                  <label className="mb-2 flex items-center gap-2 text-sm font-medium text-[#6B6B6B]">
+                    <MapPin size={16} className="shrink-0" />
+                    <span>Location</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={location}
+                    onChange={(e) => setLocation(e.target.value)}
+                    placeholder="Location"
+                    className={inputClass}
+                    required
+                  />
+                </div>
               </div>
 
               <div className="grid gap-5 md:grid-cols-2">
-                <div>
+                <div className="min-w-0">
                   <label className="mb-2 flex items-center gap-2 text-sm font-medium text-[#6B6B6B]">
-                    <ImagePlus size={16} />
-                    Upload Book Image
+                    <ImagePlus size={16} className="shrink-0" />
+                    <span>Upload Book Image</span>
                   </label>
                   <input
                     type="file"
                     accept="image/*"
                     onChange={(e) => setImageFile(e.target.files?.[0] || null)}
-                    className="w-full rounded-2xl border border-[#DED8CF] bg-white px-4 py-1.5 text-sm text-[#5F5A52] file:mr-4 file:rounded-full file:border-0 file:bg-[#E67E22] file:px-3 file:py-2 file:font-semibold file:text-white hover:file:bg-[#cf6f1c]"
+                    className="block h-[52px] w-full rounded-2xl border border-[#DED8CF] bg-white px-4 py-2 text-sm text-[#5F5A52] file:mr-4 file:rounded-full file:border-0 file:bg-[#E67E22] file:px-3 file:py-2 file:font-semibold file:text-white hover:file:bg-[#cf6f1c]"
                   />
                   <p className="mt-2 text-xs leading-6 text-[#8A8175]">
-                    Use this for photos of the actual book,especially for used
+                    Use this for photos of the actual book, especially for used
                     books.
                   </p>
                 </div>
 
-                <div>
+                <div className="min-w-0">
                   <label className="mb-2 flex items-center gap-2 text-sm font-medium text-[#6B6B6B]">
-                    <Link2 size={16} />
-                    Custom Cover URL
+                    <Link2 size={16} className="shrink-0" />
+                    <span>Custom Cover URL</span>
                   </label>
                   <input
                     type="url"
@@ -1728,7 +1368,7 @@ export default function SellPage() {
               <button
                 type="submit"
                 disabled={posting}
-                className="rounded-full bg-[#E67E22] px-6 py-3 font-semibold text-white transition hover:bg-[#cf6f1c] disabled:opacity-50"
+                className="w-full rounded-full bg-[#E67E22] px-6 py-3 font-semibold text-white transition hover:bg-[#cf6f1c] disabled:opacity-50"
               >
                 {posting ? "Posting book..." : "Publish Listing"}
               </button>
@@ -1797,13 +1437,21 @@ export default function SellPage() {
                     Stock: {stockQuantity || "0"}
                   </p>
                   <p className="mt-2 break-words text-sm text-[#8A8175]">
-                    Category: {detectedCategoryName || "Not detected yet"}
+                    Genre:{" "}
+                    {selectedGenreName || detectedGenreName || "Not selected"}
                   </p>
-                  {subgenres.length > 0 && (
-                    <p className="mt-2 break-words text-sm text-[#8A8175]">
-                      Subgenres: {subgenres.join(", ")}
-                    </p>
-                  )}
+                  <p className="mt-2 break-words text-sm text-[#8A8175]">
+                    Type:{" "}
+                    {selectedBookTypeName ||
+                      detectedBookTypeName ||
+                      "Not selected"}
+                  </p>
+                  <p className="mt-2 break-words text-sm text-[#8A8175]">
+                    Category:{" "}
+                    {selectedCategoryName ||
+                      detectedCategoryName ||
+                      "Not selected"}
+                  </p>
                 </div>
               </div>
             </div>
