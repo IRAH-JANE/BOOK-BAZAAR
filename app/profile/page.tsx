@@ -1487,7 +1487,6 @@ export default function ProfilePage() {
                   value={selectedBarangayCode}
                   onChange={handleBarangaySelect}
                   className={selectClass}
-                  style={{ color: "#1F1F1F", backgroundColor: "#FFFFFF" }}
                   required
                   disabled={!selectedCityCode}
                 >

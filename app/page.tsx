@@ -64,29 +64,6 @@ export default async function HomePage() {
                 Sell Your Book
               </Link>
             </div>
-
-            <div className="mt-10 grid gap-4 sm:grid-cols-3">
-              <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-[#EDE7DE]">
-                <p className="text-2xl font-bold text-[#1F1F1F]">Affordable</p>
-                <p className="mt-2 text-sm text-[#6B6B6B]">
-                  Find second-hand books at lower prices.
-                </p>
-              </div>
-
-              <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-[#EDE7DE]">
-                <p className="text-2xl font-bold text-[#1F1F1F]">Profitable</p>
-                <p className="mt-2 text-sm text-[#6B6B6B]">
-                  Sellers earn while the platform grows.
-                </p>
-              </div>
-
-              <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-[#EDE7DE]">
-                <p className="text-2xl font-bold text-[#1F1F1F]">Practical</p>
-                <p className="mt-2 text-sm text-[#6B6B6B]">
-                  Great for students, readers, and local communities.
-                </p>
-              </div>
-            </div>
           </div>
 
           <div className="grid gap-5 sm:grid-cols-2">
@@ -283,13 +260,6 @@ export default async function HomePage() {
               Recently listed books from the BookBazaar community.
             </p>
           </div>
-
-          <Link
-            href="/marketplace"
-            className="text-sm font-semibold text-[#E67E22] hover:underline"
-          >
-            View all books
-          </Link>
         </div>
 
         {featuredBooks && featuredBooks.length > 0 ? (

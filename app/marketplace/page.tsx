@@ -237,7 +237,6 @@ function MarketplaceContent() {
 
       if (user) {
         setUserId(user.id);
-      }
 
       const [booksRes, categoriesRes, genresRes, bookTypesRes] =
         await Promise.all([
