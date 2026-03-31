@@ -2,7 +2,7 @@
 
 import AdminDashboardSkeleton from "@/components/AdminDashboardSkeleton";
 import { useEffect, useMemo, useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { createSupabaseBrowser } from "@/lib/supabase";
 import { Search, ShoppingBag, CircleDollarSign, Truck } from "lucide-react";
 
 type Order = {
@@ -133,6 +133,8 @@ export default function AdminOrdersPage() {
 
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(8);
+
+  const supabase = createSupabaseBrowser();
 
   useEffect(() => {
     const loadOrders = async () => {

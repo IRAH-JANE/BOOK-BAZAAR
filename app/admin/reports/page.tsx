@@ -2,7 +2,7 @@
 
 import AdminDashboardSkeleton from "@/components/AdminDashboardSkeleton";
 import { useEffect, useMemo, useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { createSupabaseBrowser } from "@/lib/supabase";
 import {
   Users,
   CircleDollarSign,
@@ -86,6 +86,8 @@ export default function AdminReportsPage() {
   const [totalRevenue, setTotalRevenue] = useState(0);
   const [totalOrders, setTotalOrders] = useState(0);
   const [topCategory, setTopCategory] = useState("—");
+
+  const supabase = createSupabaseBrowser();
 
   useEffect(() => {
     const loadReports = async () => {
@@ -181,9 +183,9 @@ export default function AdminReportsPage() {
     return categoryData.reduce((sum, item) => sum + item.value, 0);
   }, [categoryData]);
 
-if (loading) {
-  return <AdminDashboardSkeleton type="reports" />;
-}
+  if (loading) {
+    return <AdminDashboardSkeleton type="reports" />;
+  }
 
   return (
     <main className="ml-[240px] min-h-screen bg-[#181614] p-6 text-[#F7F5F1]">

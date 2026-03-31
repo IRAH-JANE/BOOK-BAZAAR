@@ -2,7 +2,7 @@
 
 import AdminDashboardSkeleton from "@/components/AdminDashboardSkeleton";
 import { useEffect, useMemo, useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { createSupabaseBrowser } from "@/lib/supabase";
 import { Search, BookOpen, Boxes, AlertTriangle, Tags } from "lucide-react";
 
 type BookRow = {
@@ -154,6 +154,8 @@ export default function AdminBooksPage() {
 
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(8);
+
+  const supabase = createSupabaseBrowser();
 
   useEffect(() => {
     const loadBooksPage = async () => {

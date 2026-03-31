@@ -1,10 +1,17 @@
 import Link from "next/link";
-import { supabase } from "@/lib/supabase";
+import LoggedInHeroCarousel from "@/components/LoggedInHeroCarousel";
+import { createSupabaseServer } from "@/lib/supabase-server";
 import {
   BookOpen,
   BadgeDollarSign,
-  ShieldCheck,
-  Megaphone,
+  Heart,
+  Sparkles,
+  Compass,
+  Store,
+  Eye,
+  MapPin,
+  ArrowUpRight,
+  ScanSearch,
 } from "lucide-react";
 
 type Book = {
@@ -14,333 +21,532 @@ type Book = {
   price: number;
   image_url: string | null;
   location?: string | null;
+  category_id?: number | null;
+  seller_id?: string | null;
 };
 
-export default async function HomePage() {
-  const { data: featuredBooks } = await supabase
-    .from("books")
-    .select("id, title, author, price, image_url, location")
-    .order("created_at", { ascending: false })
-    .limit(4);
+type Profile = {
+  full_name?: string | null;
+};
 
-  const { data: adBooks } = await supabase
-    .from("books")
-    .select("id, title, author, price, image_url, location")
-    .order("created_at", { ascending: false })
-    .limit(2);
-
+function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <main className="min-h-screen bg-[#F7F5F1]">
-      {/* HERO */}
-      <section className="border-b border-[#E5E0D8] bg-[#FFFDF9]">
-        <div className="mx-auto grid max-w-7xl gap-10 px-6 py-16 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.25em] text-[#E67E22]">
-              Community Book Marketplace
-            </p>
+    <p className="text-[10px] font-medium uppercase tracking-[0.24em] text-[#E67E22]">
+      {children}
+    </p>
+  );
+}
 
-            <h1 className="mt-4 max-w-3xl text-5xl font-bold leading-tight text-[#1F1F1F] md:text-6xl">
-              Buy, sell, and promote books in one trusted marketplace.
-            </h1>
-
-            <p className="mt-6 max-w-2xl text-lg leading-8 text-[#6B6B6B]">
-              BookBazaar helps readers discover affordable books, helps sellers
-              earn from used books, and gives featured sellers a place to
-              advertise directly on the homepage.
-            </p>
-
-            <div className="mt-8 flex flex-wrap gap-4">
-              <Link
-                href="/marketplace"
-                className="rounded-full bg-[#E67E22] px-6 py-3 font-semibold text-white transition hover:bg-[#cf6f1c]"
-              >
-                Browse Books
-              </Link>
-
-              <Link
-                href="/sell"
-                className="rounded-full border border-[#D8D1C6] bg-white px-6 py-3 font-semibold text-[#1F1F1F] transition hover:bg-[#F7F4EE]"
-              >
-                Sell Your Book
-              </Link>
-            </div>
-          </div>
-
-          <div className="grid gap-5 sm:grid-cols-2">
-            <div className="rounded-3xl border border-[#E5E0D8] bg-white p-6 shadow-sm">
-              <BookOpen className="text-[#E67E22]" size={28} />
-              <h3 className="mt-4 text-2xl font-bold text-[#1F1F1F]">
-                For Buyers
-              </h3>
-              <p className="mt-3 leading-7 text-[#6B6B6B]">
-                Discover cheaper books, save favorites to your wishlist, and
-                browse by title, category, and location.
-              </p>
-            </div>
-
-            <div className="rounded-3xl border border-[#E5E0D8] bg-white p-6 shadow-sm">
-              <BadgeDollarSign className="text-[#E67E22]" size={28} />
-              <h3 className="mt-4 text-2xl font-bold text-[#1F1F1F]">
-                For Sellers
-              </h3>
-              <p className="mt-3 leading-7 text-[#6B6B6B]">
-                List books easily, upload photos, manage listings, and reach
-                more buyers through the marketplace.
-              </p>
-            </div>
-
-            <div className="rounded-3xl border border-[#E5E0D8] bg-white p-6 shadow-sm">
-              <Megaphone className="text-[#E67E22]" size={28} />
-              <h3 className="mt-4 text-2xl font-bold text-[#1F1F1F]">
-                Homepage Ads
-              </h3>
-              <p className="mt-3 leading-7 text-[#6B6B6B]">
-                Sellers can pay to feature their books on the homepage for
-                better visibility and faster selling.
-              </p>
-            </div>
-
-            <div className="rounded-3xl border border-[#E5E0D8] bg-white p-6 shadow-sm">
-              <ShieldCheck className="text-[#E67E22]" size={28} />
-              <h3 className="mt-4 text-2xl font-bold text-[#1F1F1F]">
-                Trusted Platform
-              </h3>
-              <p className="mt-3 leading-7 text-[#6B6B6B]">
-                Registered users, organized profiles, and a clean marketplace
-                create a more reliable buying and selling experience.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* HOW IT WORKS */}
-      <section className="mx-auto max-w-7xl px-6 py-14">
-        <div className="mb-8">
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#E67E22]">
-            How It Works
-          </p>
-          <h2 className="mt-2 text-4xl font-bold text-[#1F1F1F]">
-            A simple process for buyers and sellers
-          </h2>
+function InfoStripItem({
+  icon,
+  title,
+  text,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  text: string;
+}) {
+  return (
+    <div className="group relative overflow-hidden rounded-[22px] border border-[#EFE4D7] bg-[#FFFDF9] p-5 transition duration-300">
+      <div className="relative">
+        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#FFF3E8] text-[#E67E22]">
+          {icon}
         </div>
 
-        <div className="grid gap-6 md:grid-cols-3">
-          <div className="rounded-3xl border border-[#E5E0D8] bg-white p-6 shadow-sm">
-            <p className="text-sm font-semibold uppercase tracking-wide text-[#E67E22]">
-              Step 1
-            </p>
-            <h3 className="mt-3 text-2xl font-bold text-[#1F1F1F]">
-              Create an account
-            </h3>
-            <p className="mt-3 leading-7 text-[#6B6B6B]">
-              Register with your details so you can buy, save, and sell books on
-              the platform.
-            </p>
-          </div>
+        <p className="mt-4 text-[15px] font-semibold text-[#2A211B]">{title}</p>
+        <p className="mt-2 text-[13px] leading-6 text-[#6F655B]">{text}</p>
+      </div>
+    </div>
+  );
+}
 
-          <div className="rounded-3xl border border-[#E5E0D8] bg-white p-6 shadow-sm">
-            <p className="text-sm font-semibold uppercase tracking-wide text-[#E67E22]">
-              Step 2
-            </p>
-            <h3 className="mt-3 text-2xl font-bold text-[#1F1F1F]">
-              Browse or list books
-            </h3>
-            <p className="mt-3 leading-7 text-[#6B6B6B]">
-              Buyers can explore the marketplace, while sellers can post books
-              with details, images, and pricing.
-            </p>
-          </div>
-
-          <div className="rounded-3xl border border-[#E5E0D8] bg-white p-6 shadow-sm">
-            <p className="text-sm font-semibold uppercase tracking-wide text-[#E67E22]">
-              Step 3
-            </p>
-            <h3 className="mt-3 text-2xl font-bold text-[#1F1F1F]">
-              Connect and complete the sale
-            </h3>
-            <p className="mt-3 leading-7 text-[#6B6B6B]">
-              Buyers contact sellers, complete the transaction, and the platform
-              supports discovery, visibility, and trust.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* FEATURED SELLER ADS */}
-      <section className="border-y border-[#E5E0D8] bg-[#FFFDF9]">
-        <div className="mx-auto max-w-7xl px-6 py-14">
-          <div className="mb-8 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-            <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#E67E22]">
-                Sponsored Listings
-              </p>
-              <h2 className="mt-2 text-4xl font-bold text-[#1F1F1F]">
-                Featured Seller Ads
-              </h2>
-              <p className="mt-2 max-w-2xl text-[#6B6B6B]">
-                Sellers can promote their books on the homepage to get more
-                attention, reach more buyers, and sell faster.
-              </p>
-            </div>
-
-            <div className="rounded-2xl bg-[#F7F4EE] px-4 py-3 text-sm text-[#6B6B6B]">
-              Ad slot example: sellers can pay to appear here.
-            </div>
-          </div>
-
-          {adBooks && adBooks.length > 0 ? (
-            <div className="grid gap-6 md:grid-cols-2">
-              {adBooks.map((book: Book) => (
-                <Link
-                  key={book.id}
-                  href={`/book/${book.id}`}
-                  className="group overflow-hidden rounded-3xl border border-[#E5E0D8] bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md"
-                >
-                  <div className="grid md:grid-cols-[220px_1fr]">
-                    {book.image_url ? (
-                      <img
-                        src={book.image_url}
-                        alt={book.title}
-                        className="h-full min-h-[240px] w-full object-cover"
-                      />
-                    ) : (
-                      <div className="flex min-h-[240px] items-center justify-center bg-[#F1ECE4] text-[#8A8175]">
-                        No Image
-                      </div>
-                    )}
-
-                    <div className="p-6">
-                      <span className="inline-flex rounded-full bg-orange-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[#E67E22]">
-                        Sponsored
-                      </span>
-
-                      <h3 className="mt-4 text-2xl font-bold text-[#1F1F1F]">
-                        {book.title}
-                      </h3>
-
-                      <p className="mt-2 text-[#6B6B6B]">{book.author}</p>
-
-                      <p className="mt-4 text-2xl font-bold text-[#E67E22]">
-                        ₱{book.price}
-                      </p>
-
-                      <p className="mt-2 text-sm text-[#8A8175]">
-                        {book.location || "Community listing"}
-                      </p>
-
-                      <div className="mt-6 inline-flex rounded-full border border-[#E67E22] px-4 py-2 text-sm font-semibold text-[#E67E22] transition group-hover:bg-[#E67E22] group-hover:text-white">
-                        View Sponsored Book
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
+function EqualRailCard({ book, badge }: { book: Book; badge?: string }) {
+  return (
+    <Link href={`/book/${book.id}`} className="group block h-full snap-start">
+      <div className="h-full overflow-hidden rounded-xl border border-[#EEE4D8] bg-[#FFFDF9] transition duration-300 hover:bg-white">
+        <div className="relative overflow-hidden bg-[#EEE6DB]">
+          {book.image_url ? (
+            <img
+              src={book.image_url}
+              alt={book.title}
+              className="h-[250px] w-full object-cover transition duration-500"
+            />
           ) : (
-            <div className="rounded-3xl border border-dashed border-[#D9D1C6] bg-white p-10 text-center text-[#6B6B6B]">
-              No sponsored listings yet. This space can be used for paid seller
-              ads on the homepage.
+            <div className="flex h-[250px] items-center justify-center text-[#7B7368]">
+              No Image
             </div>
           )}
-        </div>
-      </section>
 
-      {/* FEATURED BOOKS */}
-      <section className="mx-auto max-w-7xl px-6 py-14">
-        <div className="mb-8 flex items-end justify-between">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#E67E22]">
-              Marketplace Picks
-            </p>
-            <h2 className="mt-2 text-4xl font-bold text-[#1F1F1F]">
-              Featured Books
-            </h2>
-            <p className="mt-2 text-[#6B6B6B]">
-              Recently listed books from the BookBazaar community.
-            </p>
-          </div>
-        </div>
+          {badge ? (
+            <div className="absolute left-3 top-3 rounded bg-white px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em] text-[#E67E22]">
+              {badge}
+            </div>
+          ) : null}
 
-        {featuredBooks && featuredBooks.length > 0 ? (
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {featuredBooks.map((book: Book) => (
-              <Link
-                key={book.id}
-                href={`/book/${book.id}`}
-                className="group overflow-hidden rounded-3xl border border-[#E5E0D8] bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md"
-              >
-                {book.image_url ? (
-                  <img
-                    src={book.image_url}
-                    alt={book.title}
-                    className="h-72 w-full object-cover"
-                  />
-                ) : (
-                  <div className="flex h-72 w-full items-center justify-center bg-[#F1ECE4] text-[#8A8175]">
-                    No Image
-                  </div>
-                )}
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#2A211B]/18 via-transparent to-transparent opacity-0 transition duration-300 group-hover:opacity-100" />
 
-                <div className="p-5">
-                  <h3 className="line-clamp-2 text-lg font-semibold text-[#1F1F1F]">
-                    {book.title}
-                  </h3>
-                  <p className="mt-1 text-sm text-[#6B6B6B]">{book.author}</p>
-                  <p className="mt-3 text-lg font-bold text-[#E67E22]">
-                    ₱{book.price}
-                  </p>
-                  <p className="mt-1 text-sm text-[#8A8175]">
-                    {book.location || "Community listing"}
-                  </p>
-                </div>
-              </Link>
-            ))}
-          </div>
-        ) : (
-          <p className="text-[#6B6B6B]">No featured books yet.</p>
-        )}
-      </section>
-
-      {/* FINAL CTA */}
-      <section className="pb-16">
-        <div className="mx-auto max-w-7xl px-6">
-          <div className="rounded-[32px] border border-[#E5E0D8] bg-white p-10 shadow-sm">
-            <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
-              <div>
-                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#E67E22]">
-                  Start Using BookBazaar
-                </p>
-                <h2 className="mt-3 text-4xl font-bold leading-tight text-[#1F1F1F]">
-                  Turn old books into income and help more readers find
-                  affordable books.
-                </h2>
-                <p className="mt-4 max-w-2xl text-lg leading-8 text-[#6B6B6B]">
-                  Whether you are a student, a casual reader, or a seller who
-                  wants more visibility, BookBazaar gives you one place to buy,
-                  sell, promote, and discover books.
-                </p>
+          <div className="absolute inset-x-3 bottom-3 translate-y-3 opacity-0 transition duration-300 group-hover:translate-y-0 group-hover:opacity-100">
+            <div className="rounded-xl border border-[#F1E7DB] bg-white p-3">
+              <div className="flex items-center justify-between gap-3">
+                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[#2A211B]">
+                  <Eye size={12} />
+                  Quick view
+                </span>
+                <span className="text-[11px] font-medium text-[#E67E22]">
+                  View
+                </span>
               </div>
 
-              <div className="flex flex-wrap gap-4 lg:justify-end">
-                <Link
-                  href="/register"
-                  className="rounded-full bg-[#E67E22] px-6 py-3 font-semibold text-white transition hover:bg-[#cf6f1c]"
-                >
-                  Create an Account
-                </Link>
+              <p className="mt-2 line-clamp-2 text-[11px] leading-5 text-[#6F655B]">
+                Browse this listing and view more details from the marketplace.
+              </p>
+            </div>
+          </div>
+        </div>
 
+        <div className="p-4">
+          <h3 className="line-clamp-2 min-h-[46px] text-[14px] font-medium leading-6 text-[#2A211B]">
+            {book.title}
+          </h3>
+
+          <p className="mt-1 line-clamp-1 text-[12px] text-[#6E6257]">
+            {book.author}
+          </p>
+
+          <div className="mt-4 flex items-end justify-between gap-3">
+            <p className="text-[18px] font-semibold text-[#E67E22]">
+              ₱{book.price}
+            </p>
+            <p className="line-clamp-1 inline-flex items-center gap-1 text-[11px] text-[#8A7C6C]">
+              <MapPin size={11} />
+              {book.location || "Community listing"}
+            </p>
+          </div>
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+function RailSection({
+  title,
+  subtitle,
+  href,
+  books,
+  badge,
+}: {
+  title: string;
+  subtitle?: string;
+  href: string;
+  books: Book[];
+  badge?: string;
+}) {
+  if (!books.length) return null;
+
+  return (
+    <section className="relative z-10 mx-auto max-w-7xl bg-transparent px-4 py-10 sm:px-6 lg:px-8">
+      <div className="mb-5 flex items-end justify-between gap-4 bg-transparent">
+        <div>
+          <h2 className="text-[1.7rem] font-semibold tracking-tight text-[#2A211B] sm:text-[2rem]">
+            {title}
+          </h2>
+          {subtitle ? (
+            <p className="mt-2 max-w-2xl text-[13px] leading-7 text-[#6F655B]">
+              {subtitle}
+            </p>
+          ) : null}
+        </div>
+
+        <Link
+          href={href}
+          className="hidden text-[13px] font-medium text-[#7A6B5D] transition hover:text-[#E67E22] sm:block"
+        >
+          View more
+        </Link>
+      </div>
+
+      <div className="flex snap-x snap-mandatory gap-4 overflow-x-auto bg-transparent pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {books.map((book) => (
+          <div
+            key={book.id}
+            className="min-w-[210px] max-w-[210px] bg-transparent sm:min-w-[220px] sm:max-w-[220px] lg:min-w-[230px] lg:max-w-[230px]"
+          >
+            <EqualRailCard book={book} badge={badge} />
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function InfoFeatureSection() {
+  return (
+    <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+      <div className="grid gap-6 rounded-2xl border border-[#EFE4D7] bg-[#FFFDF9] p-6 lg:grid-cols-2 lg:p-8">
+        <div>
+          <SectionLabel>Why BookBazaar</SectionLabel>
+          <h2 className="mt-3 text-[2rem] font-semibold leading-tight tracking-tight text-[#2A211B]">
+            Less clutter. Better book discovery.
+          </h2>
+          <p className="mt-4 max-w-xl text-[14px] leading-7 text-[#6F655B]">
+            Find books faster, explore curated listings, and enjoy a cleaner,
+            more focused browsing experience.
+          </p>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="rounded-xl border border-[#EFE4D7] bg-[#FFFDF9] p-5">
+            <p className="text-[13px] font-medium text-[#2A211B]">For Buyers</p>
+            <p className="mt-2 text-[13px] leading-6 text-[#6F655B]">
+              Browse books faster, save favorites, and explore listings in a
+              cleaner interface.
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-[#EFE4D7] bg-[#FFFDF9] p-5">
+            <p className="text-[13px] font-medium text-[#2A211B]">
+              For Sellers
+            </p>
+            <p className="mt-2 text-[13px] leading-6 text-[#6F655B]">
+              Post books, reach more readers, and present listings in a more
+              organized and user-friendly marketplace.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function GuestIntroSection() {
+  return (
+    <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+      <div className="grid gap-6 rounded-2xl border border-[#EFE4D7] bg-[#FFFDF9] p-6 lg:grid-cols-3">
+        <div className="rounded-xl border border-[#EFE4D7] bg-[#FFFDF9] p-5">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#E67E22]/12 text-[#E67E22]">
+            <BookOpen size={18} />
+          </div>
+          <p className="mt-4 text-[13px] font-medium text-[#2A211B]">
+            Browse Books
+          </p>
+          <p className="mt-2 text-[13px] leading-6 text-[#6F655B]">
+            Explore listings with stronger cover presentation and easier
+            scrolling.
+          </p>
+        </div>
+
+        <div className="rounded-xl border border-[#EFE4D7] bg-[#FFFDF9] p-5">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#E67E22]/12 text-[#E67E22]">
+            <BadgeDollarSign size={18} />
+          </div>
+          <p className="mt-4 text-[13px] font-medium text-[#2A211B]">
+            Sell Easily
+          </p>
+          <p className="mt-2 text-[13px] leading-6 text-[#6F655B]">
+            Post your books and give them a cleaner marketplace presence.
+          </p>
+        </div>
+
+        <div className="rounded-xl border border-[#EFE4D7] bg-[#FFFDF9] p-5">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#E67E22]/12 text-[#E67E22]">
+            <Sparkles size={18} />
+          </div>
+          <p className="mt-4 text-[13px] font-medium text-[#2A211B]">
+            Discover Faster
+          </p>
+          <p className="mt-2 text-[13px] leading-6 text-[#6F655B]">
+            Find books quickly through simpler homepage sections and clearer
+            browsing flow.
+          </p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function uniqueBooks(books: Book[] = []) {
+  const map = new Map<number, Book>();
+  for (const book of books) {
+    if (!map.has(book.id)) {
+      map.set(book.id, book);
+    }
+  }
+  return Array.from(map.values());
+}
+
+async function getBooksWithFallback({
+  supabase,
+  userId,
+  limit,
+}: {
+  supabase: Awaited<ReturnType<typeof createSupabaseServer>>;
+  userId: string;
+  limit: number;
+}) {
+  const baseSelect =
+    "id, title, author, price, image_url, location, category_id, seller_id";
+
+  const { data: nonOwnBooks } = await supabase
+    .from("books")
+    .select(baseSelect)
+    .neq("seller_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (nonOwnBooks && nonOwnBooks.length > 0) {
+    return nonOwnBooks as Book[];
+  }
+
+  const { data: allBooks } = await supabase
+    .from("books")
+    .select(baseSelect)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  return (allBooks || []) as Book[];
+}
+
+export const dynamic = "force-dynamic";
+
+export default async function HomePage() {
+  const supabase = await createSupabaseServer();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const guestBooksQuery = supabase
+    .from("books")
+    .select(
+      "id, title, author, price, image_url, location, category_id, seller_id",
+    )
+    .order("created_at", { ascending: false });
+
+  const [{ data: featuredBooks }, { data: freshGuestBooks }] =
+    await Promise.all([
+      guestBooksQuery.limit(10),
+      supabase
+        .from("books")
+        .select(
+          "id, title, author, price, image_url, location, category_id, seller_id",
+        )
+        .order("created_at", { ascending: false })
+        .limit(10),
+    ]);
+
+  if (!user) {
+    return (
+      <main className="min-h-screen bg-[linear-gradient(180deg,#F8F3EC_0%,#F7EFE4_35%,#FFFDF9_100%)]">
+        <section className="relative overflow-hidden border-b border-[#EADFD2] bg-[#F7F1E8]">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(230,126,34,0.14)_0%,rgba(247,241,232,0.92)_34%,rgba(255,253,249,1)_72%)]" />
+          <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(255,255,255,0.12),rgba(247,241,232,0.82),#FFFDF9)]" />
+
+          <div className="relative mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
+            <div className="max-w-3xl">
+              <SectionLabel>Community Book Marketplace</SectionLabel>
+
+              <h1 className="mt-4 text-[2.7rem] font-semibold leading-[1.02] tracking-tight text-[#2A211B] md:text-[3.4rem] lg:text-[4rem]">
+                Buy, sell, and discover books in a marketplace that feels alive
+              </h1>
+
+              <p className="mt-5 max-w-2xl text-[14px] leading-7 text-[#6F655B] sm:text-[15px]">
+                BookBazaar helps readers find affordable books and gives sellers
+                a more modern place to showcase listings with better visibility.
+              </p>
+
+              <div className="mt-8 flex flex-wrap gap-3">
+                <Link
+                  href="/marketplace"
+                  className="rounded-md bg-[#E67E22] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#cf6f1c]"
+                >
+                  Browse Books
+                </Link>
                 <Link
                   href="/sell"
-                  className="rounded-full border border-[#D8D1C6] bg-[#FFFDF9] px-6 py-3 font-semibold text-[#1F1F1F] transition hover:bg-[#F7F4EE]"
+                  className="rounded-md border border-[#EADFD2] bg-[#FFFDF9] px-5 py-3 text-sm font-medium text-[#2A211B] transition hover:bg-white"
                 >
-                  Start Selling
+                  Sell Your Book
                 </Link>
               </div>
             </div>
           </div>
+        </section>
+
+        <section className="border-b border-[#EADFD2] bg-[#FBF7F1]">
+          <div className="mx-auto grid max-w-7xl gap-4 px-4 py-6 sm:px-6 lg:grid-cols-3 lg:px-8">
+            <InfoStripItem
+              icon={<Compass size={18} />}
+              title="How it works"
+              text="Browse, save, buy, or list books in one cleaner reading marketplace."
+            />
+            <InfoStripItem
+              icon={<Sparkles size={18} />}
+              title="Why BookBazaar"
+              text="A more visual and premium experience for both buyers and sellers."
+            />
+            <InfoStripItem
+              icon={<BookOpen size={18} />}
+              title="Community-first"
+              text="Built for readers, collectors, students, and anyone looking for books."
+            />
+          </div>
+        </section>
+
+        <GuestIntroSection />
+
+        <RailSection
+          title="Trending Now"
+          subtitle="Books currently catching attention in the marketplace."
+          href="/marketplace"
+          books={featuredBooks || []}
+          badge="Trending"
+        />
+
+        <InfoFeatureSection />
+
+        <RailSection
+          title="Fresh Listings"
+          subtitle="Newly added books from sellers in the marketplace."
+          href="/marketplace"
+          books={freshGuestBooks || []}
+          badge="New Listing"
+        />
+      </main>
+    );
+  }
+
+  const [
+    { data: profileData },
+    { data: wishlistRows },
+    { data: cartRows },
+    trendingBooksRaw,
+    freshBooksRaw,
+  ] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("full_name")
+      .eq("id", user.id)
+      .maybeSingle(),
+    supabase.from("wishlists").select("book_id").eq("user_id", user.id),
+    supabase.from("cart_items").select("book_id").eq("user_id", user.id),
+    getBooksWithFallback({ supabase, userId: user.id, limit: 10 }),
+    getBooksWithFallback({ supabase, userId: user.id, limit: 10 }),
+  ]);
+
+  const profile = profileData as Profile | null;
+  const firstName =
+    profile?.full_name?.trim()?.split(" ")[0] ||
+    user.email?.split("@")[0] ||
+    "Reader";
+
+  const wishlistBookIds = (wishlistRows || []).map((item) => item.book_id);
+  const cartBookIds = (cartRows || []).map((item) => item.book_id);
+  const interestBookIds = [...new Set([...wishlistBookIds, ...cartBookIds])];
+
+  const trendingBooks = uniqueBooks(trendingBooksRaw || []);
+  const freshBooks = uniqueBooks(freshBooksRaw || []);
+
+  let interestCategoryIds: number[] = [];
+
+  if (interestBookIds.length > 0) {
+    const { data: interestBooks } = await supabase
+      .from("books")
+      .select("id, category_id")
+      .in("id", interestBookIds);
+
+    interestCategoryIds = [
+      ...new Set(
+        (interestBooks || [])
+          .map((book) => book.category_id)
+          .filter((value): value is number => typeof value === "number"),
+      ),
+    ];
+  }
+
+  let recommendedBooks: Book[] = [];
+
+  if (interestCategoryIds.length > 0) {
+    const { data: recBooksNonOwn } = await supabase
+      .from("books")
+      .select(
+        "id, title, author, price, image_url, location, category_id, seller_id",
+      )
+      .in("category_id", interestCategoryIds)
+      .neq("seller_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(10);
+
+    const recNonOwn = uniqueBooks((recBooksNonOwn || []) as Book[]);
+
+    if (recNonOwn.length > 0) {
+      recommendedBooks = recNonOwn;
+    } else {
+      const { data: recFallback } = await supabase
+        .from("books")
+        .select(
+          "id, title, author, price, image_url, location, category_id, seller_id",
+        )
+        .in("category_id", interestCategoryIds)
+        .order("created_at", { ascending: false })
+        .limit(10);
+
+      recommendedBooks = uniqueBooks((recFallback || []) as Book[]);
+    }
+  }
+
+  if (!recommendedBooks.length) {
+    recommendedBooks = freshBooks.slice(0, 10);
+  }
+
+  return (
+    <main className="min-h-screen bg-[linear-gradient(180deg,#F8F3EC_0%,#F7EFE4_35%,#FFFDF9_100%)]">
+      <LoggedInHeroCarousel books={recommendedBooks.slice(0, 6)} />
+
+      <section className="border-b border-[#EADFD2] bg-[#FBF7F1]">
+        <div className="mx-auto grid max-w-7xl gap-4 px-4 py-6 sm:px-6 lg:grid-cols-3 lg:px-8">
+          <InfoStripItem
+            icon={<Heart size={18} />}
+            title="Recommended for you"
+            text="Books shaped by what you save and add to cart."
+          />
+          <InfoStripItem
+            icon={<ArrowUpRight size={18} />}
+            title="Clearer browsing"
+            text="See the most relevant shelves first without repeated homepage sections."
+          />
+          <InfoStripItem
+            icon={<ScanSearch size={18} />}
+            title="Smoother discovery"
+            text="Browse the marketplace faster with a cleaner and more focused layout."
+          />
         </div>
       </section>
+
+      <RailSection
+        title={`Recommended for You${firstName ? `, ${firstName}` : ""}`}
+        subtitle="Because of the categories you save, like, and add to cart."
+        href="/marketplace"
+        books={recommendedBooks}
+        badge="For You"
+      />
+
+      <InfoFeatureSection />
+
+      <RailSection
+        title="Trending Now"
+        subtitle="Books currently making the marketplace feel active and fresh."
+        href="/marketplace"
+        books={trendingBooks}
+        badge="Trending"
+      />
+
+      <RailSection
+        title="Fresh Listings"
+        subtitle="Newly added books from sellers in the marketplace."
+        href="/marketplace"
+        books={freshBooks}
+        badge="New Listing"
+      />
     </main>
   );
 }

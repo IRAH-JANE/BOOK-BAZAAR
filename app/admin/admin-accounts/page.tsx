@@ -2,7 +2,7 @@
 
 import AdminDashboardSkeleton from "@/components/AdminDashboardSkeleton";
 import { useEffect, useMemo, useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { createSupabaseBrowser } from "@/lib/supabase";
 import {
   Shield,
   CheckCircle2,
@@ -92,6 +92,8 @@ export default function AdminAccountsPage() {
   const [approvedPage, setApprovedPage] = useState(1);
   const [rejectedPage, setRejectedPage] = useState(1);
   const rowsPerPage = 5;
+
+  const supabase = createSupabaseBrowser();
 
   useEffect(() => {
     const loadPage = async () => {

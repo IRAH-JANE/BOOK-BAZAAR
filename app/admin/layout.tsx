@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+import { createSupabaseBrowser } from "@/lib/supabase";
 
 type AdminProfile = {
   id: string;
@@ -18,6 +18,7 @@ export default function AdminLayout({
 }) {
   const router = useRouter();
   const [checkingAccess, setCheckingAccess] = useState(true);
+  const supabase = createSupabaseBrowser();
 
   useEffect(() => {
     let mounted = true;
@@ -26,10 +27,9 @@ export default function AdminLayout({
       try {
         const {
           data: { user },
-          error: userError,
         } = await supabase.auth.getUser();
 
-        if (userError || !user) {
+        if (!user) {
           router.replace("/login");
           return;
         }

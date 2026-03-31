@@ -2,19 +2,20 @@
 
 import Link from "next/link";
 import { Suspense, useEffect, useRef, useState } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
+import { createSupabaseBrowser } from "@/lib/supabase";
 import { useToast } from "@/components/ToastProvider";
-
 import {
   Heart,
   MapPin,
   ShoppingCart,
-  Eye,
   SlidersHorizontal,
   X,
   ChevronDown,
   ChevronUp,
+  ChevronLeft,
+  ChevronRight,
+  ArrowUp,
 } from "lucide-react";
 
 type Book = {
@@ -28,6 +29,7 @@ type Book = {
   category_id: number | null;
   genre_id: number | null;
   book_type_id: number | null;
+  created_at?: string | null;
 };
 
 type Category = {
@@ -60,6 +62,9 @@ type CartItem = {
 
 const hiddenScrollbarClass =
   "[scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden";
+
+const ITEMS_PER_PAGE = 52;
+const SEARCH_DEBOUNCE_MS = 1000;
 
 function SkeletonBox({ className = "" }: { className?: string }) {
   return (
@@ -146,7 +151,7 @@ function MarketplaceSkeleton() {
                 {[...Array(8)].map((_, index) => (
                   <div
                     key={index}
-                    className="group rounded-[20px] border border-[#E5E0D8] bg-white p-4 shadow-sm"
+                    className="rounded-[20px] border border-[#E5E0D8] bg-white p-4 shadow-sm"
                   >
                     <div className="relative overflow-hidden rounded-2xl bg-[#F7F4EE]">
                       <SkeletonBox className="h-64 w-full rounded-2xl" />
@@ -166,12 +171,7 @@ function MarketplaceSkeleton() {
                       </div>
 
                       <SkeletonBox className="mt-2 h-4 w-16" />
-
-                      <div className="mt-4 space-y-2">
-                        <SkeletonBox className="h-10 w-full rounded-full" />
-                        <SkeletonBox className="h-10 w-full rounded-full" />
-                        <SkeletonBox className="h-10 w-full rounded-full" />
-                      </div>
+                      <SkeletonBox className="mt-4 h-10 w-full rounded-full md:hidden" />
                     </div>
                   </div>
                 ))}
@@ -187,26 +187,25 @@ function MarketplaceSkeleton() {
 function MarketplaceContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const pathname = usePathname();
   const { showToast } = useToast();
+  const supabase = createSupabaseBrowser();
+
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const lastScrollY = useRef(0);
+  const hideTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const backToTopTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const [books, setBooks] = useState<Book[]>([]);
-  const [filteredBooks, setFilteredBooks] = useState<Book[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [genres, setGenres] = useState<Genre[]>([]);
   const [bookTypes, setBookTypes] = useState<BookType[]>([]);
 
-  const [search, setSearch] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("");
-  const [selectedGenre, setSelectedGenre] = useState("");
-  const [selectedBookType, setSelectedBookType] = useState("");
-  const [selectedCondition, setSelectedCondition] = useState("");
-  const [sortBy, setSortBy] = useState("newest");
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
   const [wishlistBookIds, setWishlistBookIds] = useState<number[]>([]);
   const [wishlistLoadingIds, setWishlistLoadingIds] = useState<number[]>([]);
   const [cartLoadingIds, setCartLoadingIds] = useState<number[]>([]);
-  const [buyNowLoadingIds, setBuyNowLoadingIds] = useState<number[]>([]);
   const [cartBookIds, setCartBookIds] = useState<number[]>([]);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [showMobileShortcutBar, setShowMobileShortcutBar] = useState(true);
@@ -219,18 +218,99 @@ function MarketplaceContent() {
   const [showAllGenres, setShowAllGenres] = useState(false);
   const [showAllBookTypes, setShowAllBookTypes] = useState(false);
 
-  const lastScrollY = useRef(0);
-  const hideTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const [totalBooksCount, setTotalBooksCount] = useState(0);
+  const [searchInput, setSearchInput] = useState("");
+  const [showBackToTop, setShowBackToTop] = useState(false);
+
+  const search = searchParams.get("search") || "";
+  const selectedCategory = searchParams.get("category") || "";
+  const selectedGenre = searchParams.get("genre") || "";
+  const selectedBookType = searchParams.get("bookType") || "";
+  const selectedCondition = searchParams.get("condition") || "";
+  const sortBy = searchParams.get("sort") || "newest";
+  const currentPage = Math.max(1, Number(searchParams.get("page") || "1") || 1);
+
+  const updateUrl = (updates: {
+    search?: string;
+    category?: string;
+    genre?: string;
+    bookType?: string;
+    condition?: string;
+    sort?: string;
+    page?: number;
+  }) => {
+    const params = new URLSearchParams(searchParams.toString());
+
+    const setOrDelete = (key: string, value?: string) => {
+      if (!value || value.trim() === "") {
+        params.delete(key);
+      } else {
+        params.set(key, value);
+      }
+    };
+
+    if ("search" in updates) setOrDelete("search", updates.search);
+    if ("category" in updates) setOrDelete("category", updates.category);
+    if ("genre" in updates) setOrDelete("genre", updates.genre);
+    if ("bookType" in updates) setOrDelete("bookType", updates.bookType);
+    if ("condition" in updates) setOrDelete("condition", updates.condition);
+
+    if ("sort" in updates) {
+      if (!updates.sort || updates.sort === "newest") {
+        params.delete("sort");
+      } else {
+        params.set("sort", updates.sort);
+      }
+    }
+
+    if ("page" in updates) {
+      const safePage = updates.page && updates.page > 1 ? updates.page : 1;
+      if (safePage <= 1) {
+        params.delete("page");
+      } else {
+        params.set("page", String(safePage));
+      }
+    }
+
+    const queryString = params.toString();
+    router.replace(queryString ? `${pathname}?${queryString}` : pathname, {
+      scroll: false,
+    });
+  };
+
+  const handleBackToTop = () => {
+    const container = scrollContainerRef.current;
+
+    if (container) {
+      container.scrollTo({
+        top: 0,
+        behavior: "smooth",
+      });
+      return;
+    }
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  };
 
   useEffect(() => {
-    const searchFromUrl = searchParams.get("search") || "";
-    setSearch(searchFromUrl);
-  }, [searchParams]);
+    setSearchInput(search);
+  }, [search]);
 
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
+    const timeout = setTimeout(() => {
+      if (searchInput !== search) {
+        updateUrl({ search: searchInput, page: 1 });
+      }
+    }, SEARCH_DEBOUNCE_MS);
 
+    return () => clearTimeout(timeout);
+  }, [searchInput, search]);
+
+  useEffect(() => {
+    const fetchLookupsAndUser = async () => {
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -238,32 +318,44 @@ function MarketplaceContent() {
       if (user) {
         setUserId(user.id);
 
-      const [booksRes, categoriesRes, genresRes, bookTypesRes] =
-        await Promise.all([
+        const [wishlistRes, cartRes] = await Promise.all([
           supabase
-            .from("books")
-            .select(
-              "id, title, author, price, condition, location, image_url, category_id, genre_id, book_type_id, created_at",
-            )
-            .order("created_at", { ascending: false }),
+            .from("wishlists")
+            .select("id, book_id, user_id")
+            .eq("user_id", user.id),
           supabase
-            .from("categories")
-            .select("id, name")
-            .order("name", { ascending: true }),
-          supabase
-            .from("genres")
-            .select("id, name")
-            .order("name", { ascending: true }),
-          supabase
-            .from("book_types")
-            .select("id, name")
-            .order("name", { ascending: true }),
+            .from("cart_items")
+            .select("id, book_id, quantity, user_id")
+            .eq("user_id", user.id),
         ]);
 
-      if (!booksRes.error && booksRes.data) {
-        setBooks(booksRes.data as Book[]);
-        setFilteredBooks(booksRes.data as Book[]);
+        if (!wishlistRes.error && wishlistRes.data) {
+          setWishlistBookIds(
+            (wishlistRes.data as WishlistItem[]).map((item) => item.book_id),
+          );
+        }
+
+        if (!cartRes.error && cartRes.data) {
+          setCartBookIds(
+            (cartRes.data as CartItem[]).map((item) => item.book_id),
+          );
+        }
       }
+
+      const [categoriesRes, genresRes, bookTypesRes] = await Promise.all([
+        supabase
+          .from("categories")
+          .select("id, name")
+          .order("name", { ascending: true }),
+        supabase
+          .from("genres")
+          .select("id, name")
+          .order("name", { ascending: true }),
+        supabase
+          .from("book_types")
+          .select("id, name")
+          .order("name", { ascending: true }),
+      ]);
 
       if (!categoriesRes.error && categoriesRes.data) {
         setCategories(categoriesRes.data);
@@ -276,33 +368,9 @@ function MarketplaceContent() {
       if (!bookTypesRes.error && bookTypesRes.data) {
         setBookTypes(bookTypesRes.data);
       }
-
-      if (user) {
-        const { data: wishlistData, error: wishlistError } = await supabase
-          .from("wishlists")
-          .select("id, book_id, user_id")
-          .eq("user_id", user.id);
-
-        if (!wishlistError && wishlistData) {
-          setWishlistBookIds(
-            (wishlistData as WishlistItem[]).map((item) => item.book_id),
-          );
-        }
-
-        const { data: cartData, error: cartError } = await supabase
-          .from("cart_items")
-          .select("id, book_id, quantity, user_id")
-          .eq("user_id", user.id);
-
-        if (!cartError && cartData) {
-          setCartBookIds((cartData as CartItem[]).map((item) => item.book_id));
-        }
-      }
-
-      setLoading(false);
     };
 
-    fetchData();
+    fetchLookupsAndUser();
 
     const channel = supabase
       .channel("marketplace-lookups")
@@ -347,53 +415,79 @@ function MarketplaceContent() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [supabase]);
 
   useEffect(() => {
-    let result = [...books];
+    const fetchBooks = async () => {
+      setLoading(true);
 
-    if (search.trim()) {
-      result = result.filter(
-        (book) =>
-          book.title.toLowerCase().includes(search.toLowerCase()) ||
-          book.author.toLowerCase().includes(search.toLowerCase()),
-      );
-    }
+      const from = (currentPage - 1) * ITEMS_PER_PAGE;
+      const to = from + ITEMS_PER_PAGE - 1;
 
-    if (selectedCategory) {
-      result = result.filter(
-        (book) => String(book.category_id) === selectedCategory,
-      );
-    }
+      let query = supabase
+        .from("books")
+        .select(
+          "id, title, author, price, condition, location, image_url, category_id, genre_id, book_type_id, created_at",
+          { count: "exact" },
+        );
 
-    if (selectedGenre) {
-      result = result.filter((book) => String(book.genre_id) === selectedGenre);
-    }
+      if (search.trim()) {
+        const keyword = search.trim();
+        query = query.or(`title.ilike.%${keyword}%,author.ilike.%${keyword}%`);
+      }
 
-    if (selectedBookType) {
-      result = result.filter(
-        (book) => String(book.book_type_id) === selectedBookType,
-      );
-    }
+      if (selectedCategory) {
+        query = query.eq("category_id", Number(selectedCategory));
+      }
 
-    if (selectedCondition) {
-      result = result.filter(
-        (book) =>
-          book.condition.toLowerCase() === selectedCondition.toLowerCase(),
-      );
-    }
+      if (selectedGenre) {
+        query = query.eq("genre_id", Number(selectedGenre));
+      }
 
-    if (sortBy === "price-low") {
-      result.sort((a, b) => a.price - b.price);
-    } else if (sortBy === "price-high") {
-      result.sort((a, b) => b.price - a.price);
-    } else if (sortBy === "title-az") {
-      result.sort((a, b) => a.title.localeCompare(b.title));
-    }
+      if (selectedBookType) {
+        query = query.eq("book_type_id", Number(selectedBookType));
+      }
 
-    setFilteredBooks(result);
+      if (selectedCondition) {
+        query = query.ilike("condition", selectedCondition);
+      }
+
+      if (sortBy === "price-low") {
+        query = query.order("price", { ascending: true });
+      } else if (sortBy === "price-high") {
+        query = query.order("price", { ascending: false });
+      } else if (sortBy === "title-az") {
+        query = query.order("title", { ascending: true });
+      } else {
+        query = query.order("created_at", { ascending: false });
+      }
+
+      const { data, count, error } = await query.range(from, to);
+
+      if (!error && data) {
+        setBooks(data as Book[]);
+        setTotalBooksCount(count || 0);
+
+        const totalPages = Math.max(
+          1,
+          Math.ceil((count || 0) / ITEMS_PER_PAGE),
+        );
+
+        if (currentPage > totalPages) {
+          updateUrl({ page: totalPages });
+        }
+      } else {
+        setBooks([]);
+        setTotalBooksCount(0);
+      }
+
+      setLoading(false);
+    };
+
+    fetchBooks();
   }, [
-    books,
+    supabase,
+    currentPage,
     search,
     selectedCategory,
     selectedGenre,
@@ -403,6 +497,10 @@ function MarketplaceContent() {
   ]);
 
   useEffect(() => {
+    if (loading) return;
+
+    const container = scrollContainerRef.current;
+
     const startHideTimer = () => {
       if (hideTimerRef.current) {
         clearTimeout(hideTimerRef.current);
@@ -413,8 +511,18 @@ function MarketplaceContent() {
       }, 1400);
     };
 
+    const startBackToTopHideTimer = () => {
+      if (backToTopTimerRef.current) {
+        clearTimeout(backToTopTimerRef.current);
+      }
+
+      backToTopTimerRef.current = setTimeout(() => {
+        setShowBackToTop(false);
+      }, 1200);
+    };
+
     const handleScroll = () => {
-      const currentY = window.scrollY;
+      const currentY = container ? container.scrollTop : window.scrollY;
 
       if (currentY <= 40) {
         setShowMobileShortcutBar(true);
@@ -424,23 +532,81 @@ function MarketplaceContent() {
         setShowMobileShortcutBar(true);
       }
 
+      if (currentY > 150) {
+        setShowBackToTop(true);
+        startBackToTopHideTimer();
+      } else {
+        setShowBackToTop(false);
+        if (backToTopTimerRef.current) {
+          clearTimeout(backToTopTimerRef.current);
+        }
+      }
+
       lastScrollY.current = currentY;
       startHideTimer();
     };
 
+    const initialY = container ? container.scrollTop : window.scrollY;
+
     setShowMobileShortcutBar(true);
-    lastScrollY.current = window.scrollY;
+    setShowBackToTop(false);
+    lastScrollY.current = initialY;
     startHideTimer();
 
-    window.addEventListener("scroll", handleScroll, { passive: true });
+    if (container) {
+      container.addEventListener("scroll", handleScroll, { passive: true });
+    } else {
+      window.addEventListener("scroll", handleScroll, { passive: true });
+    }
 
     return () => {
-      window.removeEventListener("scroll", handleScroll);
+      if (container) {
+        container.removeEventListener("scroll", handleScroll);
+      } else {
+        window.removeEventListener("scroll", handleScroll);
+      }
+
       if (hideTimerRef.current) {
         clearTimeout(hideTimerRef.current);
       }
+
+      if (backToTopTimerRef.current) {
+        clearTimeout(backToTopTimerRef.current);
+      }
     };
-  }, []);
+  }, [loading]);
+
+  const goToPage = (page: number) => {
+    const safePage = Math.max(1, page);
+    updateUrl({ page: safePage });
+
+    const container = scrollContainerRef.current;
+    if (container) {
+      container.scrollTo({ top: 0, behavior: "smooth" });
+    } else {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+
+  const applyCategory = (value: string) => {
+    updateUrl({ category: value, page: 1 });
+  };
+
+  const applyGenre = (value: string) => {
+    updateUrl({ genre: value, page: 1 });
+  };
+
+  const applyBookType = (value: string) => {
+    updateUrl({ bookType: value, page: 1 });
+  };
+
+  const applyCondition = (value: string) => {
+    updateUrl({ condition: value, page: 1 });
+  };
+
+  const applySort = (value: string) => {
+    updateUrl({ sort: value, page: 1 });
+  };
 
   const toggleWishlist = async (bookId: number) => {
     if (!userId) {
@@ -570,87 +736,9 @@ function MarketplaceContent() {
     }
   };
 
-  const handleBuyNow = async (bookId: number) => {
-    if (!userId) {
-      showToast({
-        title: "Login required",
-        message: "Please log in first to buy this book.",
-        type: "info",
-      });
-      return;
-    }
-
-    if (buyNowLoadingIds.includes(bookId)) return;
-
-    setBuyNowLoadingIds((prev) => [...prev, bookId]);
-
-    try {
-      const { data: existingItem, error: existingError } = await supabase
-        .from("cart_items")
-        .select("id, quantity")
-        .eq("user_id", userId)
-        .eq("book_id", bookId)
-        .maybeSingle();
-
-      if (existingError) throw existingError;
-
-      let cartItemId: number | null = null;
-
-      if (existingItem) {
-        cartItemId = existingItem.id;
-      } else {
-        const { data: insertedItem, error: insertError } = await supabase
-          .from("cart_items")
-          .insert([
-            {
-              user_id: userId,
-              book_id: bookId,
-              quantity: 1,
-            },
-          ])
-          .select("id, book_id")
-          .single();
-
-        if (insertError) throw insertError;
-
-        if (insertedItem) {
-          cartItemId = insertedItem.id;
-          setCartBookIds((prev) => [...prev, bookId]);
-        }
-      }
-
-      if (!cartItemId) {
-        showToast({
-          title: "Checkout failed",
-          message: "Failed to continue to checkout.",
-          type: "error",
-        });
-        return;
-      }
-
-      router.push(`/checkout?items=${cartItemId}`);
-    } catch (error) {
-      console.error(error);
-      showToast({
-        title: "Buy now failed",
-        message: "Failed to process Buy Now.",
-        type: "error",
-      });
-    } finally {
-      setBuyNowLoadingIds((prev) => prev.filter((id) => id !== bookId));
-    }
-  };
-
   const resetFilters = () => {
-    setSearch("");
-    setSelectedCategory("");
-    setSelectedGenre("");
-    setSelectedBookType("");
-    setSelectedCondition("");
-    setSortBy("newest");
-    setShowAllCategories(false);
-    setShowAllGenres(false);
-    setShowAllBookTypes(false);
+    setSearchInput("");
+    router.replace(pathname, { scroll: false });
   };
 
   const visibleCategories = showAllCategories
@@ -661,6 +749,30 @@ function MarketplaceContent() {
 
   const visibleBookTypes = showAllBookTypes ? bookTypes : bookTypes.slice(0, 8);
 
+  const totalPages = Math.max(1, Math.ceil(totalBooksCount / ITEMS_PER_PAGE));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const startResult =
+    totalBooksCount === 0 ? 0 : (safeCurrentPage - 1) * ITEMS_PER_PAGE + 1;
+  const endResult = Math.min(safeCurrentPage * ITEMS_PER_PAGE, totalBooksCount);
+
+  const getVisiblePageNumbers = () => {
+    const pages: number[] = [];
+    const maxVisible = 5;
+
+    let start = Math.max(1, safeCurrentPage - 2);
+    let end = Math.min(totalPages, start + maxVisible - 1);
+
+    if (end - start < maxVisible - 1) {
+      start = Math.max(1, end - maxVisible + 1);
+    }
+
+    for (let i = start; i <= end; i++) {
+      pages.push(i);
+    }
+
+    return pages;
+  };
+
   const filterContent = (
     <div className="space-y-8">
       <div>
@@ -670,8 +782,8 @@ function MarketplaceContent() {
         <input
           type="text"
           placeholder="Search title or author"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
           className="w-full rounded-xl border border-[#DDD6CC] bg-white px-3 py-2 text-sm text-[#1F1F1F] outline-none placeholder:text-[#9C9489] focus:border-[#E67E22]"
         />
       </div>
@@ -696,7 +808,7 @@ function MarketplaceContent() {
           <>
             <div className="space-y-2">
               <button
-                onClick={() => setSelectedCategory("")}
+                onClick={() => applyCategory("")}
                 className={`block text-left text-sm ${
                   selectedCategory === ""
                     ? "font-semibold text-[#E67E22]"
@@ -709,7 +821,7 @@ function MarketplaceContent() {
               {visibleCategories.map((category) => (
                 <button
                   key={category.id}
-                  onClick={() => setSelectedCategory(String(category.id))}
+                  onClick={() => applyCategory(String(category.id))}
                   className={`block text-left text-sm ${
                     selectedCategory === String(category.id)
                       ? "font-semibold text-[#E67E22]"
@@ -754,7 +866,7 @@ function MarketplaceContent() {
           <>
             <div className="space-y-2">
               <button
-                onClick={() => setSelectedGenre("")}
+                onClick={() => applyGenre("")}
                 className={`block text-left text-sm ${
                   selectedGenre === ""
                     ? "font-semibold text-[#E67E22]"
@@ -767,7 +879,7 @@ function MarketplaceContent() {
               {visibleGenres.map((genre) => (
                 <button
                   key={genre.id}
-                  onClick={() => setSelectedGenre(String(genre.id))}
+                  onClick={() => applyGenre(String(genre.id))}
                   className={`block text-left text-sm ${
                     selectedGenre === String(genre.id)
                       ? "font-semibold text-[#E67E22]"
@@ -812,7 +924,7 @@ function MarketplaceContent() {
           <>
             <div className="space-y-2">
               <button
-                onClick={() => setSelectedBookType("")}
+                onClick={() => applyBookType("")}
                 className={`block text-left text-sm ${
                   selectedBookType === ""
                     ? "font-semibold text-[#E67E22]"
@@ -825,7 +937,7 @@ function MarketplaceContent() {
               {visibleBookTypes.map((type) => (
                 <button
                   key={type.id}
-                  onClick={() => setSelectedBookType(String(type.id))}
+                  onClick={() => applyBookType(String(type.id))}
                   className={`block text-left text-sm ${
                     selectedBookType === String(type.id)
                       ? "font-semibold text-[#E67E22]"
@@ -858,7 +970,7 @@ function MarketplaceContent() {
           {["", "New", "Good", "Used"].map((condition) => (
             <button
               key={condition || "all"}
-              onClick={() => setSelectedCondition(condition)}
+              onClick={() => applyCondition(condition)}
               className={`block text-left text-sm ${
                 selectedCondition === condition
                   ? "font-semibold text-[#E67E22]"
@@ -927,6 +1039,7 @@ function MarketplaceContent() {
           </aside>
 
           <div
+            ref={scrollContainerRef}
             className={`min-w-0 lg:h-full lg:overflow-y-auto lg:-mr-38 ${hiddenScrollbarClass}`}
           >
             <section className="min-w-0 lg:pr-10 lg:pt-6 lg:pb-6">
@@ -939,7 +1052,7 @@ function MarketplaceContent() {
                     Find affordable books from readers and student sellers.
                   </p>
                   <p className="mt-1 text-sm text-[#8A8175]">
-                    1 - {filteredBooks.length} of {filteredBooks.length} results
+                    {startResult} - {endResult} of {totalBooksCount} results
                   </p>
                 </div>
 
@@ -949,7 +1062,7 @@ function MarketplaceContent() {
                   </label>
                   <select
                     value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value)}
+                    onChange={(e) => applySort(e.target.value)}
                     className="rounded-xl border border-[#DDD6CC] bg-white px-3 py-2 text-sm text-[#1F1F1F] outline-none focus:border-[#E67E22]"
                   >
                     <option value="newest">Newest</option>
@@ -981,7 +1094,7 @@ function MarketplaceContent() {
 
                       <select
                         value={sortBy}
-                        onChange={(e) => setSortBy(e.target.value)}
+                        onChange={(e) => applySort(e.target.value)}
                         className="min-w-0 flex-1 rounded-full border border-[#DDD6CC] bg-white px-4 py-2.5 text-sm font-semibold text-[#1F1F1F] outline-none focus:border-[#E67E22]"
                       >
                         <option value="newest">Newest</option>
@@ -994,132 +1107,202 @@ function MarketplaceContent() {
                 </div>
               </div>
 
-              {filteredBooks.length === 0 ? (
+              {totalBooksCount === 0 ? (
                 <div className="rounded-2xl border border-[#E5E0D8] bg-white p-10 text-center text-[#6B6B6B]">
                   No books found.
                 </div>
               ) : (
-                <div className="grid grid-cols-1 gap-6 pb-6 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
-                  {filteredBooks.map((book) => {
-                    const isWishlisted = wishlistBookIds.includes(book.id);
-                    const isWishlistLoading = wishlistLoadingIds.includes(
-                      book.id,
-                    );
-                    const isCartLoading = cartLoadingIds.includes(book.id);
-                    const isBuyNowLoading = buyNowLoadingIds.includes(book.id);
-                    const isAlreadyInCart = cartBookIds.includes(book.id);
+                <>
+                  <div className="grid grid-cols-1 gap-6 pb-6 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
+                    {books.map((book) => {
+                      const isWishlisted = wishlistBookIds.includes(book.id);
+                      const isWishlistLoading = wishlistLoadingIds.includes(
+                        book.id,
+                      );
+                      const isCartLoading = cartLoadingIds.includes(book.id);
+                      const isAlreadyInCart = cartBookIds.includes(book.id);
 
-                    return (
-                      <div
-                        key={book.id}
-                        className="group rounded-[20px] border border-[#E5E0D8] bg-white p-4 shadow-sm transition hover:shadow-md"
-                      >
-                        <div className="relative overflow-hidden rounded-2xl bg-[#F7F4EE]">
-                          <Link href={`/book/${book.id}`}>
-                            {book.image_url ? (
-                              <img
-                                src={book.image_url}
-                                alt={book.title}
-                                className="h-64 w-full object-cover transition duration-300 group-hover:scale-[1.02]"
-                              />
-                            ) : (
-                              <div className="flex h-64 w-full items-center justify-center bg-[#EEF1F6] text-[#7B8593]">
-                                No Image
+                      return (
+                        <Link
+                          key={book.id}
+                          href={`/book/${book.id}`}
+                          className="group block rounded-[22px] focus:outline-none"
+                        >
+                          <article className="overflow-hidden rounded-[22px] border border-[#E5E0D8] bg-white p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_16px_40px_rgba(31,31,31,0.08)] active:scale-[0.99]">
+                            <div className="relative overflow-hidden rounded-2xl bg-[#F7F4EE]">
+                              {book.image_url ? (
+                                <img
+                                  src={book.image_url}
+                                  alt={book.title}
+                                  className="h-64 w-full object-cover transition duration-500 group-hover:scale-[1.04]"
+                                />
+                              ) : (
+                                <div className="flex h-64 w-full items-center justify-center bg-[#EEF1F6] text-[#7B8593]">
+                                  No Image
+                                </div>
+                              )}
+
+                              <span className="absolute left-3 top-3 rounded-full bg-white/95 px-3 py-1 text-[11px] font-semibold text-[#1F1F1F] shadow-sm backdrop-blur-sm">
+                                {book.condition}
+                              </span>
+
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  toggleWishlist(book.id);
+                                }}
+                                disabled={isWishlistLoading}
+                                className="absolute right-3 top-3 rounded-full bg-white/95 p-2.5 shadow-sm backdrop-blur-sm transition duration-200 hover:scale-105 hover:bg-[#F7F4EE] disabled:opacity-50"
+                                aria-label="Toggle wishlist"
+                              >
+                                <Heart
+                                  size={16}
+                                  className={`transition ${
+                                    isWishlisted
+                                      ? "fill-red-500 text-red-500"
+                                      : "text-[#1F1F1F]"
+                                  }`}
+                                />
+                              </button>
+
+                              <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#1F1F1F]/18 via-transparent to-transparent opacity-0 transition duration-300 group-hover:opacity-100" />
+
+                              <div className="absolute inset-x-3 bottom-3 hidden translate-y-3 opacity-0 transition duration-300 md:block group-hover:translate-y-0 group-hover:opacity-100">
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    handleAddToCart(book.id);
+                                  }}
+                                  disabled={isCartLoading}
+                                  className="w-full rounded-full border border-white/70 bg-white/92 px-4 py-2 text-[11px] font-semibold uppercase tracking-wide text-[#1F1F1F] shadow-sm backdrop-blur-sm transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                  <span className="inline-flex items-center justify-center gap-2">
+                                    <ShoppingCart size={13} />
+                                    {isCartLoading
+                                      ? "Adding..."
+                                      : isAlreadyInCart
+                                        ? "Add Again"
+                                        : "Add to Cart"}
+                                  </span>
+                                </button>
                               </div>
-                            )}
-                          </Link>
+                            </div>
 
-                          <span className="absolute left-3 top-3 rounded-full bg-white px-3 py-1 text-[11px] font-semibold text-[#1F1F1F] shadow-sm">
-                            {book.condition}
-                          </span>
+                            <div className="pt-4">
+                              <h2 className="line-clamp-2 min-h-[48px] text-base font-semibold text-[#1F1F1F] transition group-hover:text-[#2A211B]">
+                                {book.title}
+                              </h2>
 
+                              <p className="mt-1 line-clamp-1 text-sm text-[#8A8175]">
+                                {book.author}
+                              </p>
+
+                              <div className="mt-3 flex items-end justify-between gap-3">
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-2 text-sm text-[#8A8175]">
+                                    
+                                    <span className="line-clamp-1">
+                                      {book.location}
+                                    </span>
+                                  </div>
+
+                                  <p className="mt-1 pl-1 text-[11px] font-medium uppercase tracking-wide text-[#6B6B6B]">
+                                    Available
+                                  </p>
+                                </div>
+
+                                <p className="shrink-0 text-lg font-bold text-[#E67E22]">
+                                  ₱{book.price}
+                                </p>
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  handleAddToCart(book.id);
+                                }}
+                                disabled={isCartLoading}
+                                className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#E67E22] px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-[#cf6f1c] disabled:cursor-not-allowed disabled:opacity-60 md:hidden"
+                              >
+                                <ShoppingCart size={14} />
+                                {isCartLoading
+                                  ? "Adding..."
+                                  : isAlreadyInCart
+                                    ? "Add Again"
+                                    : "Add to Cart"}
+                              </button>
+                            </div>
+                          </article>
+                        </Link>
+                      );
+                    })}
+                  </div>
+
+                  {totalPages > 1 && (
+                    <div className="flex flex-col items-center justify-center gap-3 pb-8 sm:flex-row">
+                      <button
+                        type="button"
+                        onClick={() => goToPage(safeCurrentPage - 1)}
+                        disabled={safeCurrentPage === 1}
+                        className="inline-flex items-center gap-2 rounded-full border border-[#D9D1C6] bg-white px-4 py-2 text-sm font-medium text-[#1F1F1F] transition hover:bg-[#F7F4EE] disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <ChevronLeft size={16} />
+                        Previous
+                      </button>
+
+                      <div className="flex flex-wrap items-center justify-center gap-2">
+                        {getVisiblePageNumbers().map((page) => (
                           <button
+                            key={page}
                             type="button"
-                            onClick={() => toggleWishlist(book.id)}
-                            disabled={isWishlistLoading}
-                            className="absolute right-3 top-3 rounded-full bg-white p-2 shadow-sm transition hover:bg-[#F7F4EE] disabled:opacity-50"
-                            aria-label="Toggle wishlist"
+                            onClick={() => goToPage(page)}
+                            className={`h-10 min-w-[40px] rounded-full px-3 text-sm font-semibold transition ${
+                              safeCurrentPage === page
+                                ? "bg-[#E67E22] text-white"
+                                : "border border-[#D9D1C6] bg-white text-[#1F1F1F] hover:bg-[#F7F4EE]"
+                            }`}
                           >
-                            <Heart
-                              size={16}
-                              className={`transition ${
-                                isWishlisted
-                                  ? "fill-red-500 text-red-500"
-                                  : "text-[#1F1F1F]"
-                              }`}
-                            />
+                            {page}
                           </button>
-                        </div>
-
-                        <div className="pt-4">
-                          <Link href={`/book/${book.id}`}>
-                            <h2 className="line-clamp-2 min-h-[48px] text-base font-semibold text-[#1F1F1F]">
-                              {book.title}
-                            </h2>
-                          </Link>
-
-                          <p className="mt-1 line-clamp-1 text-sm text-[#8A8175]">
-                            {book.author}
-                          </p>
-
-                          <p className="mt-3 text-lg font-bold text-[#E67E22]">
-                            ₱{book.price}
-                          </p>
-
-                          <div className="mt-2 flex items-center gap-2 text-sm text-[#8A8175]">
-                            <MapPin size={14} />
-                            <span className="line-clamp-1">
-                              {book.location}
-                            </span>
-                          </div>
-
-                          <p className="mt-2 text-xs font-medium uppercase tracking-wide text-[#6B6B6B]">
-                            Available
-                          </p>
-
-                          <div className="mt-4 space-y-2">
-                            <button
-                              type="button"
-                              onClick={() => handleAddToCart(book.id)}
-                              disabled={isCartLoading}
-                              className="flex w-full items-center justify-center gap-2 rounded-full bg-[#E67E22] px-3 py-2 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-[#cf6f1c] disabled:cursor-not-allowed disabled:opacity-60"
-                            >
-                              <ShoppingCart size={14} />
-                              {isCartLoading
-                                ? "Adding..."
-                                : isAlreadyInCart
-                                  ? "Add Again"
-                                  : "Add to Cart"}
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => handleBuyNow(book.id)}
-                              disabled={isBuyNowLoading}
-                              className="flex w-full items-center justify-center gap-2 rounded-full border border-[#E67E22] bg-[#FFF7EF] px-3 py-2 text-xs font-semibold uppercase tracking-wide text-[#E67E22] transition hover:bg-[#E67E22] hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
-                            >
-                              <ShoppingCart size={14} />
-                              {isBuyNowLoading ? "Processing..." : "Buy Now"}
-                            </button>
-
-                            <Link
-                              href={`/book/${book.id}`}
-                              className="flex w-full items-center justify-center gap-2 rounded-full border border-[#E8A16A] px-3 py-2 text-center text-xs font-semibold uppercase tracking-wide text-[#E67E22] transition hover:bg-[#E67E22] hover:text-white"
-                            >
-                              <Eye size={14} />
-                              View Book
-                            </Link>
-                          </div>
-                        </div>
+                        ))}
                       </div>
-                    );
-                  })}
-                </div>
+
+                      <button
+                        type="button"
+                        onClick={() => goToPage(safeCurrentPage + 1)}
+                        disabled={safeCurrentPage === totalPages}
+                        className="inline-flex items-center gap-2 rounded-full border border-[#D9D1C6] bg-white px-4 py-2 text-sm font-medium text-[#1F1F1F] transition hover:bg-[#F7F4EE] disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        Next
+                        <ChevronRight size={16} />
+                      </button>
+                    </div>
+                  )}
+                </>
               )}
             </section>
           </div>
         </div>
       </div>
+
+      <button
+        type="button"
+        onClick={handleBackToTop}
+        className={`fixed bottom-6 right-6 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-[#E67E22] text-white shadow-lg transition-all duration-300 hover:bg-[#cf6f1c] ${
+          showBackToTop
+            ? "translate-y-0 opacity-100"
+            : "pointer-events-none translate-y-3 opacity-0"
+        }`}
+        aria-label="Back to top"
+      >
+        <ArrowUp size={18} />
+      </button>
     </main>
   );
 }

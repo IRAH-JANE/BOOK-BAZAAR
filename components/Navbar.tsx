@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { createSupabaseBrowser } from "@/lib/supabase";
 import {
   Heart,
   House,
@@ -34,6 +34,7 @@ type Profile = {
 export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
+  const supabase = createSupabaseBrowser();
 
   const [searchText, setSearchText] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);

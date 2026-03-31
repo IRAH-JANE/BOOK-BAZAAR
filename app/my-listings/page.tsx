@@ -2,7 +2,10 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { createSupabaseBrowser } from "@/lib/supabase";
+import { useToast } from "@/components/ToastProvider";
+import { useConfirm } from "@/components/ConfirmProvider";
+import { useRouter } from "next/navigation";
 import {
   Eye,
   Pencil,
@@ -12,10 +15,10 @@ import {
   Search,
   CircleDollarSign,
   AlertTriangle,
-  Copy,
   CheckCircle2,
   Archive,
-  XCircle,
+  Plus,
+  Package2,
 } from "lucide-react";
 
 type BookStatus = "active" | "reserved" | "sold" | "hidden";
@@ -42,102 +45,71 @@ function SkeletonBox({ className = "" }: { className?: string }) {
 
 function MyListingsPageSkeleton() {
   return (
-    <>
-      <main className="min-h-screen bg-[#F7F5F1] px-4 py-8 sm:px-6 sm:py-10">
-        <div className="mx-auto max-w-7xl">
-          <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <SkeletonBox className="h-4 w-32 rounded-full" />
-              <SkeletonBox className="mt-3 h-10 w-56" />
-              <SkeletonBox className="mt-2 h-5 w-72 max-w-full" />
+    <main className="min-h-screen bg-[#F7F5F1] px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl">
+        <div className="overflow-hidden rounded-[32px] border border-[#EEE7DC] bg-gradient-to-br from-[#FFF8F1] via-[#FFFDF9] to-[#F9F4EC] px-6 py-8 shadow-[0_12px_40px_rgba(31,31,31,0.06)] sm:px-8 sm:py-10">
+          <SkeletonBox className="h-5 w-36 rounded-full" />
+          <SkeletonBox className="mt-4 h-12 w-64" />
+          <SkeletonBox className="mt-3 h-5 w-80 max-w-full" />
+        </div>
+
+        <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {[...Array(4)].map((_, index) => (
+            <div
+              key={index}
+              className="rounded-[28px] border border-[#E8E1D7] bg-[#FFFDF9] p-5 shadow-[0_10px_28px_rgba(31,31,31,0.05)]"
+            >
+              <SkeletonBox className="h-4 w-28" />
+              <SkeletonBox className="mt-4 h-8 w-16" />
             </div>
+          ))}
+        </div>
 
-            <SkeletonBox className="h-12 w-40 rounded-full" />
-          </div>
-
-          <section className="mb-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            {[...Array(4)].map((_, index) => (
-              <div
-                key={index}
-                className="rounded-2xl border border-[#E5E0D8] bg-white p-4 shadow-sm sm:rounded-3xl sm:p-5"
-              >
-                <div className="flex items-center gap-3">
-                  <SkeletonBox className="h-[18px] w-[18px] rounded-full" />
-                  <SkeletonBox className="h-4 w-24" />
-                </div>
-                <SkeletonBox className="mt-4 h-8 w-16" />
-              </div>
-            ))}
-          </section>
-
-          <section className="mb-8 rounded-2xl border border-[#E5E0D8] bg-white p-4 shadow-sm sm:rounded-3xl sm:p-5">
-            <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr_0.8fr_0.8fr]">
-              <div className="relative">
-                <SkeletonBox className="h-[48px] w-full rounded-2xl" />
-              </div>
-
-              <SkeletonBox className="h-[48px] w-full rounded-2xl" />
-              <SkeletonBox className="h-[48px] w-full rounded-2xl" />
-              <SkeletonBox className="h-[48px] w-full rounded-2xl" />
-            </div>
-
-            <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-              <SkeletonBox className="h-4 w-44" />
-              <SkeletonBox className="h-10 w-28 rounded-full" />
-            </div>
-          </section>
-
-          <div className="space-y-4">
-            {[...Array(4)].map((_, index) => (
-              <div
-                key={index}
-                className="rounded-2xl border border-[#E5E0D8] bg-white p-4 shadow-sm sm:rounded-3xl sm:p-5"
-              >
-                <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
-                  <div className="flex flex-col gap-4 sm:flex-row sm:gap-4">
-                    <SkeletonBox className="h-28 w-24 shrink-0 rounded-2xl" />
-
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <SkeletonBox className="h-8 w-56" />
-                        <SkeletonBox className="h-7 w-20 rounded-full" />
-                      </div>
-
-                      <SkeletonBox className="mt-2 h-5 w-40" />
-
-                      <div className="mt-4 flex flex-wrap items-center gap-3">
-                        <SkeletonBox className="h-8 w-20 rounded-full" />
-                        <SkeletonBox className="h-8 w-24 rounded-full" />
-                      </div>
-
-                      <div className="mt-3 flex items-center gap-2">
-                        <SkeletonBox className="h-4 w-4 rounded-full" />
-                        <SkeletonBox className="h-4 w-32" />
-                      </div>
-
-                      <div className="mt-4 grid gap-2 text-sm sm:flex sm:flex-wrap sm:gap-3">
-                        <SkeletonBox className="h-9 w-24 rounded-2xl" />
-                        <SkeletonBox className="h-9 w-24 rounded-2xl" />
-                        <SkeletonBox className="h-9 w-28 rounded-2xl" />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-wrap gap-2 xl:max-w-[360px] xl:justify-end">
-                    {[...Array(6)].map((_, btnIndex) => (
-                      <SkeletonBox
-                        key={btnIndex}
-                        className="h-10 w-28 rounded-full"
-                      />
-                    ))}
-                  </div>
-                </div>
-              </div>
-            ))}
+        <div className="mt-6 rounded-[28px] border border-[#E8E1D7] bg-[#FFFDF9] p-5 shadow-[0_8px_24px_rgba(31,31,31,0.05)]">
+          <div className="grid gap-4 lg:grid-cols-[1.3fr_0.8fr_0.8fr_0.8fr]">
+            <SkeletonBox className="h-12 w-full rounded-2xl" />
+            <SkeletonBox className="h-12 w-full rounded-2xl" />
+            <SkeletonBox className="h-12 w-full rounded-2xl" />
+            <SkeletonBox className="h-12 w-full rounded-2xl" />
           </div>
         </div>
-      </main>
-    </>
+
+        <div className="mt-6 space-y-4">
+          {[...Array(3)].map((_, index) => (
+            <div
+              key={index}
+              className="overflow-hidden rounded-[30px] border border-[#E8E1D7] bg-[#FFFDF9] p-5 shadow-[0_10px_28px_rgba(31,31,31,0.05)]"
+            >
+              <div className="grid gap-5 lg:grid-cols-[110px_minmax(0,1fr)_180px] lg:items-center">
+                <SkeletonBox className="h-40 w-28 rounded-[24px]" />
+
+                <div className="min-w-0">
+                  <SkeletonBox className="h-9 w-72" />
+                  <SkeletonBox className="mt-3 h-5 w-40" />
+                  <SkeletonBox className="mt-3 h-4 w-32" />
+                  <div className="mt-4 flex gap-3">
+                    <SkeletonBox className="h-10 w-24 rounded-full" />
+                    <SkeletonBox className="h-10 w-20 rounded-full" />
+                  </div>
+                  <div className="mt-4 flex gap-2">
+                    <SkeletonBox className="h-10 w-24 rounded-full" />
+                    <SkeletonBox className="h-10 w-24 rounded-full" />
+                    <SkeletonBox className="h-10 w-28 rounded-full" />
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-3">
+                  <SkeletonBox className="h-12 w-full rounded-2xl" />
+                  <SkeletonBox className="h-12 w-full rounded-2xl" />
+                  <SkeletonBox className="h-12 w-full rounded-2xl" />
+                  <SkeletonBox className="h-12 w-full rounded-2xl" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </main>
   );
 }
 
@@ -152,11 +124,16 @@ export default function MyListingsPage() {
   const [sortBy, setSortBy] = useState("newest");
 
   const [actionLoadingId, setActionLoadingId] = useState<number | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<Book | null>(null);
 
   const isMountedRef = useRef(true);
+  const { showToast } = useToast();
+  const { confirm } = useConfirm();
 
-  const getSafeStatus = (status: string | null): BookStatus => {
+  const supabase = createSupabaseBrowser();
+
+  const router = useRouter();
+
+  const getBaseStatus = (status: string | null): BookStatus => {
     const safe = (status || "active").toLowerCase();
     if (
       safe === "active" ||
@@ -169,11 +146,23 @@ export default function MyListingsPage() {
     return "active";
   };
 
+  const getRemainingStock = (book: Book) => {
+    return Math.max((book.stock_quantity ?? 0) - (book.sold_count ?? 0), 0);
+  };
+
+  const getEffectiveStatus = (book: Book): BookStatus => {
+    const baseStatus = getBaseStatus(book.status);
+    const remaining = getRemainingStock(book);
+
+    if (baseStatus === "hidden") return "hidden";
+    if (remaining <= 0) return "sold";
+
+    return baseStatus === "sold" ? "active" : baseStatus;
+  };
+
   const fetchMyBooks = useCallback(async () => {
     try {
-      if (isMountedRef.current) {
-        setLoading(true);
-      }
+      if (isMountedRef.current) setLoading(true);
 
       const {
         data: { user },
@@ -217,13 +206,16 @@ export default function MyListingsPage() {
       if (isMountedRef.current) {
         setBooks([]);
         setFilteredBooks([]);
+        showToast({
+          title: "Load failed",
+          message: "Failed to load your listings.",
+          type: "error",
+        });
       }
     } finally {
-      if (isMountedRef.current) {
-        setLoading(false);
-      }
+      if (isMountedRef.current) setLoading(false);
     }
-  }, []);
+  }, [supabase, showToast]);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -249,7 +241,7 @@ export default function MyListingsPage() {
 
     if (selectedStatus) {
       result = result.filter(
-        (book) => getSafeStatus(book.status) === selectedStatus,
+        (book) => getEffectiveStatus(book) === selectedStatus,
       );
     }
 
@@ -286,15 +278,19 @@ export default function MyListingsPage() {
   const summary = useMemo(() => {
     const totalListings = books.length;
     const activeListings = books.filter(
-      (book) => getSafeStatus(book.status) === "active",
+      (book) => getEffectiveStatus(book) === "active",
     ).length;
     const soldListings = books.filter(
-      (book) => getSafeStatus(book.status) === "sold",
+      (book) => getEffectiveStatus(book) === "sold",
     ).length;
     const lowStockListings = books.filter((book) => {
-      const remaining = (book.stock_quantity ?? 0) - (book.sold_count ?? 0);
+      const remaining = getRemainingStock(book);
+      const status = getEffectiveStatus(book);
       return (
-        getSafeStatus(book.status) !== "sold" && remaining > 0 && remaining <= 2
+        status !== "sold" &&
+        status !== "hidden" &&
+        remaining > 0 &&
+        remaining <= 2
       );
     }).length;
 
@@ -306,7 +302,42 @@ export default function MyListingsPage() {
     };
   }, [books]);
 
-  const updateBookStatus = async (bookId: number, status: BookStatus) => {
+  const updateBookStatus = async (
+    bookId: number,
+    status: "active" | "hidden",
+  ) => {
+    const statusConfig = {
+      active: {
+        title: "Unhide Listing?",
+        message: "This listing will become visible to buyers again.",
+        confirmText: "Unhide",
+        cancelText: "Cancel",
+        successTitle: "Listing unhidden",
+        successMessage: "The listing is visible again.",
+      },
+      hidden: {
+        title: "Hide Listing?",
+        message:
+          "This listing will be hidden from buyers, but it will stay in your dashboard.",
+        confirmText: "Hide",
+        cancelText: "Cancel",
+        successTitle: "Listing hidden",
+        successMessage: "The listing has been hidden.",
+      },
+    } as const;
+
+    const config = statusConfig[status];
+
+    const confirmed = await confirm({
+      title: config.title,
+      message: config.message,
+      confirmText: config.confirmText,
+      cancelText: config.cancelText,
+      danger: status === "hidden",
+    });
+
+    if (!confirmed) return;
+
     try {
       setActionLoadingId(bookId);
 
@@ -320,71 +351,56 @@ export default function MyListingsPage() {
       setBooks((prev) =>
         prev.map((book) => (book.id === bookId ? { ...book, status } : book)),
       );
+
+      showToast({
+        title: config.successTitle,
+        message: config.successMessage,
+        type: "success",
+      });
     } catch (error) {
       console.error("Failed to update status:", error);
-      alert("Failed to update listing status.");
+      showToast({
+        title: "Update failed",
+        message: "Failed to update listing status.",
+        type: "error",
+      });
     } finally {
       setActionLoadingId(null);
     }
   };
 
-  const duplicateBook = async (book: Book) => {
+  const confirmDelete = async (book: Book) => {
+    const confirmed = await confirm({
+      title: "Delete Listing?",
+      message: `Are you sure you want to delete "${book.title}"? This action cannot be undone.`,
+      confirmText: "Delete",
+      cancelText: "Cancel",
+      danger: true,
+    });
+
+    if (!confirmed) return;
+
     try {
       setActionLoadingId(book.id);
 
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
+      const { error } = await supabase.from("books").delete().eq("id", book.id);
 
-      if (userError) throw userError;
-      if (!user) {
-        alert("Please log in again.");
-        return;
-      }
+      if (error) throw error;
 
-      const { error } = await supabase.from("books").insert({
-        seller_id: user.id,
-        title: `${book.title} (Copy)`,
-        author: book.author,
-        price: book.price,
-        condition: book.condition,
-        location: book.location,
-        image_url: book.image_url,
-        status: "hidden",
-        stock_quantity: book.stock_quantity ?? 1,
-        sold_count: 0,
+      setBooks((prev) => prev.filter((item) => item.id !== book.id));
+
+      showToast({
+        title: "Listing deleted",
+        message: "The listing has been deleted successfully.",
+        type: "success",
       });
-
-      if (error) throw error;
-
-      await fetchMyBooks();
-    } catch (error) {
-      console.error("Failed to duplicate listing:", error);
-      alert("Failed to duplicate listing.");
-    } finally {
-      setActionLoadingId(null);
-    }
-  };
-
-  const confirmDelete = async () => {
-    if (!deleteTarget) return;
-
-    try {
-      setActionLoadingId(deleteTarget.id);
-
-      const { error } = await supabase
-        .from("books")
-        .delete()
-        .eq("id", deleteTarget.id);
-
-      if (error) throw error;
-
-      setBooks((prev) => prev.filter((book) => book.id !== deleteTarget.id));
-      setDeleteTarget(null);
     } catch (error) {
       console.error("Failed to delete listing:", error);
-      alert("Failed to delete listing.");
+      showToast({
+        title: "Delete failed",
+        message: "Failed to delete listing.",
+        type: "error",
+      });
     } finally {
       setActionLoadingId(null);
     }
@@ -393,20 +409,16 @@ export default function MyListingsPage() {
   const getStatusStyles = (status: BookStatus) => {
     switch (status) {
       case "active":
-        return "bg-green-100 text-green-700";
+        return "border-green-200 bg-green-50 text-green-700";
       case "reserved":
-        return "bg-yellow-100 text-yellow-700";
+        return "border-yellow-200 bg-yellow-50 text-yellow-700";
       case "sold":
-        return "bg-gray-200 text-gray-700";
+        return "border-[#D9D2C7] bg-[#F1ECE4] text-[#6B6B6B]";
       case "hidden":
-        return "bg-[#F1ECE4] text-[#8A8175]";
+        return "border-[#E5DED2] bg-[#F6EFE6] text-[#8A8175]";
       default:
-        return "bg-[#F1ECE4] text-[#8A8175]";
+        return "border-[#E5DED2] bg-[#F6EFE6] text-[#8A8175]";
     }
-  };
-
-  const getRemainingStock = (book: Book) => {
-    return Math.max((book.stock_quantity ?? 0) - (book.sold_count ?? 0), 0);
   };
 
   if (loading) {
@@ -414,286 +426,289 @@ export default function MyListingsPage() {
   }
 
   return (
-    <>
-      <main className="min-h-screen bg-[#F7F5F1] px-4 py-8 sm:px-6 sm:py-10">
-        <div className="mx-auto max-w-7xl">
-          <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#E67E22] sm:text-sm">
+    <main className="min-h-screen bg-[#F7F5F1] px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl">
+        <section className="relative overflow-hidden rounded-[32px] border border-[#EEE7DC] bg-gradient-to-br from-[#FFF8F1] via-[#FFFDF9] to-[#F9F4EC] px-6 py-8 shadow-[0_12px_40px_rgba(31,31,31,0.06)] sm:px-8 sm:py-10">
+          <div className="pointer-events-none absolute -right-16 -top-16 h-44 w-44 rounded-full bg-[#E67E22]/10 blur-3xl" />
+          <div className="pointer-events-none absolute bottom-0 left-0 h-32 w-32 rounded-full bg-[#F3C998]/20 blur-2xl" />
+
+          <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+            <div className="max-w-2xl">
+              <p className="inline-flex rounded-full bg-[#E67E22]/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.24em] text-[#C96A16]">
                 Seller Dashboard
               </p>
-              <h1 className="mt-2 text-3xl font-bold text-[#1F1F1F] sm:text-4xl">
+
+              <h1 className="mt-4 text-3xl font-bold tracking-tight text-[#1F1F1F] sm:text-4xl lg:text-5xl">
                 My Listings
               </h1>
-              <p className="mt-2 text-sm text-[#6B6B6B] sm:text-base">
-                Manage the books you posted for sale.
+
+              <p className="mt-3 max-w-xl text-sm leading-7 text-[#6B6B6B] sm:text-base">
+                Manage your posted books, monitor stock, and keep your seller
+                space clean and professional.
               </p>
             </div>
+
+            <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
+              <Link
+                href="/sell"
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-[#E67E22] px-6 py-3 text-sm font-semibold text-white transition duration-200 hover:bg-[#cf6f1c]"
+              >
+                <Plus size={16} />
+                Add New Listing
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        <section className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="rounded-[28px] border border-[#E8E1D7] bg-[#FFFDF9] p-5 shadow-[0_10px_28px_rgba(31,31,31,0.05)]">
+            <div className="flex items-center gap-3 text-[#6B6B6B]">
+              <BookOpen size={18} />
+              <span className="text-sm font-medium">Total Listings</span>
+            </div>
+            <p className="mt-4 text-3xl font-bold text-[#1F1F1F]">
+              {summary.totalListings}
+            </p>
+          </div>
+
+          <div className="rounded-[28px] border border-[#E8E1D7] bg-[#FFFDF9] p-5 shadow-[0_10px_28px_rgba(31,31,31,0.05)]">
+            <div className="flex items-center gap-3 text-[#6B6B6B]">
+              <CheckCircle2 size={18} />
+              <span className="text-sm font-medium">Active Listings</span>
+            </div>
+            <p className="mt-4 text-3xl font-bold text-[#1F1F1F]">
+              {summary.activeListings}
+            </p>
+          </div>
+
+          <div className="rounded-[28px] border border-[#E8E1D7] bg-[#FFFDF9] p-5 shadow-[0_10px_28px_rgba(31,31,31,0.05)]">
+            <div className="flex items-center gap-3 text-[#6B6B6B]">
+              <CircleDollarSign size={18} />
+              <span className="text-sm font-medium">Sold Out</span>
+            </div>
+            <p className="mt-4 text-3xl font-bold text-[#1F1F1F]">
+              {summary.soldListings}
+            </p>
+          </div>
+
+          <div className="rounded-[28px] border border-[#E8E1D7] bg-[#FFFDF9] p-5 shadow-[0_10px_28px_rgba(31,31,31,0.05)]">
+            <div className="flex items-center gap-3 text-[#6B6B6B]">
+              <AlertTriangle size={18} />
+              <span className="text-sm font-medium">Low Stock</span>
+            </div>
+            <p className="mt-4 text-3xl font-bold text-[#1F1F1F]">
+              {summary.lowStockListings}
+            </p>
+          </div>
+        </section>
+
+        <section className="mt-6 rounded-[28px] border border-[#E8E1D7] bg-[#FFFDF9] p-5 shadow-[0_8px_24px_rgba(31,31,31,0.05)]">
+          <div className="grid gap-4 lg:grid-cols-[1.3fr_0.8fr_0.8fr_0.8fr]">
+            <div className="relative">
+              <Search
+                size={16}
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-[#8A8175]"
+              />
+              <input
+                type="text"
+                placeholder="Search title, author, or location"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full rounded-2xl border border-[#D9D2C7] bg-white py-3 pl-11 pr-4 text-[#1F1F1F] outline-none transition focus:border-[#E67E22]"
+              />
+            </div>
+
+            <select
+              value={selectedStatus}
+              onChange={(e) => setSelectedStatus(e.target.value)}
+              className="rounded-2xl border border-[#D9D2C7] bg-white px-4 py-3 text-[#1F1F1F] outline-none transition focus:border-[#E67E22]"
+            >
+              <option value="">All Statuses</option>
+              <option value="active">Active</option>
+              <option value="sold">Sold Out</option>
+              <option value="hidden">Hidden</option>
+            </select>
+
+            <select
+              value={selectedCondition}
+              onChange={(e) => setSelectedCondition(e.target.value)}
+              className="rounded-2xl border border-[#D9D2C7] bg-white px-4 py-3 text-[#1F1F1F] outline-none transition focus:border-[#E67E22]"
+            >
+              <option value="">All Conditions</option>
+              <option value="New">New</option>
+              <option value="Good">Good</option>
+              <option value="Used">Used</option>
+            </select>
+
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="rounded-2xl border border-[#D9D2C7] bg-white px-4 py-3 text-[#1F1F1F] outline-none transition focus:border-[#E67E22]"
+            >
+              <option value="newest">Newest</option>
+              <option value="oldest">Oldest</option>
+              <option value="price-low">Price: Low to High</option>
+              <option value="price-high">Price: High to Low</option>
+              <option value="title-az">Title: A to Z</option>
+            </select>
+          </div>
+
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-[#8A8175]">
+              Showing {filteredBooks.length} of {books.length} listings
+            </p>
+
+            <button
+              onClick={() => {
+                setSearch("");
+                setSelectedStatus("");
+                setSelectedCondition("");
+                setSortBy("newest");
+              }}
+              className="w-full rounded-full border border-[#D9D2C7] px-4 py-2 text-sm font-semibold text-[#1F1F1F] transition hover:bg-[#F7F4EE] sm:w-auto"
+            >
+              Reset Filters
+            </button>
+          </div>
+        </section>
+
+        {books.length === 0 ? (
+          <section className="mt-8 overflow-hidden rounded-[32px] border border-[#E8E1D7] bg-[#FFFDF9] p-8 text-center shadow-[0_12px_30px_rgba(31,31,31,0.05)] sm:p-12">
+            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-[#FFF3E7] text-[#E67E22] shadow-sm">
+              <Package2 size={30} />
+            </div>
+
+            <h2 className="mt-5 text-2xl font-bold text-[#1F1F1F]">
+              You have not posted any books yet
+            </h2>
+
+            <p className="mx-auto mt-3 max-w-md text-sm leading-7 text-[#6B6B6B] sm:text-base">
+              Start building your seller space by posting your first listing.
+            </p>
 
             <Link
               href="/sell"
-              className="inline-flex items-center justify-center rounded-full bg-[#E67E22] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#cf6f1c] sm:text-base"
+              className="mt-6 inline-flex items-center justify-center rounded-full bg-[#E67E22] px-7 py-3 font-semibold text-white transition duration-200 hover:bg-[#cf6f1c]"
             >
-              Add New Listing
+              Post Your First Book
             </Link>
-          </div>
-
-          <section className="mb-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <div className="rounded-2xl border border-[#E5E0D8] bg-white p-4 shadow-sm sm:rounded-3xl sm:p-5">
-              <div className="flex items-center gap-3 text-[#6B6B6B]">
-                <BookOpen size={18} />
-                <span className="text-sm font-medium">Total Listings</span>
-              </div>
-              <p className="mt-4 text-2xl font-bold text-[#1F1F1F] sm:text-3xl">
-                {summary.totalListings}
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-[#E5E0D8] bg-white p-4 shadow-sm sm:rounded-3xl sm:p-5">
-              <div className="flex items-center gap-3 text-[#6B6B6B]">
-                <CheckCircle2 size={18} />
-                <span className="text-sm font-medium">Active Listings</span>
-              </div>
-              <p className="mt-4 text-2xl font-bold text-[#1F1F1F] sm:text-3xl">
-                {summary.activeListings}
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-[#E5E0D8] bg-white p-4 shadow-sm sm:rounded-3xl sm:p-5">
-              <div className="flex items-center gap-3 text-[#6B6B6B]">
-                <CircleDollarSign size={18} />
-                <span className="text-sm font-medium">Sold Listings</span>
-              </div>
-              <p className="mt-4 text-2xl font-bold text-[#1F1F1F] sm:text-3xl">
-                {summary.soldListings}
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-[#E5E0D8] bg-white p-4 shadow-sm sm:rounded-3xl sm:p-5">
-              <div className="flex items-center gap-3 text-[#6B6B6B]">
-                <AlertTriangle size={18} />
-                <span className="text-sm font-medium">Low Stock</span>
-              </div>
-              <p className="mt-4 text-2xl font-bold text-[#1F1F1F] sm:text-3xl">
-                {summary.lowStockListings}
-              </p>
-            </div>
           </section>
-
-          <section className="mb-8 rounded-2xl border border-[#E5E0D8] bg-white p-4 shadow-sm sm:rounded-3xl sm:p-5">
-            <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr_0.8fr_0.8fr]">
-              <div className="relative">
-                <Search
-                  size={16}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-[#8A8175]"
-                />
-                <input
-                  type="text"
-                  placeholder="Search title, author, or location"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="w-full rounded-2xl border border-[#D9D2C7] bg-white py-3 pl-11 pr-4 text-[#1F1F1F] outline-none focus:border-[#E67E22]"
-                />
-              </div>
-
-              <select
-                value={selectedStatus}
-                onChange={(e) => setSelectedStatus(e.target.value)}
-                className="rounded-2xl border border-[#D9D2C7] bg-white px-4 py-3 text-[#1F1F1F] outline-none focus:border-[#E67E22]"
-              >
-                <option value="">All Statuses</option>
-                <option value="active">Active</option>
-                <option value="reserved">Reserved</option>
-                <option value="sold">Sold</option>
-                <option value="hidden">Hidden</option>
-              </select>
-
-              <select
-                value={selectedCondition}
-                onChange={(e) => setSelectedCondition(e.target.value)}
-                className="rounded-2xl border border-[#D9D2C7] bg-white px-4 py-3 text-[#1F1F1F] outline-none focus:border-[#E67E22]"
-              >
-                <option value="">All Conditions</option>
-                <option value="New">New</option>
-                <option value="Good">Good</option>
-                <option value="Used">Used</option>
-              </select>
-
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="rounded-2xl border border-[#D9D2C7] bg-white px-4 py-3 text-[#1F1F1F] outline-none focus:border-[#E67E22]"
-              >
-                <option value="newest">Newest</option>
-                <option value="oldest">Oldest</option>
-                <option value="price-low">Price: Low to High</option>
-                <option value="price-high">Price: High to Low</option>
-                <option value="title-az">Title: A to Z</option>
-              </select>
-            </div>
-
-            <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-              <p className="text-sm text-[#8A8175]">
-                Showing {filteredBooks.length} of {books.length} listings
-              </p>
-
-              <button
-                onClick={() => {
-                  setSearch("");
-                  setSelectedStatus("");
-                  setSelectedCondition("");
-                  setSortBy("newest");
-                }}
-                className="w-full rounded-full border border-[#D9D2C7] px-4 py-2 text-sm font-semibold text-[#1F1F1F] transition hover:bg-[#F7F4EE] sm:w-auto"
-              >
-                Reset Filters
-              </button>
-            </div>
+        ) : filteredBooks.length === 0 ? (
+          <section className="mt-8 rounded-[32px] border border-[#E8E1D7] bg-[#FFFDF9] p-10 text-center text-[#6B6B6B] shadow-[0_12px_30px_rgba(31,31,31,0.05)]">
+            No listings match your filters.
           </section>
+        ) : (
+          <section className="mt-8 space-y-5">
+            {filteredBooks.map((book) => {
+              const status = getEffectiveStatus(book);
+              const remainingStock = getRemainingStock(book);
+              const isLowStock =
+                status !== "sold" &&
+                status !== "hidden" &&
+                remainingStock > 0 &&
+                remainingStock <= 2;
 
-          {books.length === 0 ? (
-            <div className="rounded-2xl border border-[#E5E0D8] bg-white p-6 shadow-sm sm:rounded-3xl sm:p-8">
-              <div className="flex items-center gap-3 text-[#8A8175]">
-                <BookOpen size={20} />
-                <p>You have not posted any books yet.</p>
-              </div>
+              return (
+                <article
+                  key={book.id}
+                  className="overflow-hidden rounded-[30px] border border-[#E8E1D7] bg-[#FFFDF9] p-5 shadow-[0_10px_28px_rgba(31,31,31,0.05)] transition duration-300 hover:shadow-[0_16px_36px_rgba(31,31,31,0.08)]"
+                >
+                  <div className="grid gap-5 lg:grid-cols-[110px_minmax(0,1fr)_170px] lg:items-center">
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => router.push(`/book/${book.id}`)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          router.push(`/book/${book.id}`);
+                        }
+                      }}
+                      className="grid min-w-0 cursor-pointer gap-5 lg:col-span-2 lg:grid-cols-[110px_minmax(0,1fr)] lg:items-center"
+                    >
+                      <div className="mx-auto h-40 w-28 overflow-hidden rounded-[24px] bg-[#F7F4EE] sm:mx-0">
+                        {book.image_url ? (
+                          <img
+                            src={book.image_url}
+                            alt={book.title}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center text-xs text-[#8A8175]">
+                            No Image
+                          </div>
+                        )}
+                      </div>
 
-              <Link
-                href="/sell"
-                className="mt-5 inline-block rounded-full bg-[#E67E22] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#cf6f1c] sm:text-base"
-              >
-                Post Your First Book
-              </Link>
-            </div>
-          ) : filteredBooks.length === 0 ? (
-            <div className="rounded-2xl border border-[#E5E0D8] bg-white p-8 text-center text-[#6B6B6B] shadow-sm sm:rounded-3xl sm:p-10">
-              No listings match your filters.
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {filteredBooks.map((book) => {
-                const status = getSafeStatus(book.status);
-                const remainingStock = getRemainingStock(book);
-                const isLowStock =
-                  status !== "sold" &&
-                  remainingStock > 0 &&
-                  remainingStock <= 2;
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-start gap-2">
+                          <h2 className="break-words text-[28px] font-bold leading-tight text-[#1F1F1F] transition hover:text-[#C96A16]">
+                            {book.title}
+                          </h2>
 
-                return (
-                  <div
-                    key={book.id}
-                    className="rounded-2xl border border-[#E5E0D8] bg-white p-4 shadow-sm sm:rounded-3xl sm:p-5"
-                  >
-                    <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
-                      <div className="flex flex-col gap-4 sm:flex-row sm:gap-4">
-                        <div className="h-28 w-24 shrink-0 overflow-hidden rounded-2xl bg-[#F7F4EE]">
-                          {book.image_url ? (
-                            <img
-                              src={book.image_url}
-                              alt={book.title}
-                              className="h-full w-full object-cover"
-                            />
-                          ) : (
-                            <div className="flex h-full w-full items-center justify-center text-xs text-[#8A8175]">
-                              No Image
-                            </div>
+                          <span
+                            className={`mt-1 rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide ${getStatusStyles(
+                              status,
+                            )}`}
+                          >
+                            {status === "sold" ? "Sold Out" : status}
+                          </span>
+
+                          {isLowStock && (
+                            <span className="mt-1 rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-red-600">
+                              Low Stock
+                            </span>
                           )}
                         </div>
 
-                        <div className="min-w-0">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <h2 className="break-words text-xl font-bold text-[#1F1F1F] sm:text-2xl">
-                              {book.title}
-                            </h2>
+                        <p className="mt-1 text-[17px] text-[#6B6B6B]">
+                          {book.author}
+                        </p>
 
-                            <span
-                              className={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide ${getStatusStyles(
-                                status,
-                              )}`}
-                            >
-                              {status}
-                            </span>
+                        <div className="mt-3 flex items-center gap-2 text-sm text-[#8A8175]">
+                          <MapPin size={15} className="shrink-0" />
+                          <span className="break-words">{book.location}</span>
+                        </div>
 
-                            {isLowStock && (
-                              <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-red-600">
-                                Low Stock
-                              </span>
-                            )}
-                          </div>
+                        <div className="mt-4 flex flex-wrap items-center gap-3">
+                          <span className="rounded-full bg-[#FFF3E7] px-4 py-2 text-lg font-semibold text-[#C96A16]">
+                            ₱{book.price}
+                          </span>
 
-                          <p className="mt-1 text-[#6B6B6B]">{book.author}</p>
+                          <span className="rounded-full bg-[#F3EEE7] px-4 py-2 text-sm font-medium text-[#6B6B6B]">
+                            {book.condition}
+                          </span>
+                        </div>
 
-                          <div className="mt-4 flex flex-wrap items-center gap-3">
-                            <span className="rounded-full bg-orange-100 px-3 py-1 text-sm font-semibold text-[#E67E22]">
-                              ₱{book.price}
-                            </span>
-
-                            <span className="rounded-full bg-[#F7F4EE] px-3 py-1 text-sm font-medium text-[#6B6B6B]">
-                              {book.condition}
-                            </span>
-                          </div>
-
-                          <div className="mt-3 flex items-center gap-2 text-sm text-[#8A8175]">
-                            <MapPin size={15} className="shrink-0" />
-                            <span className="break-words">{book.location}</span>
-                          </div>
-
-                          <div className="mt-4 grid gap-2 text-sm sm:flex sm:flex-wrap sm:gap-3">
-                            <span className="rounded-2xl bg-[#F7F4EE] px-3 py-2 text-[#1F1F1F]">
-                              Stock: <strong>{book.stock_quantity ?? 0}</strong>
-                            </span>
-                            <span className="rounded-2xl bg-[#F7F4EE] px-3 py-2 text-[#1F1F1F]">
-                              Sold: <strong>{book.sold_count ?? 0}</strong>
-                            </span>
-                            <span className="rounded-2xl bg-[#F7F4EE] px-3 py-2 text-[#1F1F1F]">
-                              Remaining: <strong>{remainingStock}</strong>
-                            </span>
-                          </div>
+                        <div className="mt-4 flex flex-wrap gap-2.5">
+                          <span className="rounded-full bg-[#F3EEE7] px-4 py-2 text-sm text-[#3B342C]">
+                            Stock: <strong>{book.stock_quantity ?? 0}</strong>
+                          </span>
+                          <span className="rounded-full bg-[#F3EEE7] px-4 py-2 text-sm text-[#3B342C]">
+                            Sold: <strong>{book.sold_count ?? 0}</strong>
+                          </span>
+                          <span className="rounded-full bg-[#F3EEE7] px-4 py-2 text-sm text-[#3B342C]">
+                            Remaining: <strong>{remainingStock}</strong>
+                          </span>
                         </div>
                       </div>
+                    </div>
 
-                      <div className="flex flex-wrap gap-2 xl:max-w-[360px] xl:justify-end">
-                        <Link
-                          href={`/book/${book.id}`}
-                          className="inline-flex flex-1 items-center justify-center gap-2 rounded-full border border-[#E5E0D8] bg-white px-4 py-2 text-sm font-semibold text-[#1F1F1F] transition hover:bg-[#F7F4EE] sm:flex-none"
-                        >
-                          <Eye size={16} />
-                          View
-                        </Link>
+                    <div className="flex flex-col gap-3 lg:items-stretch">
+                      <Link
+                        href={`/edit-listing/${book.id}`}
+                        className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-[#F0B27A] bg-[#FFF7EF] px-4 py-3 text-sm font-semibold text-[#E67E22] transition hover:bg-[#FFEBD8]"
+                      >
+                        <Pencil size={16} />
+                        Edit
+                      </Link>
 
-                        <Link
-                          href={`/edit-listing/${book.id}`}
-                          className="inline-flex flex-1 items-center justify-center gap-2 rounded-full border border-[#E8A16A] px-4 py-2 text-sm font-semibold text-[#E67E22] transition hover:bg-[#E67E22] hover:text-white sm:flex-none"
-                        >
-                          <Pencil size={16} />
-                          Edit
-                        </Link>
-
-                        <button
-                          onClick={() => duplicateBook(book)}
-                          disabled={actionLoadingId === book.id}
-                          className="inline-flex flex-1 items-center justify-center gap-2 rounded-full border border-[#E5E0D8] px-4 py-2 text-sm font-semibold text-[#1F1F1F] transition hover:bg-[#F7F4EE] disabled:opacity-60 sm:flex-none"
-                        >
-                          <Copy size={16} />
-                          Duplicate
-                        </button>
-
-                        {status !== "sold" && (
-                          <button
-                            onClick={() => updateBookStatus(book.id, "sold")}
-                            disabled={actionLoadingId === book.id}
-                            className="inline-flex flex-1 items-center justify-center gap-2 rounded-full border border-green-300 px-4 py-2 text-sm font-semibold text-green-700 transition hover:bg-green-50 disabled:opacity-60 sm:flex-none"
-                          >
-                            <CheckCircle2 size={16} />
-                            Mark Sold
-                          </button>
-                        )}
-
-                        {status !== "hidden" ? (
+                      {status !== "sold" &&
+                        (status !== "hidden" ? (
                           <button
                             onClick={() => updateBookStatus(book.id, "hidden")}
                             disabled={actionLoadingId === book.id}
-                            className="inline-flex flex-1 items-center justify-center gap-2 rounded-full border border-[#D9D2C7] px-4 py-2 text-sm font-semibold text-[#6B6B6B] transition hover:bg-[#F7F4EE] disabled:opacity-60 sm:flex-none"
+                            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-[#DDD5C8] bg-[#FAF7F2] px-4 py-3 text-sm font-semibold text-[#6B6B6B] transition hover:bg-[#F3EEE7] disabled:opacity-60"
                           >
                             <Archive size={16} />
                             Hide
@@ -702,75 +717,29 @@ export default function MyListingsPage() {
                           <button
                             onClick={() => updateBookStatus(book.id, "active")}
                             disabled={actionLoadingId === book.id}
-                            className="inline-flex flex-1 items-center justify-center gap-2 rounded-full border border-blue-300 px-4 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-50 disabled:opacity-60 sm:flex-none"
+                            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700 transition hover:bg-blue-100 disabled:opacity-60"
                           >
                             <CheckCircle2 size={16} />
                             Unhide
                           </button>
-                        )}
+                        ))}
 
-                        <button
-                          onClick={() => setDeleteTarget(book)}
-                          disabled={actionLoadingId === book.id}
-                          className="inline-flex flex-1 items-center justify-center gap-2 rounded-full border border-red-300 px-4 py-2 text-sm font-semibold text-red-500 transition hover:bg-red-50 disabled:opacity-60 sm:flex-none"
-                        >
-                          <Trash2 size={16} />
-                          Delete
-                        </button>
-                      </div>
+                      <button
+                        onClick={() => confirmDelete(book)}
+                        disabled={actionLoadingId === book.id}
+                        className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600 transition hover:bg-red-100 disabled:opacity-60"
+                      >
+                        <Trash2 size={16} />
+                        Delete
+                      </button>
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </main>
-
-      {deleteTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl sm:rounded-3xl sm:p-6">
-            <div className="flex items-start gap-3">
-              <div className="rounded-full bg-red-100 p-2 text-red-500">
-                <XCircle size={20} />
-              </div>
-
-              <div>
-                <h3 className="text-lg font-bold text-[#1F1F1F] sm:text-xl">
-                  Delete Listing
-                </h3>
-                <p className="mt-2 text-sm leading-6 text-[#6B6B6B]">
-                  Are you sure you want to delete{" "}
-                  <span className="font-semibold text-[#1F1F1F]">
-                    {deleteTarget.title}
-                  </span>
-                  ? This action cannot be undone.
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-              <button
-                onClick={() => setDeleteTarget(null)}
-                className="rounded-2xl border border-[#D9D2C7] px-5 py-3 font-semibold text-[#1F1F1F] transition hover:bg-[#F7F4EE]"
-              >
-                Cancel
-              </button>
-
-              <button
-                onClick={confirmDelete}
-                disabled={actionLoadingId === deleteTarget.id}
-                className="rounded-2xl bg-red-500 px-5 py-3 font-semibold text-white transition hover:bg-red-600 disabled:opacity-60"
-              >
-                {actionLoadingId === deleteTarget.id
-                  ? "Deleting..."
-                  : "Delete Listing"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </>
+                </article>
+              );
+            })}
+          </section>
+        )}
+      </div>
+    </main>
   );
 }
-//last update: 2024-06-12

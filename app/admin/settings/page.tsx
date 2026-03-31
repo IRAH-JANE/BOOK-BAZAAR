@@ -2,7 +2,7 @@
 
 import AdminDashboardSkeleton from "@/components/AdminDashboardSkeleton";
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { createSupabaseBrowser } from "@/lib/supabase";
 import { Settings, Percent, Truck, Shield, Save, Bell } from "lucide-react";
 
 type SettingsState = {
@@ -27,6 +27,8 @@ export default function AdminSettingsPage() {
   const [settings, setSettings] = useState<SettingsState>(DEFAULT_SETTINGS);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  const supabase = createSupabaseBrowser();
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -107,9 +109,9 @@ export default function AdminSettingsPage() {
     }
   };
 
-if (loading) {
-  return <AdminDashboardSkeleton type="settings" />;
-}
+  if (loading) {
+    return <AdminDashboardSkeleton type="settings" />;
+  }
 
   return (
     <main className="ml-[240px] min-h-screen bg-[#181614] p-6 text-[#F7F5F1]">

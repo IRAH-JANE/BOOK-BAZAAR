@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+import { createSupabaseBrowser } from "@/lib/supabase";
 import {
   LayoutDashboard,
   Users,
@@ -18,6 +18,7 @@ import {
 export default function AdminNavbar() {
   const pathname = usePathname();
   const router = useRouter();
+  const supabase = createSupabaseBrowser();
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -37,13 +38,11 @@ export default function AdminNavbar() {
 
   return (
     <aside className="fixed left-0 top-0 h-screen w-[240px] border-r border-[#2A2622] bg-[#181614] p-4 text-[#F7F5F1]">
-      {/* LOGO */}
       <div className="mb-8">
         <h1 className="text-lg font-bold">BookBazaar</h1>
         <p className="text-xs text-[#9A9187]">Admin Panel</p>
       </div>
 
-      {/* NAV LINKS */}
       <nav className="flex flex-col gap-2">
         {navItems.map((item) => {
           const isActive = pathname === item.href;
@@ -65,7 +64,6 @@ export default function AdminNavbar() {
         })}
       </nav>
 
-      {/* LOGOUT (BOTTOM) */}
       <div className="absolute bottom-6 left-4 right-4">
         <button
           onClick={handleLogout}

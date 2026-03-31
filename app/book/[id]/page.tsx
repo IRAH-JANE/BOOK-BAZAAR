@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { supabase } from "@/lib/supabase";
+import { createSupabaseServer } from "@/lib/supabase-server";
 import BookActions from "@/components/BookActions";
 import BookImageWithFallback from "@/components/BookImageWithFallback";
 import {
@@ -77,6 +77,8 @@ export default async function BookDetailsPage({ params }: BookPageProps) {
   if (!id) {
     notFound();
   }
+
+  const supabase = await createSupabaseServer();
 
   const { data, error } = await supabase
     .from("books")
@@ -275,14 +277,7 @@ export default async function BookDetailsPage({ params }: BookPageProps) {
                   </p>
                 </div>
 
-                <div className="rounded-2xl bg-[#F7F4EE] p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-[#8A8175]">
-                    Availability
-                  </p>
-                  <p className="mt-2 text-sm font-semibold text-[#1F1F1F] sm:text-base">
-                    {book.status || "Available for buyer inquiry"}
-                  </p>
-                </div>
+                
 
                 <div className="rounded-2xl bg-[#F7F4EE] p-4 sm:col-span-2">
                   <p className="text-xs font-semibold uppercase tracking-wide text-[#8A8175]">
@@ -395,21 +390,6 @@ export default async function BookDetailsPage({ params }: BookPageProps) {
                       </div>
                     </div>
                   )}
-
-                  <div className="rounded-2xl bg-[#F7F4EE] p-4 sm:col-span-2">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-[#8A8175]">
-                      Availability
-                    </p>
-                    <div className="mt-2 flex items-center gap-2 text-[#1F1F1F]">
-                      <PackageCheck
-                        size={16}
-                        className="shrink-0 text-[#E67E22]"
-                      />
-                      <span className="text-sm font-semibold sm:text-base">
-                        {book.status || "Available for buyer inquiry"}
-                      </span>
-                    </div>
-                  </div>
                 </div>
               </div>
 

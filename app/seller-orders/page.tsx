@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { createSupabaseBrowser } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ToastProvider";
 import { useConfirm } from "@/components/ConfirmProvider";
@@ -12,6 +12,9 @@ import {
   Package,
   Truck,
   CheckCircle2,
+  MapPin,
+  CalendarDays,
+  ShieldCheck,
 } from "lucide-react";
 
 type SellerBook = {
@@ -55,113 +58,44 @@ function SkeletonBox({ className = "" }: { className?: string }) {
 
 function SellerOrdersPageSkeleton() {
   return (
-    <main className="min-h-screen bg-[#F7F5F1] px-6 py-8">
-      <div className="mx-auto max-w-5xl">
-        <div className="mb-6">
-          <SkeletonBox className="h-4 w-32 rounded-full" />
-          <SkeletonBox className="mt-3 h-10 w-56" />
-          <SkeletonBox className="mt-2 h-5 w-80 max-w-full" />
+    <main className="min-h-screen bg-[#F7F5F1] px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-6xl">
+        <div className="overflow-hidden rounded-[32px] border border-[#EEE7DC] bg-gradient-to-br from-[#FFF8F1] via-[#FFFDF9] to-[#F9F4EC] px-6 py-8 shadow-[0_12px_40px_rgba(31,31,31,0.06)] sm:px-8 sm:py-10">
+          <SkeletonBox className="h-5 w-36 rounded-full" />
+          <SkeletonBox className="mt-4 h-12 w-64" />
+          <SkeletonBox className="mt-3 h-5 w-80 max-w-full" />
         </div>
 
-        <div className="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {[...Array(4)].map((_, index) => (
             <div
               key={index}
-              className="rounded-2xl border border-[#E5E0D8] bg-white p-4 shadow-sm"
+              className="rounded-[28px] border border-[#E8E1D7] bg-[#FFFDF9] p-5 shadow-[0_10px_28px_rgba(31,31,31,0.05)]"
             >
-              <div className="flex items-center gap-2">
-                <SkeletonBox className="h-4 w-4 rounded-full" />
-                <SkeletonBox className="h-4 w-24" />
-              </div>
-              <SkeletonBox className="mt-2 h-8 w-12" />
+              <SkeletonBox className="h-4 w-28" />
+              <SkeletonBox className="mt-4 h-8 w-16" />
             </div>
           ))}
         </div>
 
-        <div className="mb-5 rounded-2xl border border-[#E5E0D8] bg-white p-4 shadow-sm">
-          <div className="grid gap-3 md:grid-cols-[1fr_200px]">
-            <SkeletonBox className="h-[42px] w-full rounded-xl" />
-            <SkeletonBox className="h-[42px] w-full rounded-xl" />
+        <div className="mt-6 rounded-[28px] border border-[#E8E1D7] bg-[#FFFDF9] p-5 shadow-[0_8px_24px_rgba(31,31,31,0.05)]">
+          <div className="grid gap-4 md:grid-cols-[1fr_220px]">
+            <SkeletonBox className="h-12 w-full rounded-2xl" />
+            <SkeletonBox className="h-12 w-full rounded-2xl" />
           </div>
         </div>
 
-        <div className="space-y-3">
+        <div className="mt-6 space-y-4">
           {[...Array(3)].map((_, index) => (
             <div
               key={index}
-              className="rounded-2xl border border-[#E5E0D8] bg-white p-4 shadow-sm"
+              className="rounded-[28px] border border-[#E8E1D7] bg-[#FFFDF9] p-5 shadow-[0_10px_28px_rgba(31,31,31,0.05)]"
             >
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex min-w-0 items-center gap-3">
-                  <SkeletonBox className="h-14 w-11 rounded-lg" />
-                  <div className="min-w-0">
-                    <SkeletonBox className="h-7 w-28" />
-                    <SkeletonBox className="mt-2 h-4 w-24" />
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      <SkeletonBox className="h-4 w-16" />
-                      <SkeletonBox className="h-4 w-3" />
-                      <SkeletonBox className="h-4 w-20" />
-                      <SkeletonBox className="h-4 w-3" />
-                      <SkeletonBox className="h-4 w-20" />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2">
-                  <SkeletonBox className="h-8 w-28 rounded-full" />
-                  <SkeletonBox className="h-8 w-20 rounded-full" />
-                </div>
-              </div>
-
-              <div className="mt-4 border-t border-[#EEE6DB] pt-4">
-                <div className="mb-4 rounded-xl bg-[#FFFDF9] p-3 ring-1 ring-[#EDE7DE]">
-                  <SkeletonBox className="h-3 w-36" />
-                  <SkeletonBox className="mt-2 h-4 w-full" />
-                  <SkeletonBox className="mt-2 h-4 w-2/3" />
-
-                  <SkeletonBox className="mt-4 h-3 w-28" />
-                  <SkeletonBox className="mt-2 h-4 w-1/2" />
-                </div>
-
-                <div className="space-y-3">
-                  {[...Array(2)].map((_, itemIndex) => (
-                    <div
-                      key={itemIndex}
-                      className="rounded-xl border border-[#E5E0D8] bg-[#FFFDF9] p-3"
-                    >
-                      <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                        <div className="flex min-w-0 items-center gap-3">
-                          <SkeletonBox className="h-14 w-12 rounded-lg" />
-                          <div className="min-w-0">
-                            <SkeletonBox className="h-5 w-40" />
-                            <SkeletonBox className="mt-2 h-4 w-28" />
-                            <div className="mt-2 flex flex-wrap gap-3">
-                              <SkeletonBox className="h-4 w-12" />
-                              <SkeletonBox className="h-4 w-12" />
-                            </div>
-                          </div>
-                        </div>
-
-                        <SkeletonBox className="h-7 w-24 rounded-full" />
-                      </div>
-
-                      <div className="grid gap-3 md:grid-cols-3">
-                        <SkeletonBox className="h-[42px] w-full rounded-xl" />
-                        <SkeletonBox className="h-[42px] w-full rounded-xl" />
-                        <SkeletonBox className="h-[42px] w-full rounded-xl" />
-                      </div>
-
-                      <div className="mt-3 flex flex-wrap items-center gap-2">
-                        {[...Array(4)].map((_, btnIndex) => (
-                          <SkeletonBox
-                            key={btnIndex}
-                            className="h-8 w-24 rounded-full"
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+              <SkeletonBox className="h-8 w-40" />
+              <SkeletonBox className="mt-3 h-4 w-40" />
+              <div className="mt-5 space-y-3">
+                <SkeletonBox className="h-24 w-full rounded-2xl" />
+                <SkeletonBox className="h-40 w-full rounded-2xl" />
               </div>
             </div>
           ))}
@@ -172,6 +106,8 @@ function SellerOrdersPageSkeleton() {
 }
 
 export default function SellerOrdersPage() {
+  const supabase = createSupabaseBrowser();
+
   const router = useRouter();
   const { showToast } = useToast();
   const { confirm } = useConfirm();
@@ -607,64 +543,72 @@ export default function SellerOrdersPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#F7F5F1] px-6 py-8">
-      <div className="mx-auto max-w-5xl">
-        <div className="mb-6">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#E67E22]">
-            Seller Fulfillment
-          </p>
-          <h1 className="mt-2 text-3xl font-bold text-[#1F1F1F]">
-            Seller Orders
-          </h1>
-          <p className="mt-1 text-sm text-[#6B6B6B]">
-            Scan, filter, and update customer orders faster.
-          </p>
-        </div>
+    <main className="min-h-screen bg-[#F7F5F1] px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-6xl">
+        <section className="relative overflow-hidden rounded-[32px] border border-[#EEE7DC] bg-gradient-to-br from-[#FFF8F1] via-[#FFFDF9] to-[#F9F4EC] px-6 py-8 shadow-[0_12px_40px_rgba(31,31,31,0.06)] sm:px-8 sm:py-10">
+          <div className="pointer-events-none absolute -right-16 -top-16 h-44 w-44 rounded-full bg-[#E67E22]/10 blur-3xl" />
+          <div className="pointer-events-none absolute bottom-0 left-0 h-32 w-32 rounded-full bg-[#F3C998]/20 blur-2xl" />
 
-        <div className="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="rounded-2xl border border-[#E5E0D8] bg-white p-4 shadow-sm">
+          <div className="relative z-10 max-w-2xl">
+            <p className="inline-flex rounded-full bg-[#E67E22]/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.24em] text-[#C96A16]">
+              Seller Fulfillment
+            </p>
+
+            <h1 className="mt-4 text-3xl font-bold tracking-tight text-[#1F1F1F] sm:text-4xl lg:text-5xl">
+              Seller Orders
+            </h1>
+
+            <p className="mt-3 max-w-xl text-sm leading-7 text-[#6B6B6B] sm:text-base">
+              Review customer orders, save shipping details, and update item
+              fulfillment from one clean dashboard.
+            </p>
+          </div>
+        </section>
+
+        <section className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="rounded-[28px] border border-[#E8E1D7] bg-[#FFFDF9] p-5 shadow-[0_10px_28px_rgba(31,31,31,0.05)]">
             <div className="flex items-center gap-2">
               <Package className="text-[#E67E22]" size={16} />
               <span className="text-sm text-[#6B6B6B]">Total Orders</span>
             </div>
-            <p className="mt-2 text-2xl font-bold text-[#1F1F1F]">
+            <p className="mt-3 text-3xl font-bold text-[#1F1F1F]">
               {totalOrders}
             </p>
           </div>
 
-          <div className="rounded-2xl border border-[#E5E0D8] bg-white p-4 shadow-sm">
+          <div className="rounded-[28px] border border-[#E8E1D7] bg-[#FFFDF9] p-5 shadow-[0_10px_28px_rgba(31,31,31,0.05)]">
             <div className="flex items-center gap-2">
               <Package className="text-[#E67E22]" size={16} />
               <span className="text-sm text-[#6B6B6B]">Pending</span>
             </div>
-            <p className="mt-2 text-2xl font-bold text-[#1F1F1F]">
+            <p className="mt-3 text-3xl font-bold text-[#1F1F1F]">
               {pendingOrders}
             </p>
           </div>
 
-          <div className="rounded-2xl border border-[#E5E0D8] bg-white p-4 shadow-sm">
+          <div className="rounded-[28px] border border-[#E8E1D7] bg-[#FFFDF9] p-5 shadow-[0_10px_28px_rgba(31,31,31,0.05)]">
             <div className="flex items-center gap-2">
               <Truck className="text-[#E67E22]" size={16} />
               <span className="text-sm text-[#6B6B6B]">In Transit</span>
             </div>
-            <p className="mt-2 text-2xl font-bold text-[#1F1F1F]">
+            <p className="mt-3 text-3xl font-bold text-[#1F1F1F]">
               {shippedOrders}
             </p>
           </div>
 
-          <div className="rounded-2xl border border-[#E5E0D8] bg-white p-4 shadow-sm">
+          <div className="rounded-[28px] border border-[#E8E1D7] bg-[#FFFDF9] p-5 shadow-[0_10px_28px_rgba(31,31,31,0.05)]">
             <div className="flex items-center gap-2">
               <CheckCircle2 className="text-[#E67E22]" size={16} />
               <span className="text-sm text-[#6B6B6B]">Delivered</span>
             </div>
-            <p className="mt-2 text-2xl font-bold text-[#1F1F1F]">
+            <p className="mt-3 text-3xl font-bold text-[#1F1F1F]">
               {deliveredOrders}
             </p>
           </div>
-        </div>
+        </section>
 
-        <div className="mb-5 rounded-2xl border border-[#E5E0D8] bg-white p-4 shadow-sm">
-          <div className="grid gap-3 md:grid-cols-[1fr_200px]">
+        <section className="mt-6 rounded-[28px] border border-[#E8E1D7] bg-[#FFFDF9] p-5 shadow-[0_8px_24px_rgba(31,31,31,0.05)]">
+          <div className="grid gap-4 md:grid-cols-[1fr_220px]">
             <div className="relative">
               <Search
                 size={16}
@@ -675,14 +619,14 @@ export default function SellerOrdersPage() {
                 placeholder="Search order ID, title, address, courier, tracking..."
                 value={searchText}
                 onChange={(e) => setSearchText(e.target.value)}
-                className="w-full rounded-xl border border-[#DED8CF] bg-white py-2.5 pl-10 pr-4 text-sm text-[#5F5A52] outline-none transition focus:border-[#E67E22] focus:ring-1 focus:ring-[#E67E22]"
+                className="w-full rounded-2xl border border-[#DED8CF] bg-white py-3 pl-10 pr-4 text-sm text-[#5F5A52] outline-none transition focus:border-[#E67E22] focus:ring-1 focus:ring-[#E67E22]"
               />
             </div>
 
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full rounded-xl border border-[#DED8CF] bg-white px-3 py-2.5 text-sm text-[#5F5A52] outline-none transition focus:border-[#E67E22] focus:ring-1 focus:ring-[#E67E22]"
+              className="w-full rounded-2xl border border-[#DED8CF] bg-white px-4 py-3 text-sm text-[#5F5A52] outline-none transition focus:border-[#E67E22] focus:ring-1 focus:ring-[#E67E22]"
             >
               <option value="all">All Statuses</option>
               <option value="pending">Pending</option>
@@ -694,59 +638,58 @@ export default function SellerOrdersPage() {
               <option value="cancelled">Cancelled</option>
             </select>
           </div>
-        </div>
+        </section>
 
         {filteredOrders.length === 0 ? (
-          <div className="rounded-2xl border border-[#E5E0D8] bg-white p-6 text-[#6B6B6B] shadow-sm">
+          <section className="mt-8 rounded-[32px] border border-[#E8E1D7] bg-[#FFFDF9] p-10 text-center text-[#6B6B6B] shadow-[0_12px_30px_rgba(31,31,31,0.05)]">
             No matching seller orders found.
-          </div>
+          </section>
         ) : (
-          <div className="space-y-3">
+          <section className="mt-8 space-y-4">
             {filteredOrders.map((group) => {
               const isOpen = openOrders.includes(group.order.id);
               const firstItem = group.items[0];
               const firstBook = firstItem ? getBook(firstItem) : null;
 
               return (
-                <div
+                <article
                   key={group.order.id}
-                  className="rounded-2xl border border-[#E5E0D8] bg-white p-4 shadow-sm"
+                  className="overflow-hidden rounded-[28px] border border-[#E8E1D7] bg-[#FFFDF9] p-5 shadow-[0_10px_28px_rgba(31,31,31,0.05)]"
                 >
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex min-w-0 items-center gap-3">
                       {firstBook?.image_url ? (
                         <img
                           src={firstBook.image_url}
                           alt={firstBook.title}
-                          className="h-14 w-11 rounded-lg object-cover"
+                          className="h-16 w-12 rounded-xl object-cover"
                         />
                       ) : (
-                        <div className="flex h-14 w-11 items-center justify-center rounded-lg bg-[#F1ECE4] text-[10px] text-[#8A8175]">
+                        <div className="flex h-16 w-12 items-center justify-center rounded-xl bg-[#F1ECE4] text-[10px] text-[#8A8175]">
                           No Image
                         </div>
                       )}
 
                       <div className="min-w-0">
-                        <h2 className="text-xl font-semibold text-[#1F1F1F]">
+                        <h2 className="text-xl font-bold text-[#1F1F1F]">
                           Order #{group.order.id}
                         </h2>
-                        <p className="text-sm text-[#6B6B6B]">
-                          {new Date(
-                            group.order.created_at,
-                          ).toLocaleDateString()}
-                        </p>
-                        <div className="mt-1 flex flex-wrap gap-2 text-sm text-[#6B6B6B]">
+                        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-[#6B6B6B]">
+                          <span>
+                            {new Date(
+                              group.order.created_at,
+                            ).toLocaleDateString()}
+                          </span>
+                          <span>•</span>
                           <span>{group.items.length} item(s)</span>
                           <span>•</span>
                           <span>{group.order.payment_method || "N/A"}</span>
-                          <span>•</span>
-                          <span>{group.order.delivery_method || "N/A"}</span>
                         </div>
                       </div>
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="rounded-full border border-[#E5E0D8] bg-[#FFFDF9] px-3 py-1 text-sm font-medium text-[#1F1F1F]">
+                      <span className="rounded-full border border-[#E5E0D8] bg-white px-3 py-1.5 text-sm font-medium text-[#1F1F1F]">
                         Payment: {group.order.payment_status || "N/A"}
                       </span>
 
@@ -765,22 +708,57 @@ export default function SellerOrdersPage() {
                   </div>
 
                   {isOpen && (
-                    <div className="mt-4 border-t border-[#EEE6DB] pt-4">
-                      <div className="mb-4 rounded-xl bg-[#FFFDF9] p-3 ring-1 ring-[#EDE7DE]">
-                        <p className="text-[11px] font-semibold uppercase tracking-wide text-[#8A8175]">
-                          Buyer Shipping Address
-                        </p>
-                        <p className="mt-2 text-sm leading-6 text-[#1F1F1F]">
-                          {group.order.shipping_address ||
-                            "No shipping address"}
-                        </p>
+                    <div className="mt-5 border-t border-[#EEE6DB] pt-5">
+                      <div className="mb-4 grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+                        <div className="rounded-2xl bg-[#FFFDF9] p-4 ring-1 ring-[#EDE7DE]">
+                          <p className="text-[11px] font-semibold uppercase tracking-wide text-[#8A8175]">
+                            Buyer Shipping Address
+                          </p>
+                          <div className="mt-3 flex items-start gap-2 text-sm leading-6 text-[#1F1F1F]">
+                            <MapPin
+                              size={16}
+                              className="mt-1 shrink-0 text-[#E67E22]"
+                            />
+                            <span>
+                              {group.order.shipping_address ||
+                                "No shipping address"}
+                            </span>
+                          </div>
+                        </div>
 
-                        <p className="mt-3 text-[11px] font-semibold uppercase tracking-wide text-[#8A8175]">
-                          Shipping Note
-                        </p>
-                        <p className="mt-1 text-sm text-[#1F1F1F]">
-                          {group.order.shipping_note || "No shipping note"}
-                        </p>
+                        <div className="rounded-2xl bg-[#FFFDF9] p-4 ring-1 ring-[#EDE7DE]">
+                          <p className="text-[11px] font-semibold uppercase tracking-wide text-[#8A8175]">
+                            Shipping Note
+                          </p>
+                          <p className="mt-3 text-sm leading-6 text-[#1F1F1F]">
+                            {group.order.shipping_note || "No shipping note"}
+                          </p>
+
+                          <div className="mt-4 flex items-start gap-2 text-xs leading-6 text-[#8A8175]">
+                            <CalendarDays
+                              size={14}
+                              className="mt-1 shrink-0 text-[#E67E22]"
+                            />
+                            <span>
+                              Delivery Method:{" "}
+                              {group.order.delivery_method || "N/A"}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="mb-4 rounded-2xl bg-[#FCF7F0] p-4 text-sm text-[#6B6B6B]">
+                        <div className="flex items-start gap-3">
+                          <ShieldCheck
+                            size={18}
+                            className="mt-0.5 shrink-0 text-[#E67E22]"
+                          />
+                          <p>
+                            Save courier, tracking number, and ETA first before
+                            moving an item to shipped, out for delivery, or
+                            delivered.
+                          </p>
+                        </div>
                       </div>
 
                       <div className="space-y-3">
@@ -791,18 +769,18 @@ export default function SellerOrdersPage() {
                           return (
                             <div
                               key={item.id}
-                              className="rounded-xl border border-[#E5E0D8] bg-[#FFFDF9] p-3"
+                              className="rounded-2xl border border-[#E5E0D8] bg-[#FFFDF9] p-4"
                             >
-                              <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                              <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                                 <div className="flex min-w-0 items-center gap-3">
                                   {book?.image_url ? (
                                     <img
                                       src={book.image_url}
                                       alt={book.title}
-                                      className="h-14 w-12 rounded-lg object-cover"
+                                      className="h-16 w-12 rounded-xl object-cover"
                                     />
                                   ) : (
-                                    <div className="flex h-14 w-12 items-center justify-center rounded-lg bg-[#F1ECE4] text-[10px] text-[#8A8175]">
+                                    <div className="flex h-16 w-12 items-center justify-center rounded-xl bg-[#F1ECE4] text-[10px] text-[#8A8175]">
                                       No Image
                                     </div>
                                   )}
@@ -868,7 +846,7 @@ export default function SellerOrdersPage() {
                                 />
                               </div>
 
-                              <div className="mt-3 flex flex-wrap items-center gap-2">
+                              <div className="mt-4 flex flex-wrap items-center gap-2">
                                 <button
                                   onClick={() => saveShippingInfo(item.id)}
                                   disabled={savingId === item.id}
@@ -997,10 +975,10 @@ export default function SellerOrdersPage() {
                       </div>
                     </div>
                   )}
-                </div>
+                </article>
               );
             })}
-          </div>
+          </section>
         )}
       </div>
     </main>

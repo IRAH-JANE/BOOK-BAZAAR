@@ -2,7 +2,8 @@
 
 import AdminDashboardSkeleton from "@/components/AdminDashboardSkeleton";
 import { useEffect, useMemo, useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { createSupabaseBrowser } from "@/lib/supabase";
+
 import {
   Search,
   Tags,
@@ -145,6 +146,8 @@ export default function AdminCategoriesPage() {
   const [editingName, setEditingName] = useState("");
   const [savingId, setSavingId] = useState<number | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+
+  const supabase = createSupabaseBrowser();
 
   useEffect(() => {
     const loadData = async () => {

@@ -2,7 +2,7 @@
 
 import AdminDashboardSkeleton from "@/components/AdminDashboardSkeleton";
 import { useEffect, useMemo, useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { createSupabaseBrowser } from "@/lib/supabase";
 import {
   Users,
   BookOpen,
@@ -86,6 +86,7 @@ export default function AdminDashboardPage() {
   const [lowStockCount, setLowStockCount] = useState(0);
   const [outOfStockCount, setOutOfStockCount] = useState(0);
   const [uncategorizedCount, setUncategorizedCount] = useState(0);
+  const supabase = createSupabaseBrowser();
 
   const [loading, setLoading] = useState(true);
 

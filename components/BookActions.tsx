@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { createSupabaseBrowser } from "@/lib/supabase";
 import { useToast } from "@/components/ToastProvider";
 import { Heart, MessageCircle, ShoppingCart } from "lucide-react";
 
@@ -14,6 +14,7 @@ export default function BookActions({ bookId }: BookActionsProps) {
   const [loadingWishlist, setLoadingWishlist] = useState(false);
   const [wishlisted, setWishlisted] = useState(false);
   const { showToast } = useToast();
+  const supabase = createSupabaseBrowser();
 
   useEffect(() => {
     const loadWishlistState = async () => {

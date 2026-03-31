@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { createSupabaseBrowser } from "@/lib/supabase";
 import { useToast } from "@/components/ToastProvider";
 import {
   BookOpen,
@@ -140,6 +140,8 @@ export default function SellPage() {
 
   const cleanedIsbn = useMemo(() => isbn.replace(/[^0-9Xx]/g, ""), [isbn]);
 
+  const supabase = createSupabaseBrowser();
+
   const localImagePreview = useMemo(() => {
     if (!imageFile) return "";
     return URL.createObjectURL(imageFile);
@@ -182,6 +184,148 @@ export default function SellPage() {
 
   const selectClass =
     "h-[52px] w-full appearance-none rounded-2xl border border-[#DED8CF] bg-white px-4 pr-10 text-[15px] text-[#5F5A52] outline-none transition focus:border-[#E67E22] focus:ring-1 focus:ring-[#E67E22]";
+
+  const locationSuggestions = [
+    // === MAJOR CITIES ===
+    "Manila",
+    "Quezon City",
+    "Caloocan City",
+    "Makati City",
+    "Taguig City",
+    "Pasig City",
+    "Pasay City",
+    "Parañaque City",
+    "Las Piñas City",
+    "Muntinlupa City",
+    "Marikina City",
+    "Mandaluyong City",
+    "San Juan City",
+    "Valenzuela City",
+    "Malabon City",
+    "Navotas City",
+
+    "Davao City",
+    "Tagum City",
+    "Panabo City",
+    "Samal City",
+    "Digos City",
+    "Mati City",
+
+    "Cebu City",
+    "Lapu-Lapu City",
+    "Mandaue City",
+
+    "Cagayan de Oro City",
+    "Iligan City",
+    "Butuan City",
+    "General Santos City",
+    "Zamboanga City",
+    "Bacolod City",
+    "Iloilo City",
+    "Tacloban City",
+    "Baguio City",
+    "Angeles City",
+    "Olongapo City",
+    "Batangas City",
+    "Lucena City",
+    "Puerto Princesa City",
+    "Cotabato City",
+    "Koronadal City",
+    "Dipolog City",
+    "Pagadian City",
+    "Surigao City",
+    "Tuguegarao City",
+    "Naga City",
+    "Legazpi City",
+    "Calbayog City",
+    "Ormoc City",
+    "Roxas City",
+    "Tagbilaran City",
+
+    // === PROVINCES ===
+    "Abra",
+    "Agusan del Norte",
+    "Agusan del Sur",
+    "Aklan",
+    "Albay",
+    "Antique",
+    "Apayao",
+    "Aurora",
+    "Basilan",
+    "Bataan",
+    "Batanes",
+    "Batangas",
+    "Benguet",
+    "Biliran",
+    "Bohol",
+    "Bukidnon",
+    "Bulacan",
+    "Cagayan",
+    "Camarines Norte",
+    "Camarines Sur",
+    "Camiguin",
+    "Capiz",
+    "Catanduanes",
+    "Cavite",
+    "Cebu",
+    "Cotabato",
+    "Davao de Oro",
+    "Davao del Norte",
+    "Davao del Sur",
+    "Davao Occidental",
+    "Davao Oriental",
+    "Dinagat Islands",
+    "Eastern Samar",
+    "Guimaras",
+    "Ifugao",
+    "Ilocos Norte",
+    "Ilocos Sur",
+    "Iloilo",
+    "Isabela",
+    "Kalinga",
+    "La Union",
+    "Laguna",
+    "Lanao del Norte",
+    "Lanao del Sur",
+    "Leyte",
+    "Maguindanao del Norte",
+    "Maguindanao del Sur",
+    "Marinduque",
+    "Masbate",
+    "Misamis Occidental",
+    "Misamis Oriental",
+    "Mountain Province",
+    "Negros Occidental",
+    "Negros Oriental",
+    "Northern Samar",
+    "Nueva Ecija",
+    "Nueva Vizcaya",
+    "Occidental Mindoro",
+    "Oriental Mindoro",
+    "Palawan",
+    "Pampanga",
+    "Pangasinan",
+    "Quezon",
+    "Quirino",
+    "Rizal",
+    "Romblon",
+    "Samar",
+    "Sarangani",
+    "Siquijor",
+    "Sorsogon",
+    "South Cotabato",
+    "Southern Leyte",
+    "Sultan Kudarat",
+    "Sulu",
+    "Surigao del Norte",
+    "Surigao del Sur",
+    "Tarlac",
+    "Tawi-Tawi",
+    "Zambales",
+    "Zamboanga del Norte",
+    "Zamboanga del Sur",
+    "Zamboanga Sibugay",
+  ];
 
   const loadLookups = useCallback(async () => {
     const [categoriesRes, genresRes, bookTypesRes] = await Promise.all([
@@ -271,9 +415,6 @@ export default function SellPage() {
 
   const normalizeText = (value: string | null | undefined) =>
     (value || "").toLowerCase().trim();
-
-  const hasAnyKeyword = (text: string, keywords: string[]) =>
-    keywords.some((keyword) => text.includes(keyword));
 
   const sanitizeUrl = (url?: string) => {
     if (!url) return "";
@@ -522,140 +663,516 @@ export default function SellPage() {
     target: string,
   ) => list.find((item) => normalizeText(item.name) === normalizeText(target));
 
-  const detectCategoryFromText = (text: string) => {
+  const apiTokensFromText = (items: string[]) => {
+    return items
+      .flatMap((item) =>
+        item
+          .toLowerCase()
+          .split(/[\/,&:;()\-]+|\s+/)
+          .map((part) => part.trim()),
+      )
+      .filter(Boolean);
+  };
+
+  const hasPhrase = (haystack: string[], phrases: string[]) => {
+    return haystack.some((item) =>
+      phrases.some((phrase) => item.includes(phrase.toLowerCase())),
+    );
+  };
+
+  const mapApiCategoryToLocalCategory = (apiItems: string[]) => {
+    const normalizedItems = apiItems.map((item) => item.toLowerCase());
+    const tokens = apiTokensFromText(apiItems);
+
+    if (!normalizedItems.length) return "";
+
     if (
-      hasAnyKeyword(text, ["programming", "software", "coding", "computer"])
+      hasPhrase(normalizedItems, [
+        "computer",
+        "programming",
+        "software",
+        "coding",
+        "web development",
+        "application development",
+      ]) ||
+      tokens.some((token) =>
+        [
+          "programming",
+          "software",
+          "computer",
+          "computers",
+          "coding",
+          "javascript",
+          "python",
+          "java",
+          "c++",
+          "typescript",
+        ].includes(token),
+      )
     ) {
       return "Programming";
     }
+
     if (
-      hasAnyKeyword(text, [
-        "science",
-        "biology",
-        "chemistry",
-        "physics",
-        "medical",
-      ])
+      hasPhrase(normalizedItems, ["science", "physics", "chemistry", "biology"])
     ) {
       return "Science";
     }
-    if (hasAnyKeyword(text, ["history", "historical"])) {
-      return "History";
-    }
+
     if (
-      hasAnyKeyword(text, ["business", "finance", "marketing", "leadership"])
-    ) {
-      return "Business";
-    }
-    if (
-      hasAnyKeyword(text, [
+      hasPhrase(normalizedItems, [
         "religion",
-        "bible",
+        "spirituality",
+        "buddhism",
+        "christian",
+        "catholic",
         "theology",
         "devotional",
-        "church",
+        "faith",
       ])
     ) {
       return "Religion";
     }
+
     if (
-      hasAnyKeyword(text, [
-        "textbook",
-        "reviewer",
-        "study guide",
+      hasPhrase(normalizedItems, [
+        "philosophy",
+        "ethics",
+        "metaphysics",
+        "logic",
+      ])
+    ) {
+      return "Philosophy";
+    }
+
+    if (
+      hasPhrase(normalizedItems, [
+        "business",
+        "management",
+        "leadership",
+        "economics",
+        "finance",
+        "marketing",
+        "entrepreneurship",
+      ])
+    ) {
+      return "Business";
+    }
+
+    if (
+      hasPhrase(normalizedItems, [
+        "self-help",
+        "self help",
+        "personal growth",
+        "personal development",
+        "motivation",
+        "success",
+        "productivity",
+      ])
+    ) {
+      return "Self-help";
+    }
+
+    if (
+      hasPhrase(normalizedItems, [
+        "psychology",
+        "mental health",
+        "behavior",
+        "behaviour",
+      ])
+    ) {
+      return "Psychology";
+    }
+
+    if (
+      hasPhrase(normalizedItems, [
+        "history",
+        "historical",
+        "world war",
+        "civilization",
+        "ancient",
+      ])
+    ) {
+      return "History";
+    }
+
+    if (
+      hasPhrase(normalizedItems, [
+        "politics",
+        "political science",
+        "government",
+        "international relations",
+      ])
+    ) {
+      return "Politics";
+    }
+
+    if (hasPhrase(normalizedItems, ["law", "legal", "jurisprudence"])) {
+      return "Law";
+    }
+
+    if (hasPhrase(normalizedItems, ["travel", "tourism", "guidebook"])) {
+      return "Travel";
+    }
+
+    if (hasPhrase(normalizedItems, ["sports", "athlete", "fitness sports"])) {
+      return "Sports";
+    }
+
+    if (
+      hasPhrase(normalizedItems, [
+        "health",
+        "wellness",
+        "medicine",
+        "medical",
+        "nutrition",
+      ])
+    ) {
+      return "Health & Wellness";
+    }
+
+    if (
+      hasPhrase(normalizedItems, [
         "education",
+        "study aids",
+        "textbook",
         "academic",
         "school",
       ])
     ) {
       return "Academic";
     }
-    if (hasAnyKeyword(text, ["children", "juvenile", "kids", "picture book"])) {
+
+    if (
+      hasPhrase(normalizedItems, [
+        "children",
+        "juvenile",
+        "kids",
+        "picture book",
+      ])
+    ) {
       return "Children";
     }
+
+    if (hasPhrase(normalizedItems, ["young adult", "ya fiction", "ya"])) {
+      return "Young Adult";
+    }
+
+    if (hasPhrase(normalizedItems, ["biography", "memoir", "autobiography"])) {
+      return "Biography";
+    }
+
     if (
-      hasAnyKeyword(text, [
-        "non-fiction",
+      hasPhrase(normalizedItems, [
+        "literary criticism",
+        "literature",
+        "essays",
+        "literary",
+      ])
+    ) {
+      return "Literature";
+    }
+
+    if (hasPhrase(normalizedItems, ["language", "linguistics", "grammar"])) {
+      return "Language & Linguistics";
+    }
+
+    if (
+      hasPhrase(normalizedItems, [
+        "mathematics",
+        "algebra",
+        "geometry",
+        "calculus",
+      ])
+    ) {
+      return "Mathematics";
+    }
+
+    if (
+      hasPhrase(normalizedItems, ["technology", "engineering", "technical"])
+    ) {
+      return "Technology";
+    }
+
+    if (
+      hasPhrase(normalizedItems, [
+        "art",
+        "design",
+        "drawing",
+        "illustration",
+        "architecture",
+      ])
+    ) {
+      return "Art & Design";
+    }
+
+    if (
+      hasPhrase(normalizedItems, [
+        "comics",
+        "graphic novels",
+        "graphic novel",
+        "comic books",
+      ])
+    ) {
+      return "Comics & Graphic Novels";
+    }
+
+    if (
+      hasPhrase(normalizedItems, [
+        "cooking",
+        "cookbook",
+        "food",
+        "culinary",
+        "recipes",
+      ])
+    ) {
+      return "Lifestyle";
+    }
+
+    if (
+      hasPhrase(normalizedItems, [
+        "fiction",
+        "novels",
+        "literary collections",
+        "short stories",
+      ])
+    ) {
+      return "Fiction";
+    }
+
+    if (
+      hasPhrase(normalizedItems, [
         "nonfiction",
-        "essay",
-        "memoir",
-        "biography",
+        "non-fiction",
+        "essays",
+        "reference",
       ])
     ) {
       return "Non-fiction";
     }
-    return "Fiction";
-  };
 
-  const detectGenreFromText = (text: string) => {
-    if (
-      hasAnyKeyword(text, [
-        "romance",
-        "romantic",
-        "love",
-        "relationship",
-        "passion",
-        "desire",
-        "erotica",
-        "erotic",
-        "heartbreak",
-        "colleen hoover",
-        "it ends with us",
-        "reminders of him",
-        "fifty shades",
-      ])
-    ) {
-      return "Romance";
-    }
-    if (hasAnyKeyword(text, ["mystery", "detective", "crime", "suspense"])) {
-      return "Mystery";
-    }
-    if (hasAnyKeyword(text, ["fantasy", "magic", "dragon", "mythical"])) {
-      return "Fantasy";
-    }
-    if (
-      hasAnyKeyword(text, ["horror", "haunted", "ghost", "monster", "terror"])
-    ) {
-      return "Horror";
-    }
-    if (hasAnyKeyword(text, ["thriller", "psychological thriller"])) {
-      return "Thriller";
-    }
-    if (
-      hasAnyKeyword(text, ["sci-fi", "science fiction", "alien", "dystopian"])
-    ) {
-      return "Sci-Fi";
-    }
-    if (hasAnyKeyword(text, ["adventure", "journey", "quest", "expedition"])) {
-      return "Adventure";
-    }
-    if (
-      hasAnyKeyword(text, [
-        "self-help",
-        "self help",
-        "motivation",
-        "personal development",
-        "productivity",
-        "habits",
-      ])
-    ) {
-      return "Self-help";
-    }
-    if (hasAnyKeyword(text, ["drama", "emotional", "family story"])) {
-      return "Drama";
-    }
     return "";
   };
 
-  const detectBookTypeFromText = (text: string) => {
-    if (hasAnyKeyword(text, ["wattpad", "wattys", "fanfiction"]))
+  const detectFallbackCategory = (text: string) => {
+    const normalized = text.toLowerCase();
+
+    if (
+      [
+        "buddha",
+        "buddhist",
+        "bible",
+        "church",
+        "theology",
+        "spiritual",
+        "faith",
+        "devotional",
+        "religion",
+      ].some((word) => normalized.includes(word))
+    ) {
+      return "Religion";
+    }
+
+    if (
+      [
+        "cookbook",
+        "recipe",
+        "cooking",
+        "braising",
+        "culinary",
+        "kitchen",
+        "food",
+      ].some((word) => normalized.includes(word))
+    ) {
+      return "Lifestyle";
+    }
+
+    if (
+      [
+        "leadership",
+        "business",
+        "finance",
+        "management",
+        "strategy",
+        "influence",
+        "entrepreneur",
+      ].some((word) => normalized.includes(word))
+    ) {
+      return "Business";
+    }
+
+    if (
+      [
+        "self-help",
+        "self help",
+        "motivation",
+        "productivity",
+        "habits",
+        "mindset",
+        "confidence",
+        "success",
+      ].some((word) => normalized.includes(word))
+    ) {
+      return "Self-help";
+    }
+
+    if (
+      [
+        "programming",
+        "software",
+        "coding",
+        "computer",
+        "javascript",
+        "python",
+        "java",
+      ].some((word) => normalized.includes(word))
+    ) {
+      return "Programming";
+    }
+
+    if (
+      ["history", "historical", "empire", "civilization", "ancient"].some(
+        (word) => normalized.includes(word),
+      )
+    ) {
+      return "History";
+    }
+
+    if (
+      ["biography", "memoir", "autobiography"].some((word) =>
+        normalized.includes(word),
+      )
+    ) {
+      return "Biography";
+    }
+
+    return "";
+  };
+
+  const detectGenreFromApiOrText = (apiItems: string[], text: string) => {
+    const normalizedItems = apiItems.map((item) => item.toLowerCase());
+    const normalizedText = text.toLowerCase();
+
+    if (
+      hasPhrase(normalizedItems, ["romance"]) ||
+      ["romance", "romantic comedy", "love story"].some((word) =>
+        normalizedText.includes(word),
+      )
+    ) {
+      return "Romance";
+    }
+
+    if (
+      hasPhrase(normalizedItems, ["mystery", "detective"]) ||
+      ["mystery", "detective", "whodunit"].some((word) =>
+        normalizedText.includes(word),
+      )
+    ) {
+      return "Mystery";
+    }
+
+    if (
+      hasPhrase(normalizedItems, ["fantasy"]) ||
+      ["fantasy", "dragon", "magic", "magical"].some((word) =>
+        normalizedText.includes(word),
+      )
+    ) {
+      return "Fantasy";
+    }
+
+    if (
+      hasPhrase(normalizedItems, ["horror"]) ||
+      ["horror", "haunted", "ghost", "terror"].some((word) =>
+        normalizedText.includes(word),
+      )
+    ) {
+      return "Horror";
+    }
+
+    if (
+      hasPhrase(normalizedItems, ["thriller", "suspense"]) ||
+      ["thriller", "suspense", "psychological thriller"].some((word) =>
+        normalizedText.includes(word),
+      )
+    ) {
+      return "Thriller";
+    }
+
+    if (
+      hasPhrase(normalizedItems, ["science fiction", "sci-fi", "scifi"]) ||
+      ["science fiction", "sci-fi", "dystopian", "alien"].some((word) =>
+        normalizedText.includes(word),
+      )
+    ) {
+      return "Sci-Fi";
+    }
+
+    if (
+      hasPhrase(normalizedItems, ["adventure"]) ||
+      ["adventure"].some((word) => normalizedText.includes(word))
+    ) {
+      return "Adventure";
+    }
+
+    if (
+      hasPhrase(normalizedItems, ["drama"]) ||
+      ["drama"].some((word) => normalizedText.includes(word))
+    ) {
+      return "Drama";
+    }
+
+    return "";
+  };
+
+  const detectBookTypeFromApiOrText = (apiItems: string[], text: string) => {
+    const normalizedItems = apiItems.map((item) => item.toLowerCase());
+    const normalizedText = text.toLowerCase();
+
+    if (
+      hasPhrase(normalizedItems, ["manga"]) ||
+      normalizedText.includes("manga")
+    ) {
+      return "Manga";
+    }
+
+    if (
+      hasPhrase(normalizedItems, ["graphic novel", "graphic novels"]) ||
+      normalizedText.includes("graphic novel")
+    ) {
+      return "Graphic Novel";
+    }
+
+    if (
+      hasPhrase(normalizedItems, ["comics", "comic books", "comic book"]) ||
+      normalizedText.includes("comic book") ||
+      normalizedText.includes("comics")
+    ) {
+      return "Comics";
+    }
+
+    if (
+      hasPhrase(normalizedItems, ["textbook", "study aids"]) ||
+      normalizedText.includes("textbook")
+    ) {
+      return "Textbook";
+    }
+
+    if (
+      normalizedText.includes("reviewer") ||
+      normalizedText.includes("review book")
+    ) {
+      return "Reviewer";
+    }
+
+    if (
+      normalizedText.includes("wattpad") ||
+      normalizedText.includes("fanfiction") ||
+      normalizedText.includes("wattys")
+    ) {
       return "Wattpad";
-    if (hasAnyKeyword(text, ["manga"])) return "Manga";
-    if (hasAnyKeyword(text, ["comics", "comic book"])) return "Comics";
-    if (hasAnyKeyword(text, ["graphic novel"])) return "Graphic Novel";
-    if (hasAnyKeyword(text, ["textbook"])) return "Textbook";
-    if (hasAnyKeyword(text, ["reviewer", "review book"])) return "Reviewer";
-    return "Novel";
+    }
+
+    return "";
   };
 
   const applyDetectedClassification = ({
@@ -678,27 +1195,61 @@ export default function SellPage() {
       .join(" ")
       .toLowerCase();
 
-    const detectedCategory = detectCategoryFromText(combinedText);
-    const detectedGenre = detectGenreFromText(combinedText);
-    const detectedBookType = detectBookTypeFromText(combinedText);
+    const mappedCategory =
+      mapApiCategoryToLocalCategory(nextApiCategories) ||
+      detectFallbackCategory(combinedText);
 
-    setDetectedCategoryName(detectedCategory || "");
-    setDetectedGenreName(detectedGenre || "");
-    setDetectedBookTypeName(detectedBookType || "");
+    const mappedGenre = detectGenreFromApiOrText(
+      nextApiCategories,
+      combinedText,
+    );
+
+    const mappedBookType = detectBookTypeFromApiOrText(
+      nextApiCategories,
+      combinedText,
+    );
+
+    setDetectedCategoryName(mappedCategory || "");
+    setDetectedGenreName(mappedGenre || "");
+    setDetectedBookTypeName(mappedBookType || "");
 
     if (!categoryTouched) {
-      const matchedCategory = findByName(categories, detectedCategory);
-      if (matchedCategory) setCategoryId(String(matchedCategory.id));
+      if (mappedCategory) {
+        const matchedCategory = findByName(categories, mappedCategory);
+        if (matchedCategory) {
+          setCategoryId(String(matchedCategory.id));
+        } else {
+          setCategoryId("");
+        }
+      } else {
+        setCategoryId("");
+      }
     }
 
-    if (!genreTouched && detectedGenre) {
-      const matchedGenre = findByName(genres, detectedGenre);
-      if (matchedGenre) setGenreId(String(matchedGenre.id));
+    if (!genreTouched) {
+      if (mappedGenre) {
+        const matchedGenre = findByName(genres, mappedGenre);
+        if (matchedGenre) {
+          setGenreId(String(matchedGenre.id));
+        } else {
+          setGenreId("");
+        }
+      } else {
+        setGenreId("");
+      }
     }
 
-    if (!bookTypeTouched && detectedBookType) {
-      const matchedBookType = findByName(bookTypes, detectedBookType);
-      if (matchedBookType) setBookTypeId(String(matchedBookType.id));
+    if (!bookTypeTouched) {
+      if (mappedBookType) {
+        const matchedBookType = findByName(bookTypes, mappedBookType);
+        if (matchedBookType) {
+          setBookTypeId(String(matchedBookType.id));
+        } else {
+          setBookTypeId("");
+        }
+      } else {
+        setBookTypeId("");
+      }
     }
   };
 
@@ -876,26 +1427,6 @@ export default function SellPage() {
       return;
     }
 
-    if (!genreId) {
-      showToast({
-        title: "Genre required",
-        message: "Please select a genre.",
-        type: "error",
-      });
-      setPosting(false);
-      return;
-    }
-
-    if (!bookTypeId) {
-      showToast({
-        title: "Book type required",
-        message: "Please select a book type.",
-        type: "error",
-      });
-      setPosting(false);
-      return;
-    }
-
     const {
       data: { user },
       error: userError,
@@ -947,8 +1478,8 @@ export default function SellPage() {
       {
         seller_id: user.id,
         category_id: Number(categoryId),
-        genre_id: Number(genreId),
-        book_type_id: Number(bookTypeId),
+        genre_id: genreId ? Number(genreId) : null,
+        book_type_id: bookTypeId ? Number(bookTypeId) : null,
         isbn: cleanedIsbn || null,
         title,
         author,
@@ -1163,6 +1694,7 @@ export default function SellPage() {
                   <label className="mb-2 flex items-center gap-2 text-sm font-medium text-[#6B6B6B]">
                     <Tag size={16} className="shrink-0" />
                     <span>Genre</span>
+                    <span className="text-xs text-[#8A8175]">(Optional)</span>
                   </label>
                   <select
                     value={genreId}
@@ -1171,9 +1703,8 @@ export default function SellPage() {
                       setGenreId(e.target.value);
                     }}
                     className={selectClass}
-                    required
                   >
-                    <option value="">Select genre</option>
+                    <option value="">Select genre (optional)</option>
                     {genres.map((item) => (
                       <option key={item.id} value={item.id}>
                         {item.name}
@@ -1186,6 +1717,7 @@ export default function SellPage() {
                   <label className="mb-2 flex items-center gap-2 text-sm font-medium text-[#6B6B6B]">
                     <Shapes size={16} className="shrink-0" />
                     <span>Book Type</span>
+                    <span className="text-xs text-[#8A8175]">(Optional)</span>
                   </label>
                   <select
                     value={bookTypeId}
@@ -1194,9 +1726,8 @@ export default function SellPage() {
                       setBookTypeId(e.target.value);
                     }}
                     className={selectClass}
-                    required
                   >
-                    <option value="">Select type</option>
+                    <option value="">Select type (optional)</option>
                     {bookTypes.map((item) => (
                       <option key={item.id} value={item.id}>
                         {item.name}
@@ -1308,12 +1839,18 @@ export default function SellPage() {
                   </label>
                   <input
                     type="text"
+                    list="location-suggestions"
                     value={location}
                     onChange={(e) => setLocation(e.target.value)}
-                    placeholder="Location"
+                    placeholder="Choose or type your location"
                     className={inputClass}
                     required
                   />
+                  <datalist id="location-suggestions">
+                    {locationSuggestions.map((item) => (
+                      <option key={item} value={item} />
+                    ))}
+                  </datalist>
                 </div>
               </div>
 

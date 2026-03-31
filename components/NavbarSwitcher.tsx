@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+import { createSupabaseBrowser } from "@/lib/supabase";
 import Navbar from "@/components/Navbar";
 import AdminNavbar from "@/components/AdminNavbar";
 
@@ -16,6 +16,7 @@ export default function NavbarSwitcher() {
   const pathname = usePathname();
   const [showAdminNavbar, setShowAdminNavbar] = useState(false);
   const [loading, setLoading] = useState(true);
+  const supabase = createSupabaseBrowser();
 
   useEffect(() => {
     const checkNavbarAccess = async () => {
