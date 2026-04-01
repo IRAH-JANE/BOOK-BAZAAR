@@ -75,8 +75,8 @@ function SkeletonBox({ className = "" }: { className?: string }) {
 function MarketplaceSkeleton() {
   return (
     <main className="bg-[#F7F5F1] lg:h-[calc(100vh-76px)] lg:overflow-hidden">
-      <div className="mx-auto max-w-7xl px-6 lg:h-full">
-        <div className="grid gap-8 py-6 lg:grid-cols-[240px_minmax(0,1fr)] lg:h-full lg:py-0">
+      <div className="mx-auto w-full max-w-[1200px] px-4 min-[480px]:px-6 min-[768px]:px-8 min-[1024px]:px-10 min-[1280px]:px-20 min-[1440px]:px-0 lg:h-full">
+        <div className="grid gap-6 py-4 min-[480px]:gap-6 min-[480px]:py-5 min-[768px]:gap-8 min-[768px]:py-6 lg:grid-cols-[240px_minmax(0,1fr)] lg:h-full lg:py-0">
           <aside className="hidden lg:block lg:h-full lg:overflow-hidden lg:border-r lg:border-[#E5E0D8] lg:pr-6 lg:pt-6">
             <div
               className={`h-full overflow-y-auto pr-2 ${hiddenScrollbarClass}`}
@@ -136,8 +136,8 @@ function MarketplaceSkeleton() {
                 </div>
               </div>
 
-              <div className="fixed left-0 right-0 top-[120px] z-30 px-6 lg:hidden">
-                <div className="mx-auto max-w-7xl">
+              <div className="fixed left-0 right-0 top-[120px] z-30 px-4 min-[480px]:px-6 lg:hidden">
+                <div className="mx-auto w-full max-w-[1200px]">
                   <div className="rounded-2xl border border-white/20 bg-white/10 py-2 shadow-sm backdrop-blur-md">
                     <div className="flex gap-2">
                       <SkeletonBox className="h-11 flex-1 rounded-full" />
@@ -147,14 +147,14 @@ function MarketplaceSkeleton() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 gap-6 pb-6 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
+              <div className="grid grid-cols-2 gap-3 pb-6 min-[480px]:gap-4 min-[768px]:grid-cols-3 min-[768px]:gap-5 min-[1024px]:grid-cols-4 min-[1024px]:gap-6">
                 {[...Array(8)].map((_, index) => (
                   <div
                     key={index}
-                    className="rounded-[20px] border border-[#E5E0D8] bg-white p-4 shadow-sm"
+                    className="rounded-[20px] border border-[#E5E0D8] bg-white p-3 min-[480px]:p-4 shadow-sm"
                   >
                     <div className="relative overflow-hidden rounded-2xl bg-[#F7F4EE]">
-                      <SkeletonBox className="h-64 w-full rounded-2xl" />
+                      <SkeletonBox className="h-40 w-full rounded-2xl min-[480px]:h-52 min-[768px]:h-60 min-[1024px]:h-64" />
                       <SkeletonBox className="absolute left-3 top-3 h-7 w-20 rounded-full" />
                       <SkeletonBox className="absolute right-3 top-3 h-8 w-8 rounded-full" />
                     </div>
@@ -1003,7 +1003,7 @@ function MarketplaceContent() {
 
   return (
     <main className="bg-[#F7F5F1] lg:h-[calc(100vh-76px)] lg:overflow-hidden">
-      <div className="mx-auto max-w-7xl px-6 lg:h-full">
+      <div className="mx-auto w-full max-w-[1200px] px-4 min-[480px]:px-6 min-[768px]:px-8 min-[1024px]:px-10 min-[1280px]:px-20 min-[1440px]:px-0 lg:h-full">
         {mobileFiltersOpen && (
           <div className="fixed inset-0 z-50 lg:hidden">
             <div
@@ -1029,7 +1029,7 @@ function MarketplaceContent() {
           </div>
         )}
 
-        <div className="grid gap-8 py-6 lg:grid-cols-[240px_minmax(0,1fr)] lg:h-full lg:py-0">
+        <div className="grid gap-6 py-4 min-[480px]:gap-6 min-[480px]:py-5 min-[768px]:gap-8 min-[768px]:py-6 lg:grid-cols-[240px_minmax(0,1fr)] lg:h-full lg:py-0">
           <aside className="hidden lg:block lg:h-full lg:overflow-hidden lg:border-r lg:border-[#E5E0D8] lg:pr-6 lg:pt-6">
             <div
               className={`h-full overflow-y-auto pr-2 pb-6 ${hiddenScrollbarClass}`}
@@ -1074,13 +1074,13 @@ function MarketplaceContent() {
               </div>
 
               <div
-                className={`fixed left-0 right-0 z-30 px-6 transition-all duration-300 lg:hidden ${
+                className={`fixed left-0 right-0 z-30 px-4 min-[480px]:px-6 transition-all duration-300 lg:hidden ${
                   showMobileShortcutBar
                     ? "pointer-events-auto top-[120px] translate-y-0 opacity-100"
                     : "pointer-events-none top-[120px] -translate-y-3 opacity-0"
                 }`}
               >
-                <div className="mx-auto max-w-7xl">
+                <div className="mx-auto w-full max-w-[1200px]">
                   <div className="rounded-2xl border border-white/20 bg-white/10 py-2 shadow-sm backdrop-blur-md">
                     <div className="flex gap-2">
                       <button
@@ -1113,7 +1113,7 @@ function MarketplaceContent() {
                 </div>
               ) : (
                 <>
-                  <div className="grid grid-cols-1 gap-6 pb-6 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
+                  <div className="grid grid-cols-2 gap-3 pb-6 min-[480px]:gap-4 min-[768px]:grid-cols-3 min-[768px]:gap-5 min-[1024px]:grid-cols-4 min-[1024px]:gap-6">
                     {books.map((book) => {
                       const isWishlisted = wishlistBookIds.includes(book.id);
                       const isWishlistLoading = wishlistLoadingIds.includes(
@@ -1128,16 +1128,16 @@ function MarketplaceContent() {
                           href={`/book/${book.id}`}
                           className="group block rounded-[22px] focus:outline-none"
                         >
-                          <article className="overflow-hidden rounded-[22px] border border-[#E5E0D8] bg-white p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_16px_40px_rgba(31,31,31,0.08)] active:scale-[0.99]">
+                          <article className="overflow-hidden rounded-[22px] border border-[#E5E0D8] bg-white p-3 min-[480px]:p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_16px_40px_rgba(31,31,31,0.08)] active:scale-[0.99]">
                             <div className="relative overflow-hidden rounded-2xl bg-[#F7F4EE]">
                               {book.image_url ? (
                                 <img
                                   src={book.image_url}
                                   alt={book.title}
-                                  className="h-64 w-full object-cover transition duration-500 group-hover:scale-[1.04]"
+                                  className="h-40 w-full object-cover transition duration-500 group-hover:scale-[1.04] min-[480px]:h-52 min-[768px]:h-60 min-[1024px]:h-64"
                                 />
                               ) : (
-                                <div className="flex h-64 w-full items-center justify-center bg-[#EEF1F6] text-[#7B8593]">
+                                <div className="flex h-40 w-full items-center justify-center bg-[#EEF1F6] text-[#7B8593] min-[480px]:h-52 min-[768px]:h-60 min-[1024px]:h-64">
                                   No Image
                                 </div>
                               )}
@@ -1193,15 +1193,15 @@ function MarketplaceContent() {
                             </div>
 
                             <div className="pt-4">
-                              <h2 className="line-clamp-2 min-h-[48px] text-base font-semibold text-[#1F1F1F] transition group-hover:text-[#2A211B]">
+                              <h2 className="line-clamp-2 min-h-[40px] text-[15px] font-semibold leading-tight text-[#1F1F1F] transition group-hover:text-[#2A211B] min-[480px]:min-h-[44px] min-[480px]:text-base min-[768px]:min-h-[48px]">
                                 {book.title}
                               </h2>
 
-                              <p className="mt-1 line-clamp-1 text-sm text-[#8A8175]">
+                              <p className="mt-1 line-clamp-1 text-[12px] text-[#8A8175] min-[480px]:text-sm">
                                 {book.author}
                               </p>
 
-                              <div className="mt-3 flex items-end justify-between gap-3">
+                              <div className="mt-3 flex items-end justify-between gap-2 min-[480px]:gap-3">
                                 <div className="min-w-0">
                                   <div className="flex items-center gap-2 text-sm text-[#8A8175]">
                                     <span className="line-clamp-1">
@@ -1214,7 +1214,7 @@ function MarketplaceContent() {
                                   </p>
                                 </div>
 
-                                <p className="shrink-0 text-lg font-bold text-[#E67E22]">
+                                <p className="shrink-0 text-base font-bold text-[#E67E22] min-[480px]:text-lg">
                                   ₱{book.price}
                                 </p>
                               </div>
@@ -1227,7 +1227,7 @@ function MarketplaceContent() {
                                   handleAddToCart(book.id);
                                 }}
                                 disabled={isCartLoading}
-                                className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#E67E22] px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-[#cf6f1c] disabled:cursor-not-allowed disabled:opacity-60 md:hidden"
+                                className="mt-3 inline-flex w-full items-center justify-center gap-1.5 rounded-full bg-[#E67E22] px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-white transition hover:bg-[#cf6f1c] disabled:cursor-not-allowed disabled:opacity-60 min-[480px]:mt-4 min-[480px]:gap-2 min-[480px]:px-4 min-[480px]:py-2.5 min-[480px]:text-xs md:hidden"
                               >
                                 <ShoppingCart size={14} />
                                 {isCartLoading
