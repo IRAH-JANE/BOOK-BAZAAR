@@ -500,6 +500,7 @@ function MarketplaceContent() {
     if (loading) return;
 
     const container = scrollContainerRef.current;
+    const isDesktop = window.innerWidth >= 1024;
 
     const startHideTimer = () => {
       if (hideTimerRef.current) {
@@ -521,8 +522,15 @@ function MarketplaceContent() {
       }, 1200);
     };
 
+    const getCurrentScrollY = () => {
+      if (isDesktop && container) {
+        return container.scrollTop;
+      }
+      return window.scrollY;
+    };
+
     const handleScroll = () => {
-      const currentY = container ? container.scrollTop : window.scrollY;
+      const currentY = getCurrentScrollY();
 
       if (currentY <= 40) {
         setShowMobileShortcutBar(true);
@@ -546,21 +554,21 @@ function MarketplaceContent() {
       startHideTimer();
     };
 
-    const initialY = container ? container.scrollTop : window.scrollY;
+    const initialY = getCurrentScrollY();
 
     setShowMobileShortcutBar(true);
     setShowBackToTop(false);
     lastScrollY.current = initialY;
     startHideTimer();
 
-    if (container) {
+    if (isDesktop && container) {
       container.addEventListener("scroll", handleScroll, { passive: true });
     } else {
       window.addEventListener("scroll", handleScroll, { passive: true });
     }
 
     return () => {
-      if (container) {
+      if (isDesktop && container) {
         container.removeEventListener("scroll", handleScroll);
       } else {
         window.removeEventListener("scroll", handleScroll);
