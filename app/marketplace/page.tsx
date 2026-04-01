@@ -1204,7 +1204,6 @@ function MarketplaceContent() {
                               <div className="mt-3 flex items-end justify-between gap-3">
                                 <div className="min-w-0">
                                   <div className="flex items-center gap-2 text-sm text-[#8A8175]">
-                                    
                                     <span className="line-clamp-1">
                                       {book.location}
                                     </span>
