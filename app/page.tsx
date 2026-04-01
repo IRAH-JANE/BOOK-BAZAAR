@@ -48,13 +48,15 @@ function InfoStripItem({
 }) {
   return (
     <div className="group relative overflow-hidden rounded-[22px] border border-[#EFE4D7] bg-[#FFFDF9] p-5 transition duration-300">
-      <div className="relative">
-        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#FFF3E8] text-[#E67E22]">
+      <div className="relative flex items-start gap-4 lg:block">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#FFF3E8] text-[#E67E22] lg:mb-4">
           {icon}
         </div>
 
-        <p className="mt-4 text-[15px] font-semibold text-[#2A211B]">{title}</p>
-        <p className="mt-2 text-[13px] leading-6 text-[#6F655B]">{text}</p>
+        <div className="min-w-0 flex-1">
+          <p className="text-[15px] font-semibold text-[#2A211B]">{title}</p>
+          <p className="mt-2 text-[13px] leading-6 text-[#6F655B]">{text}</p>
+        </div>
       </div>
     </div>
   );
