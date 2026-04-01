@@ -165,11 +165,11 @@ function RailSection({
         </Link>
       </div>
 
-      <div className="flex snap-x snap-mandatory gap-4 overflow-x-auto bg-transparent pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="flex snap-x snap-mandatory gap-4 overflow-x-auto bg-transparent pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:flex-nowrap lg:overflow-x-hidden">
         {books.map((book) => (
           <div
             key={book.id}
-            className="min-w-[210px] max-w-[210px] bg-transparent sm:min-w-[220px] sm:max-w-[220px] lg:min-w-[230px] lg:max-w-[230px]"
+            className="min-w-[210px] max-w-[210px] bg-transparent sm:min-w-[220px] sm:max-w-[220px] lg:w-[calc((100%-4rem)/5)] lg:min-w-[calc((100%-4rem)/5)] lg:max-w-[calc((100%-4rem)/5)] lg:flex-none"
           >
             <EqualRailCard book={book} badge={badge} />
           </div>
