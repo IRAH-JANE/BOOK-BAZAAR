@@ -280,8 +280,9 @@ function MarketplaceContent() {
 
   const handleBackToTop = () => {
     const container = scrollContainerRef.current;
+    const isDesktop = window.innerWidth >= 1024;
 
-    if (container) {
+    if (isDesktop && container) {
       container.scrollTo({
         top: 0,
         behavior: "smooth",
