@@ -8,26 +8,16 @@ import { useToast } from "@/components/ToastProvider";
 import { useConfirm } from "@/components/ConfirmProvider";
 import {
   LogOut,
-  Shield,
   Mail,
   User,
   MapPin,
   Plus,
   Pencil,
   Trash2,
-  CheckCircle2,
   X,
-  Store,
   Save,
-  Image as ImageIcon,
-  ExternalLink,
-  Link2,
-  BookOpen,
   ShoppingBag,
-  Wallet,
-  Star,
-  Eye,
-  Lock,
+  Phone,
 } from "lucide-react";
 
 type PSGCItem = {
@@ -40,7 +30,6 @@ type Profile = {
   full_name: string | null;
   first_name: string | null;
   last_name: string | null;
-  title: string | null;
   email: string | null;
   avatar_url: string | null;
   role: string | null;
@@ -57,17 +46,6 @@ type Profile = {
   unit_number: string | null;
   postal_code: string | null;
   created_at: string | null;
-  shop_name: string | null;
-  shop_bio: string | null;
-  shop_logo: string | null;
-  public_display_name: string | null;
-  shop_slug: string | null;
-  gcash_number: string | null;
-  bank_account_name: string | null;
-  bank_account_number: string | null;
-  show_phone_to_buyers: boolean | null;
-  seller_rating: number | null;
-  completed_orders: number | null;
 };
 
 type Address = {
@@ -103,16 +81,9 @@ type AddressForm = {
 
 type ProfileForm = {
   full_name: string;
-  public_display_name: string;
   phone_number: string;
-  shop_name: string;
-  shop_bio: string;
-  shop_logo: string;
-  shop_slug: string;
-  gcash_number: string;
-  bank_account_name: string;
-  bank_account_number: string;
-  show_phone_to_buyers: boolean;
+  birth_date: string;
+  gender: string;
 };
 
 const emptyAddressForm: AddressForm = {
@@ -137,45 +108,120 @@ function SkeletonBox({ className = "" }: { className?: string }) {
 
 function ProfilePageSkeleton() {
   return (
-    <main className="min-h-screen bg-[#F7F5F1] px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-5xl">
-        <div className="overflow-hidden rounded-[32px] border border-[#EEE7DC] bg-gradient-to-br from-[#FFF8F1] via-[#FFFDF9] to-[#F9F4EC] px-6 py-8 shadow-[0_12px_40px_rgba(31,31,31,0.06)] sm:px-8 sm:py-10">
-          <SkeletonBox className="h-5 w-24 rounded-full" />
-          <SkeletonBox className="mt-4 h-12 w-52" />
-          <SkeletonBox className="mt-3 h-5 w-80 max-w-full" />
-        </div>
+    <main className="min-h-screen bg-[#F7F4EE] px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-[1180px]">
+        <section className="rounded-[32px] border border-[#E5E0D8] bg-white p-6 sm:p-8 lg:p-10">
+          <SkeletonBox className="h-5 w-28 rounded-full" />
+          <div className="mt-5 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
+              <SkeletonBox className="h-20 w-20 rounded-full" />
+              <div>
+                <SkeletonBox className="h-10 w-72 max-w-full" />
+                <div className="mt-3 flex gap-2">
+                  <SkeletonBox className="h-7 w-28 rounded-full" />
+                  <SkeletonBox className="h-7 w-32 rounded-full" />
+                </div>
+              </div>
+            </div>
+            <SkeletonBox className="h-11 w-44 rounded-full" />
+          </div>
+          <SkeletonBox className="mt-5 h-5 w-96 max-w-full" />
+        </section>
 
-        <div className="mt-8 space-y-5">
-          {[...Array(6)].map((_, index) => (
-            <div
-              key={index}
-              className="rounded-[28px] border border-[#E8E1D7] bg-[#FFFDF9] p-6 shadow-[0_10px_28px_rgba(31,31,31,0.05)]"
-            >
-              <SkeletonBox className="h-7 w-40" />
-              <div className="mt-5 grid gap-4 md:grid-cols-2">
-                {[...Array(4)].map((__, itemIndex) => (
-                  <div key={itemIndex} className="rounded-2xl bg-[#F7F4EE] p-4">
-                    <SkeletonBox className="h-3 w-24" />
-                    <SkeletonBox className="mt-3 h-5 w-32" />
+        <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.25fr)_380px]">
+          <section className="rounded-[28px] border border-[#E5E0D8] bg-white p-6 sm:p-7">
+            <SkeletonBox className="h-8 w-56" />
+            <div className="mt-6 space-y-8">
+              <div>
+                <SkeletonBox className="h-6 w-32" />
+                <div className="mt-4 grid gap-4 md:grid-cols-2">
+                  <div className="md:col-span-2">
+                    <SkeletonBox className="h-4 w-24" />
+                    <SkeletonBox className="mt-2 h-12 w-full" />
                   </div>
+                  <div>
+                    <SkeletonBox className="h-4 w-20" />
+                    <SkeletonBox className="mt-2 h-12 w-full" />
+                  </div>
+                  <div>
+                    <SkeletonBox className="h-4 w-24" />
+                    <SkeletonBox className="mt-2 h-12 w-full" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="h-px w-full bg-[#EEE6DB]" />
+
+              <div>
+                <SkeletonBox className="h-6 w-36" />
+                <div className="mt-4 grid gap-4 md:grid-cols-2">
+                  <div>
+                    <SkeletonBox className="h-4 w-28" />
+                    <SkeletonBox className="mt-2 h-12 w-full" />
+                  </div>
+                  <div>
+                    <SkeletonBox className="h-4 w-24" />
+                    <SkeletonBox className="mt-2 h-12 w-full" />
+                  </div>
+                  <div className="md:col-span-2">
+                    <SkeletonBox className="h-4 w-16" />
+                    <SkeletonBox className="mt-2 h-12 w-full" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="h-px w-full bg-[#EEE6DB]" />
+
+              <div>
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <SkeletonBox className="h-6 w-40" />
+                    <SkeletonBox className="mt-2 h-4 w-48" />
+                  </div>
+                  <SkeletonBox className="h-11 w-24 rounded-2xl" />
+                </div>
+
+                <div className="mt-5 space-y-3">
+                  {[...Array(2)].map((_, i) => (
+                    <div
+                      key={i}
+                      className="rounded-2xl border border-[#E5E0D8] bg-[#FFFDF9] p-4"
+                    >
+                      <SkeletonBox className="h-5 w-32" />
+                      <SkeletonBox className="mt-3 h-4 w-52" />
+                      <SkeletonBox className="mt-2 h-4 w-full" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-8 flex justify-end">
+              <SkeletonBox className="h-12 w-40 rounded-2xl" />
+            </div>
+          </section>
+
+          <section className="space-y-6">
+            <div className="rounded-[28px] border border-[#E5E0D8] bg-white p-6">
+              <SkeletonBox className="h-8 w-44" />
+              <div className="mt-5 space-y-3">
+                {[...Array(3)].map((_, i) => (
+                  <SkeletonBox key={i} className="h-20 w-full rounded-2xl" />
                 ))}
               </div>
             </div>
-          ))}
+
+            <div className="rounded-[28px] border border-[#E5E0D8] bg-white p-6">
+              <SkeletonBox className="h-8 w-44" />
+              <SkeletonBox className="mt-2 h-4 w-40" />
+              <SkeletonBox className="mt-5 h-11 w-28 rounded-full" />
+            </div>
+          </section>
         </div>
       </div>
     </main>
   );
 }
-
-const slugify = (value: string) =>
-  value
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9\s-]/g, "")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "");
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -185,23 +231,14 @@ export default function ProfilePage() {
 
   const [profile, setProfile] = useState<Profile | null>(null);
   const [addresses, setAddresses] = useState<Address[]>([]);
-  const [booksCount, setBooksCount] = useState(0);
   const [loading, setLoading] = useState(true);
-
   const [userId, setUserId] = useState<string | null>(null);
 
   const [profileForm, setProfileForm] = useState<ProfileForm>({
     full_name: "",
-    public_display_name: "",
     phone_number: "",
-    shop_name: "",
-    shop_bio: "",
-    shop_logo: "",
-    shop_slug: "",
-    gcash_number: "",
-    bank_account_name: "",
-    bank_account_number: "",
-    show_phone_to_buyers: false,
+    birth_date: "",
+    gender: "",
   });
   const [savingProfile, setSavingProfile] = useState(false);
 
@@ -230,6 +267,8 @@ export default function ProfilePage() {
     "w-full rounded-2xl border border-[#D9D2C7] bg-white px-4 py-3 text-[#1F1F1F] placeholder:text-[#8A8175] outline-none transition focus:border-[#E67E22]";
   const selectClass =
     "w-full rounded-2xl border border-[#D9D2C7] bg-white px-4 py-3 text-[#1F1F1F] outline-none transition focus:border-[#E67E22] disabled:cursor-not-allowed disabled:bg-[#F5F1EB] disabled:text-[#8A8175]";
+  const readonlyClass =
+    "flex min-h-[50px] items-center gap-2 rounded-2xl border border-[#D9D2C7] bg-[#F7F4EE] px-4 py-3 text-[#6B6B6B]";
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -246,12 +285,8 @@ export default function ProfilePage() {
 
       setUserId(user.id);
 
-      const [profileRes, booksRes, addressesRes] = await Promise.all([
+      const [profileRes, addressesRes] = await Promise.all([
         supabase.from("profiles").select("*").eq("id", user.id).single(),
-        supabase
-          .from("books")
-          .select("*", { count: "exact", head: true })
-          .eq("seller_id", user.id),
         supabase
           .from("addresses")
           .select("*")
@@ -268,20 +303,12 @@ export default function ProfilePage() {
         setProfile(profileData);
         setProfileForm({
           full_name: profileData.full_name || "",
-          public_display_name: profileData.public_display_name || "",
           phone_number: profileData.phone_number || "",
-          shop_name: profileData.shop_name || "",
-          shop_bio: profileData.shop_bio || "",
-          shop_logo: profileData.shop_logo || "",
-          shop_slug: profileData.shop_slug || "",
-          gcash_number: profileData.gcash_number || "",
-          bank_account_name: profileData.bank_account_name || "",
-          bank_account_number: profileData.bank_account_number || "",
-          show_phone_to_buyers: !!profileData.show_phone_to_buyers,
+          birth_date: profileData.birth_date || "",
+          gender: profileData.gender || "",
         });
       }
 
-      setBooksCount(booksRes.count || 0);
       setAddresses(addressesRes.data || []);
       setLoading(false);
     };
@@ -370,31 +397,10 @@ export default function ProfilePage() {
   }, [selectedCityCode]);
 
   const displayName =
-    profileForm.full_name ||
+    profileForm.full_name.trim() ||
     profile?.full_name ||
     `${profile?.first_name || ""} ${profile?.last_name || ""}`.trim() ||
     "BookBazaar User";
-
-  const publicIdentity =
-    profileForm.public_display_name.trim() ||
-    profile?.public_display_name ||
-    profileForm.shop_name.trim() ||
-    profile?.shop_name ||
-    displayName;
-
-  const hasApprovedAdminAccess =
-    profile?.is_admin === true && profile?.admin_status === "approved";
-  const isMainAdmin = profile?.role === "admin";
-  const isSeller = booksCount > 0;
-
-  const accountLabel =
-    isMainAdmin || hasApprovedAdminAccess
-      ? "Admin"
-      : isSeller && addresses.length > 0
-        ? "Buyer • Seller"
-        : isSeller
-          ? "Seller"
-          : "Buyer";
 
   const joinedDate = profile?.created_at
     ? new Date(profile.created_at).toLocaleDateString()
@@ -419,40 +425,22 @@ export default function ProfilePage() {
       .join(", ");
   };
 
-  const completedOrdersLabel =
-    (profile?.completed_orders ?? 0) > 0
-      ? String(profile?.completed_orders ?? 0)
-      : "No orders yet";
-
-  const ratingLabel =
-    (profile?.seller_rating ?? 0) > 0
-      ? Number(profile?.seller_rating ?? 0).toFixed(1)
-      : "No ratings yet";
-
   const handleProfileInput = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
-    const target = e.target as HTMLInputElement;
-    const { name, value, type } = target;
-    const checked = target.checked;
-
+    const { name, value } = e.target;
     setProfileForm((prev) => ({
       ...prev,
-      [name]: type === "checkbox" ? checked : value,
-    }));
-  };
-
-  const handleSlugInput = (value: string) => {
-    setProfileForm((prev) => ({
-      ...prev,
-      shop_slug: slugify(value),
+      [name]: value,
     }));
   };
 
   const saveProfile = async () => {
     if (!userId) return;
 
-    if (!profileForm.full_name.trim()) {
+    const normalizedFullName = profileForm.full_name.trim() || null;
+
+    if (!normalizedFullName) {
       showToast({
         title: "Name required",
         message: "Please enter your full name.",
@@ -464,45 +452,13 @@ export default function ProfilePage() {
     setSavingProfile(true);
 
     try {
-      const cleanSlug = profileForm.shop_slug.trim()
-        ? slugify(profileForm.shop_slug)
-        : null;
-
-      if (cleanSlug) {
-        const { data: existingSlug, error: slugCheckError } = await supabase
-          .from("profiles")
-          .select("id")
-          .eq("shop_slug", cleanSlug)
-          .neq("id", userId)
-          .maybeSingle();
-
-        if (slugCheckError) throw slugCheckError;
-
-        if (existingSlug) {
-          showToast({
-            title: "Slug already used",
-            message: "Please choose a different store link name.",
-            type: "error",
-          });
-          setSavingProfile(false);
-          return;
-        }
-      }
-
       const { error } = await supabase
         .from("profiles")
         .update({
-          full_name: profileForm.full_name.trim(),
+          full_name: normalizedFullName,
           phone_number: profileForm.phone_number.trim() || null,
-          public_display_name: profileForm.public_display_name.trim() || null,
-          shop_name: profileForm.shop_name.trim() || null,
-          shop_bio: profileForm.shop_bio.trim() || null,
-          shop_logo: profileForm.shop_logo.trim() || null,
-          shop_slug: cleanSlug,
-          gcash_number: profileForm.gcash_number.trim() || null,
-          bank_account_name: profileForm.bank_account_name.trim() || null,
-          bank_account_number: profileForm.bank_account_number.trim() || null,
-          show_phone_to_buyers: profileForm.show_phone_to_buyers,
+          birth_date: profileForm.birth_date || null,
+          gender: profileForm.gender || null,
         })
         .eq("id", userId);
 
@@ -512,31 +468,22 @@ export default function ProfilePage() {
         prev
           ? {
               ...prev,
-              full_name: profileForm.full_name.trim(),
+              full_name: normalizedFullName,
               phone_number: profileForm.phone_number.trim() || null,
-              public_display_name:
-                profileForm.public_display_name.trim() || null,
-              shop_name: profileForm.shop_name.trim() || null,
-              shop_bio: profileForm.shop_bio.trim() || null,
-              shop_logo: profileForm.shop_logo.trim() || null,
-              shop_slug: cleanSlug,
-              gcash_number: profileForm.gcash_number.trim() || null,
-              bank_account_name: profileForm.bank_account_name.trim() || null,
-              bank_account_number:
-                profileForm.bank_account_number.trim() || null,
-              show_phone_to_buyers: profileForm.show_phone_to_buyers,
+              birth_date: profileForm.birth_date || null,
+              gender: profileForm.gender || null,
             }
           : prev,
       );
 
       setProfileForm((prev) => ({
         ...prev,
-        shop_slug: cleanSlug || "",
+        full_name: normalizedFullName || "",
       }));
 
       showToast({
         title: "Profile updated",
-        message: "Your profile details were saved successfully.",
+        message: "Your personal profile was saved successfully.",
         type: "success",
       });
     } catch (error) {
@@ -892,31 +839,23 @@ export default function ProfilePage() {
 
   return (
     <>
-      <main className="min-h-screen bg-[#F7F5F1] px-4 py-8 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-5xl">
-          <section className="relative overflow-hidden rounded-[32px] border border-[#EEE7DC] bg-gradient-to-br from-[#FFF8F1] via-[#FFFDF9] to-[#F9F4EC] px-6 py-8 shadow-[0_12px_40px_rgba(31,31,31,0.06)] sm:px-8 sm:py-10">
-            <div className="pointer-events-none absolute -right-16 -top-16 h-44 w-44 rounded-full bg-[#E67E22]/10 blur-3xl" />
-            <div className="pointer-events-none absolute bottom-0 left-0 h-32 w-32 rounded-full bg-[#F3C998]/20 blur-2xl" />
+      <main className="min-h-screen bg-[#F7F4EE] px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-[1180px]">
+          <section className="relative overflow-hidden rounded-[32px] border border-[#E5E0D8] bg-white p-6 sm:p-8 lg:p-10">
+            <div className="pointer-events-none absolute -right-16 -top-16 h-44 w-44 rounded-full bg-[#FFF3E7] blur-3xl" />
 
             <div className="relative z-10">
-              <p className="inline-flex rounded-full bg-[#E67E22]/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.24em] text-[#C96A16]">
-                Account
+              <p className="inline-flex rounded-full bg-[#FFF3E7] px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.24em] text-[#C96A16]">
+                Personal Profile
               </p>
 
-              <div className="mt-5 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+              <div className="mt-5 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
                 <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
-                  <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#FFF3E7] text-[#E67E22] shadow-sm">
-                    {profileForm.shop_logo ||
-                    profile?.shop_logo ||
-                    profile?.avatar_url ? (
+                  <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#FFF3E7] text-[#E67E22]">
+                    {profile?.avatar_url ? (
                       <img
-                        src={
-                          profileForm.shop_logo ||
-                          profile?.shop_logo ||
-                          profile?.avatar_url ||
-                          ""
-                        }
-                        alt={publicIdentity}
+                        src={profile.avatar_url}
+                        alt={displayName}
                         className="h-full w-full object-cover"
                       />
                     ) : (
@@ -926,274 +865,271 @@ export default function ProfilePage() {
 
                   <div className="min-w-0">
                     <h1 className="break-words text-3xl font-bold tracking-tight text-[#1F1F1F] sm:text-4xl">
-                      {publicIdentity}
+                      {displayName}
                     </h1>
 
-                    <p className="mt-2 text-sm font-medium text-[#8A8175]">
-                      @
-                      {profileForm.shop_slug ||
-                        profile?.shop_slug ||
-                        "your-store-link"}
-                    </p>
-
                     <div className="mt-3 flex flex-wrap gap-2">
-                      <span className="rounded-full bg-white/80 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[#1F1F1F] ring-1 ring-[#E9DFD2]">
-                        {accountLabel}
+                      <span className="rounded-full bg-[#F7F4EE] px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[#1F1F1F]">
+                        User Account
                       </span>
-
-                      {isSeller && (
-                        <span className="rounded-full bg-[#FFF3E7] px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[#C96A16]">
-                          Store Active
-                        </span>
-                      )}
-
-                      <span className="rounded-full bg-white/80 px-3 py-1 text-xs font-semibold text-[#6B6B6B] ring-1 ring-[#E9DFD2]">
+                      <span className="rounded-full bg-[#F7F4EE] px-3 py-1 text-xs font-semibold text-[#6B6B6B]">
                         Joined {joinedDate}
                       </span>
+                      {profileForm.gender && (
+                        <span className="rounded-full bg-[#F7F4EE] px-3 py-1 text-xs font-semibold text-[#6B6B6B]">
+                          {profileForm.gender}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
 
-                {(profileForm.shop_slug || profile?.shop_slug) && (
-                  <Link
-                    href={`/shop/${profileForm.shop_slug || profile?.shop_slug}`}
-                    target="_blank"
-                    className="inline-flex items-center gap-2 rounded-full border border-[#E5E0D8] bg-white px-4 py-2.5 text-sm font-semibold text-[#1F1F1F] transition hover:bg-[#F7F4EE]"
-                  >
-                    <ExternalLink size={14} />
-                    View Public Store
-                  </Link>
-                )}
+                <Link
+                  href="/seller-profile"
+                  className="inline-flex items-center gap-2 rounded-full border border-[#E5E0D8] bg-white px-4 py-2.5 text-sm font-semibold text-[#1F1F1F] transition hover:bg-[#F7F4EE]"
+                >
+                  <ShoppingBag size={14} />
+                  Open Seller Profile
+                </Link>
               </div>
 
-              <p className="mt-5 max-w-2xl text-sm leading-7 text-[#6B6B6B] sm:text-base">
-                Manage your public identity, seller information, and saved
-                addresses in one clean profile page.
+              <p className="mt-5 max-w-2xl text-sm leading-7 text-[#5F5A52] sm:text-base">
+                Manage your account details, buyer information, and delivery
+                addresses here.
               </p>
-
-              <div className="mt-6 grid gap-3 sm:grid-cols-3">
-                <div className="rounded-2xl border border-[#E9DFD2] bg-white/80 px-4 py-4 shadow-sm backdrop-blur-sm">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8A8175]">
-                    Listings
-                  </p>
-                  <div className="mt-2 flex items-center gap-2 text-[#1F1F1F]">
-                    <BookOpen size={16} className="text-[#E67E22]" />
-                    <span className="text-lg font-bold">{booksCount}</span>
-                  </div>
-                </div>
-
-                <div className="rounded-2xl border border-[#E9DFD2] bg-white/80 px-4 py-4 shadow-sm backdrop-blur-sm">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8A8175]">
-                    Addresses
-                  </p>
-                  <div className="mt-2 flex items-center gap-2 text-[#1F1F1F]">
-                    <MapPin size={16} className="text-[#E67E22]" />
-                    <span className="text-lg font-bold">
-                      {addresses.length}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="rounded-2xl border border-[#E9DFD2] bg-white/80 px-4 py-4 shadow-sm backdrop-blur-sm">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8A8175]">
-                    Seller Status
-                  </p>
-                  <div className="mt-2 flex items-center gap-2 text-[#1F1F1F]">
-                    <ShoppingBag size={16} className="text-[#E67E22]" />
-                    <span className="text-sm font-bold">
-                      {isSeller ? "Store Active" : "Buyer Account"}
-                    </span>
-                  </div>
-                </div>
-              </div>
             </div>
           </section>
 
-          <div className="mt-8 space-y-5">
-            <section className="rounded-[28px] border border-[#E8E1D7] bg-[#FFFDF9] p-6 shadow-[0_10px_28px_rgba(31,31,31,0.05)] sm:p-7">
-              <div className="flex items-center gap-3">
+          <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.25fr)_380px]">
+            <section className="rounded-[28px] border border-[#E5E0D8] bg-white p-6 sm:p-7">
+              <div className="mb-6 flex items-center gap-3">
                 <User className="text-[#E67E22]" size={20} />
                 <h2 className="text-2xl font-bold text-[#1F1F1F]">
-                  Profile Identity
+                  Personal Information
                 </h2>
               </div>
 
-              <div className="mt-6 grid gap-4 md:grid-cols-2">
+              <div className="grid gap-8">
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-[#1F1F1F]">
-                    Full Name
-                  </label>
-                  <input
-                    name="full_name"
-                    value={profileForm.full_name}
-                    onChange={handleProfileInput}
-                    placeholder="Your full name"
-                    className={inputClass}
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-2 block text-sm font-semibold text-[#1F1F1F]">
-                    Public Display Name
-                  </label>
-                  <input
-                    name="public_display_name"
-                    value={profileForm.public_display_name}
-                    onChange={handleProfileInput}
-                    placeholder="Name shown to buyers"
-                    className={inputClass}
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-2 block text-sm font-semibold text-[#1F1F1F]">
-                    Email
-                  </label>
-                  <div className="flex items-center gap-2 rounded-2xl border border-[#D9D2C7] bg-[#F7F4EE] px-4 py-3 text-[#6B6B6B]">
-                    <Mail size={16} className="shrink-0" />
-                    <span className="min-w-0 break-all">
-                      {profile?.email || "Not provided"}
-                    </span>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="mb-2 block text-sm font-semibold text-[#1F1F1F]">
-                    Phone Number
-                  </label>
-                  <input
-                    name="phone_number"
-                    value={profileForm.phone_number}
-                    onChange={handleProfileInput}
-                    placeholder="09xxxxxxxxx"
-                    className={inputClass}
-                  />
-                </div>
-              </div>
-            </section>
-
-            <section className="rounded-[28px] border border-[#E8E1D7] bg-[#FFFDF9] p-6 shadow-[0_10px_28px_rgba(31,31,31,0.05)] sm:p-7">
-              <div className="flex items-center gap-3">
-                <Store className="text-[#E67E22]" size={20} />
-                <h2 className="text-2xl font-bold text-[#1F1F1F]">
-                  Store Identity
-                </h2>
-              </div>
-
-              <p className="mt-2 text-sm leading-7 text-[#6B6B6B]">
-                Set up how your seller profile will appear to buyers.
-              </p>
-
-              <div className="mt-6 grid gap-4 md:grid-cols-2">
-                <div>
-                  <label className="mb-2 block text-sm font-semibold text-[#1F1F1F]">
-                    Shop Name
-                  </label>
-                  <input
-                    name="shop_name"
-                    value={profileForm.shop_name}
-                    onChange={handleProfileInput}
-                    placeholder="Example: Jane's Book Corner"
-                    className={inputClass}
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-2 block text-sm font-semibold text-[#1F1F1F]">
-                    Shop Image
-                  </label>
-                  <input
-                    name="shop_logo"
-                    value={profileForm.shop_logo}
-                    onChange={handleProfileInput}
-                    placeholder="Paste image URL for now"
-                    className={inputClass}
-                  />
-                  <p className="mt-2 text-xs text-[#8A8175]">
-                    Use an image link for now. Later, this can be upgraded to
-                    image upload.
-                  </p>
-                </div>
-
-                <div>
-                  <label className="mb-2 block text-sm font-semibold text-[#1F1F1F]">
-                    Store Link Name
-                  </label>
-                  <div className="relative">
-                    <Link2
-                      size={16}
-                      className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#8A8175]"
-                    />
-                    <input
-                      name="shop_slug"
-                      value={profileForm.shop_slug}
-                      onChange={(e) => handleSlugInput(e.target.value)}
-                      placeholder="example: janes-book-corner"
-                      className="w-full rounded-2xl border border-[#D9D2C7] bg-white py-3 pl-11 pr-4 text-[#1F1F1F] placeholder:text-[#8A8175] outline-none transition focus:border-[#E67E22]"
-                    />
-                  </div>
-                  <p className="mt-2 text-xs text-[#8A8175]">
-                    Public link: /shop/
-                    {profileForm.shop_slug || "your-shop-name"}
-                  </p>
-                </div>
-
-                <div className="md:col-span-2">
-                  <label className="mb-2 block text-sm font-semibold text-[#1F1F1F]">
-                    Shop Bio
-                  </label>
-                  <textarea
-                    name="shop_bio"
-                    value={profileForm.shop_bio}
-                    onChange={handleProfileInput}
-                    rows={4}
-                    placeholder="Describe your shop (e.g. affordable books, academic, novels, preloved finds)."
-                    className={inputClass}
-                  />
-                </div>
-              </div>
-
-              <div className="mt-6 rounded-[24px] border border-[#EFE7DA] bg-[#FCF7F0] p-5">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
-                  <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-white text-[#E67E22] shadow-sm">
-                    {profileForm.shop_logo ? (
-                      <img
-                        src={profileForm.shop_logo}
-                        alt={profileForm.shop_name || publicIdentity}
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <ImageIcon size={22} />
-                    )}
-                  </div>
-
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-[#8A8175]">
-                      Preview
-                    </p>
-                    <h3 className="mt-2 break-words text-lg font-bold text-[#1F1F1F]">
-                      {profileForm.shop_name || publicIdentity}
+                  <div className="mb-4 flex items-center gap-2">
+                    <h3 className="text-lg font-bold text-[#1F1F1F]">
+                      Basic Identity
                     </h3>
-                    <p className="mt-2 break-words text-sm leading-7 text-[#6B6B6B]">
-                      {profileForm.shop_bio ||
-                        "Your shop bio will appear here once you add one."}
-                    </p>
-
-                    {profileForm.shop_slug && (
-                      <Link
-                        href={`/shop/${profileForm.shop_slug}`}
-                        target="_blank"
-                        className="mt-4 inline-flex items-center gap-2 rounded-full border border-[#E5E0D8] bg-white px-4 py-2 text-sm font-semibold text-[#1F1F1F] transition hover:bg-[#F7F4EE]"
-                      >
-                        <ExternalLink size={14} />
-                        View Public Store
-                      </Link>
-                    )}
                   </div>
+
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="md:col-span-2">
+                      <Field label="Full Name">
+                        <input
+                          name="full_name"
+                          value={profileForm.full_name}
+                          onChange={handleProfileInput}
+                          placeholder="Full name shown on your account"
+                          className={inputClass}
+                        />
+                      </Field>
+                    </div>
+
+                    <Field label="Gender">
+                      <select
+                        name="gender"
+                        value={profileForm.gender}
+                        onChange={handleProfileInput}
+                        className={selectClass}
+                      >
+                        <option value="">Select gender</option>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                        <option value="Prefer not to say">
+                          Prefer not to say
+                        </option>
+                      </select>
+                    </Field>
+
+                    <Field label="Birth Date">
+                      <input
+                        type="date"
+                        name="birth_date"
+                        value={profileForm.birth_date}
+                        onChange={handleProfileInput}
+                        className={inputClass}
+                      />
+                    </Field>
+                  </div>
+                </div>
+
+                <div className="h-px w-full bg-[#EEE6DB]" />
+
+                <div>
+                  <div className="mb-4 flex items-center gap-2">
+                    <h3 className="text-lg font-bold text-[#1F1F1F]">
+                      Contact Details
+                    </h3>
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <Field label="Phone Number">
+                      <input
+                        name="phone_number"
+                        value={profileForm.phone_number}
+                        onChange={handleProfileInput}
+                        placeholder="09xxxxxxxxx"
+                        className={inputClass}
+                      />
+                    </Field>
+
+                    <Field label="Account Type">
+                      <div className={readonlyClass}>
+                        <span>Buyer / User</span>
+                      </div>
+                    </Field>
+
+                    <div className="md:col-span-2">
+                      <Field label="Email">
+                        <div className={readonlyClass}>
+                          <Mail size={16} className="shrink-0" />
+                          <span className="min-w-0 break-all">
+                            {profile?.email || "Not provided"}
+                          </span>
+                        </div>
+                      </Field>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="h-px w-full bg-[#EEE6DB]" />
+
+                <div>
+                  <div className="mb-5 flex items-center justify-between gap-3">
+                    <div>
+                      <h3 className="text-lg font-bold text-[#1F1F1F]">
+                        Saved Addresses
+                      </h3>
+                      <p className="mt-1 text-sm text-[#5F5A52]">
+                        Manage your delivery addresses
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={openAddAddressModal}
+                      className="inline-flex items-center gap-2 rounded-2xl bg-[#E67E22] px-4 py-3 font-semibold text-white transition hover:bg-[#cf6f1c]"
+                    >
+                      <Plus size={16} />
+                      Add
+                    </button>
+                  </div>
+
+                  {defaultAddress && (
+                    <div className="mb-4 rounded-2xl border border-[#E5E0D8] bg-[#FFFDF9] p-4">
+                      <div className="flex items-start gap-3">
+                        <MapPin
+                          size={18}
+                          className="mt-1 shrink-0 text-[#E67E22]"
+                        />
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="font-semibold text-[#1F1F1F]">
+                              {defaultAddress.label || "Primary Address"}
+                            </p>
+                            <span className="rounded-full bg-green-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-green-700">
+                              Default
+                            </span>
+                          </div>
+
+                          <p className="mt-2 text-sm font-medium text-[#1F1F1F]">
+                            {defaultAddress.recipient_name || displayName}
+                          </p>
+                          <p className="mt-1 text-sm text-[#6B6B6B]">
+                            {formatAddress(defaultAddress)}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {!addresses.length ? (
+                    <div className="rounded-2xl border border-dashed border-[#D9D2C7] bg-[#FCFBF8] p-6 text-center">
+                      <p className="font-semibold text-[#1F1F1F]">
+                        No saved addresses yet
+                      </p>
+                      <p className="mt-2 text-sm text-[#6B6B6B]">
+                        Add your first address for faster checkout and delivery
+                        setup.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {addresses.map((address) => (
+                        <div
+                          key={address.id}
+                          className="rounded-2xl border border-[#E5E0D8] bg-[#FFFDF9] p-4"
+                        >
+                          <div className="flex flex-col gap-4">
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <p className="font-semibold text-[#1F1F1F]">
+                                  {address.label || "Saved Address"}
+                                </p>
+
+                                {address.is_default && (
+                                  <span className="rounded-full bg-green-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-green-700">
+                                    Default
+                                  </span>
+                                )}
+                              </div>
+
+                              <p className="mt-2 text-sm font-medium text-[#1F1F1F]">
+                                {address.recipient_name || displayName}
+                              </p>
+                              <p className="mt-1 text-sm text-[#6B6B6B]">
+                                {address.phone_number || "No phone"}
+                              </p>
+                              <p className="mt-2 text-sm leading-7 text-[#1F1F1F]">
+                                {formatAddress(address) || "No address details"}
+                              </p>
+                            </div>
+
+                            <div className="flex flex-wrap gap-2">
+                              {!address.is_default && (
+                                <button
+                                  onClick={() => handleSetDefault(address.id)}
+                                  disabled={settingDefaultId === address.id}
+                                  className="rounded-xl border border-[#E5E0D8] px-3 py-2 text-sm font-semibold text-[#1F1F1F] transition hover:bg-[#F7F4EE] disabled:opacity-60"
+                                >
+                                  {settingDefaultId === address.id
+                                    ? "Setting..."
+                                    : "Set Default"}
+                                </button>
+                              )}
+
+                              <button
+                                onClick={() => openEditAddressModal(address)}
+                                className="inline-flex items-center gap-2 rounded-xl border border-[#E5E0D8] px-3 py-2 text-sm font-semibold text-[#1F1F1F] transition hover:bg-[#F7F4EE]"
+                              >
+                                <Pencil size={14} />
+                                Edit
+                              </button>
+
+                              <button
+                                onClick={() => handleDeleteAddress(address.id)}
+                                disabled={deletingAddressId === address.id}
+                                className="inline-flex items-center gap-2 rounded-xl border border-red-200 px-3 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:opacity-60"
+                              >
+                                <Trash2 size={14} />
+                                {deletingAddressId === address.id
+                                  ? "Deleting..."
+                                  : "Delete"}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
 
-              <div className="mt-5 flex justify-end">
+              <div className="mt-8 flex justify-end">
                 <button
                   onClick={saveProfile}
                   disabled={savingProfile}
@@ -1205,341 +1141,52 @@ export default function ProfilePage() {
               </div>
             </section>
 
-            <section className="rounded-[28px] border border-[#E8E1D7] bg-[#FFFDF9] p-6 shadow-[0_10px_28px_rgba(31,31,31,0.05)] sm:p-7">
-              <div className="flex items-center gap-3">
-                <Wallet className="text-[#E67E22]" size={20} />
+            <section className="space-y-6">
+              <div className="rounded-[28px] border border-[#E5E0D8] bg-white p-6">
                 <h2 className="text-2xl font-bold text-[#1F1F1F]">
-                  Payment Methods
+                  Account Summary
                 </h2>
-              </div>
 
-              <p className="mt-2 text-sm leading-7 text-[#6B6B6B]">
-                Add payout details buyers can use for payment coordination and
-                seller transactions.
-              </p>
-
-              <div className="mt-4 rounded-[24px] border border-[#EFE7DA] bg-[#FCF7F0] p-4">
-                <div className="flex items-start gap-3">
-                  <Lock size={18} className="mt-1 shrink-0 text-[#E67E22]" />
-                  <div>
-                    <p className="font-semibold text-[#1F1F1F]">
-                      Secure payment info
-                    </p>
-                    <p className="mt-1 text-sm leading-6 text-[#6B6B6B]">
-                      Only used for transactions. Not shared publicly unless
-                      part of payment coordination.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-6 grid gap-4 md:grid-cols-2">
-                <div>
-                  <label className="mb-2 block text-sm font-semibold text-[#1F1F1F]">
-                    GCash Number
-                  </label>
-                  <input
-                    name="gcash_number"
-                    value={profileForm.gcash_number}
-                    onChange={handleProfileInput}
-                    placeholder="09xxxxxxxxx"
-                    className={inputClass}
+                <div className="mt-5 space-y-3">
+                  <SummaryRow
+                    icon={User}
+                    label="Display Name"
+                    value={displayName}
                   />
-                </div>
-
-                <div>
-                  <label className="mb-2 block text-sm font-semibold text-[#1F1F1F]">
-                    Bank Account Name
-                  </label>
-                  <input
-                    name="bank_account_name"
-                    value={profileForm.bank_account_name}
-                    onChange={handleProfileInput}
-                    placeholder="Account holder name"
-                    className={inputClass}
+                  <SummaryRow
+                    icon={Phone}
+                    label="Phone"
+                    value={profileForm.phone_number || "Not set"}
                   />
-                </div>
-
-                <div className="md:col-span-2">
-                  <label className="mb-2 block text-sm font-semibold text-[#1F1F1F]">
-                    Bank Account Number
-                  </label>
-                  <input
-                    name="bank_account_number"
-                    value={profileForm.bank_account_number}
-                    onChange={handleProfileInput}
-                    placeholder="Enter bank account number"
-                    className={inputClass}
+                  <SummaryRow
+                    icon={MapPin}
+                    label="Default Address"
+                    value={
+                      defaultAddress
+                        ? formatAddress(defaultAddress)
+                        : "No saved address"
+                    }
                   />
                 </div>
               </div>
 
-              <div className="mt-6 rounded-[24px] border border-[#EEE6DB] bg-[#F7F4EE] p-5">
-                <label className="flex cursor-pointer items-start gap-3">
-                  <input
-                    type="checkbox"
-                    name="show_phone_to_buyers"
-                    checked={profileForm.show_phone_to_buyers}
-                    onChange={handleProfileInput}
-                    className="mt-1 h-4 w-4 shrink-0"
-                  />
-                  <div>
-                    <p className="font-semibold text-[#1F1F1F]">
-                      Show phone number to buyers
-                    </p>
-                    <p className="mt-1 text-sm leading-6 text-[#6B6B6B]">
-                      Let buyers see your phone number for easier delivery and
-                      payment coordination.
-                    </p>
-                  </div>
-                </label>
-              </div>
-            </section>
-
-            <section className="rounded-[28px] border border-[#E8E1D7] bg-[#FFFDF9] p-6 shadow-[0_10px_28px_rgba(31,31,31,0.05)] sm:p-7">
-              <div className="flex items-center gap-3">
-                <Star className="text-[#E67E22]" size={20} />
+              <div className="rounded-[28px] border border-[#E5E0D8] bg-white p-6">
                 <h2 className="text-2xl font-bold text-[#1F1F1F]">
-                  Seller Trust
+                  Account Actions
                 </h2>
-              </div>
-
-              <p className="mt-2 text-sm leading-7 text-[#6B6B6B]">
-                Trust indicators help buyers decide faster and feel more
-                confident when purchasing.
-              </p>
-
-              <div className="mt-6 grid gap-4 md:grid-cols-3">
-                <div className="rounded-2xl border border-[#EEE6DB] bg-[#F7F4EE] p-5">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-[#8A8175]">
-                    Listings
-                  </p>
-                  <div className="mt-3 flex items-center gap-2 text-[#1F1F1F]">
-                    <BookOpen size={16} className="text-[#E67E22]" />
-                    <span className="text-xl font-bold">{booksCount}</span>
-                  </div>
-                </div>
-
-                <div className="rounded-2xl border border-[#EEE6DB] bg-[#F7F4EE] p-5">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-[#8A8175]">
-                    Orders Completed
-                  </p>
-                  <div className="mt-3 flex items-center gap-2 text-[#1F1F1F]">
-                    <ShoppingBag size={16} className="text-[#E67E22]" />
-                    <span className="text-base font-bold">
-                      {completedOrdersLabel}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="rounded-2xl border border-[#EEE6DB] bg-[#F7F4EE] p-5">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-[#8A8175]">
-                    Rating
-                  </p>
-                  <div className="mt-3 flex items-center gap-2 text-[#1F1F1F]">
-                    <Star size={16} className="fill-[#E67E22] text-[#E67E22]" />
-                    <span className="text-base font-bold">{ratingLabel}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-6 rounded-[24px] border border-[#EEE6DB] bg-[#FCF7F0] p-5">
-                <div className="flex items-start gap-3">
-                  <Eye size={18} className="mt-1 shrink-0 text-[#E67E22]" />
-                  <div>
-                    <p className="font-semibold text-[#1F1F1F]">
-                      Trust Preview
-                    </p>
-                    <p className="mt-1 text-sm leading-6 text-[#6B6B6B]">
-                      Buyers will trust your store more when listings, completed
-                      orders, and rating are clearly visible.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            <section className="rounded-[28px] border border-[#E8E1D7] bg-[#FFFDF9] p-6 shadow-[0_10px_28px_rgba(31,31,31,0.05)] sm:p-7">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <h2 className="text-2xl font-bold text-[#1F1F1F]">
-                    Saved Addresses
-                  </h2>
-                  <p className="mt-1 text-sm text-[#6B6B6B]">
-                    Add multiple delivery addresses and keep one as default.
-                  </p>
-                </div>
-
-                <button
-                  onClick={openAddAddressModal}
-                  className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#E67E22] px-4 py-3 font-semibold text-white transition hover:bg-[#cf6f1c]"
-                >
-                  <Plus size={16} />
-                  Add Address
-                </button>
-              </div>
-
-              {defaultAddress && (
-                <div className="mt-6 rounded-[24px] border border-[#EEE6DB] bg-[#F7F4EE] p-5">
-                  <div className="flex items-start gap-3">
-                    <MapPin
-                      size={18}
-                      className="mt-1 shrink-0 text-[#E67E22]"
-                    />
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-[#8A8175]">
-                          Default Address
-                        </p>
-                        <span className="rounded-full bg-orange-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-[#E67E22]">
-                          Default
-                        </span>
-                      </div>
-
-                      <p className="mt-2 break-words font-semibold text-[#1F1F1F]">
-                        {defaultAddress.label || "Primary Address"}
-                      </p>
-
-                      <p className="mt-2 font-semibold text-[#1F1F1F]">
-                        {defaultAddress.recipient_name || displayName}
-                      </p>
-
-                      <p className="mt-1 text-sm font-medium text-[#6B6B6B]">
-                        {defaultAddress.phone_number || "No phone"}
-                      </p>
-
-                      <p className="mt-3 text-sm leading-7 text-[#1F1F1F]">
-                        {formatAddress(defaultAddress)}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {!addresses.length ? (
-                <div className="mt-6 rounded-[24px] border border-dashed border-[#D9D2C7] bg-[#FCFBF8] p-6 text-center">
-                  <p className="font-semibold text-[#1F1F1F]">
-                    No saved addresses yet
-                  </p>
-                  <p className="mt-2 text-sm text-[#6B6B6B]">
-                    Add your first address for faster checkout and easier
-                    delivery setup.
-                  </p>
-                </div>
-              ) : (
-                <div className="mt-6 space-y-4">
-                  {addresses.map((address) => (
-                    <div
-                      key={address.id}
-                      className="rounded-[24px] border border-[#E5E0D8] bg-[#FFFDF9] p-5"
-                    >
-                      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                        <div className="min-w-0">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <p className="break-words font-semibold text-[#1F1F1F]">
-                              {address.label || "Saved Address"}
-                            </p>
-
-                            {address.is_default && (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-green-700">
-                                <CheckCircle2 size={12} />
-                                Default
-                              </span>
-                            )}
-                          </div>
-
-                          <p className="mt-2 font-semibold text-[#1F1F1F]">
-                            {address.recipient_name || displayName}
-                          </p>
-
-                          <p className="mt-1 text-sm font-medium text-[#6B6B6B]">
-                            {address.phone_number || "No phone"}
-                          </p>
-
-                          <p className="mt-3 text-sm leading-7 text-[#1F1F1F]">
-                            {formatAddress(address) || "No address details"}
-                          </p>
-                        </div>
-
-                        <div className="flex flex-wrap gap-2">
-                          {!address.is_default && (
-                            <button
-                              onClick={() => handleSetDefault(address.id)}
-                              disabled={settingDefaultId === address.id}
-                              className="rounded-xl border border-[#E5E0D8] px-3 py-2 text-sm font-semibold text-[#1F1F1F] transition hover:bg-[#F7F4EE] disabled:opacity-60"
-                            >
-                              {settingDefaultId === address.id
-                                ? "Setting..."
-                                : "Set Default"}
-                            </button>
-                          )}
-
-                          <button
-                            onClick={() => openEditAddressModal(address)}
-                            className="inline-flex items-center gap-2 rounded-xl border border-[#E5E0D8] px-3 py-2 text-sm font-semibold text-[#1F1F1F] transition hover:bg-[#F7F4EE]"
-                          >
-                            <Pencil size={14} />
-                            Edit
-                          </button>
-
-                          <button
-                            onClick={() => handleDeleteAddress(address.id)}
-                            disabled={deletingAddressId === address.id}
-                            className="inline-flex items-center gap-2 rounded-xl border border-red-200 px-3 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:opacity-60"
-                          >
-                            <Trash2 size={14} />
-                            {deletingAddressId === address.id
-                              ? "Deleting..."
-                              : "Delete"}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </section>
-
-            <section className="rounded-[28px] border border-[#E8E1D7] bg-[#FFFDF9] p-6 shadow-[0_10px_28px_rgba(31,31,31,0.05)]">
-              <h2 className="text-2xl font-bold text-[#1F1F1F]">
-                Account Actions
-              </h2>
-              <p className="mt-1 text-sm text-[#6B6B6B]">
-                Securely manage your session.
-              </p>
-
-              <button
-                onClick={handleLogout}
-                className="mt-5 inline-flex items-center gap-2 rounded-full border border-[#E5E0D8] bg-white px-4 py-2.5 text-sm font-semibold text-[#7A6F61] transition hover:bg-[#F7F4EE]"
-              >
-                <LogOut size={15} />
-                Logout
-              </button>
-            </section>
-
-            {(isMainAdmin || hasApprovedAdminAccess) && (
-              <section className="rounded-[28px] border border-[#E8E1D7] bg-[#FFFDF9] p-6 shadow-[0_10px_28px_rgba(31,31,31,0.05)]">
-                <div className="flex items-center gap-3">
-                  <Shield className="text-[#E67E22]" size={20} />
-                  <h2 className="text-2xl font-bold text-[#1F1F1F]">
-                    Admin Access
-                  </h2>
-                </div>
-
-                <p className="mt-3 break-words text-sm leading-7 text-[#6B6B6B]">
-                  {isMainAdmin
-                    ? "You are the main administrator and can access all platform tools."
-                    : "You have approved administrator privileges and can access platform insights and management tools."}
+                <p className="mt-1 text-sm text-[#5F5A52]">
+                  Manage your session securely
                 </p>
 
                 <button
-                  onClick={() => router.push("/admin")}
-                  className="mt-5 rounded-full bg-[#E67E22] px-5 py-3 font-semibold text-white transition hover:bg-[#cf6f1c]"
+                  onClick={handleLogout}
+                  className="mt-5 inline-flex items-center gap-2 rounded-full border border-[#E5E0D8] bg-white px-4 py-2.5 text-sm font-semibold text-[#7A6F61] transition hover:bg-[#F7F4EE]"
                 >
-                  Open Admin Dashboard
+                  <LogOut size={15} />
+                  Logout
                 </button>
-              </section>
-            )}
+              </div>
+            </section>
           </div>
         </div>
       </main>
@@ -1566,10 +1213,7 @@ export default function ProfilePage() {
             </div>
 
             <div className="mt-6 grid gap-4 md:grid-cols-2">
-              <div>
-                <label className="mb-2 block text-sm font-semibold text-[#1F1F1F]">
-                  Address Label
-                </label>
+              <Field label="Address Label">
                 <input
                   name="label"
                   value={addressForm.label}
@@ -1577,12 +1221,9 @@ export default function ProfilePage() {
                   placeholder="Home, Dorm, Office"
                   className={inputClass}
                 />
-              </div>
+              </Field>
 
-              <div>
-                <label className="mb-2 block text-sm font-semibold text-[#1F1F1F]">
-                  Recipient Name *
-                </label>
+              <Field label="Recipient Name *">
                 <input
                   name="recipient_name"
                   value={addressForm.recipient_name}
@@ -1590,12 +1231,9 @@ export default function ProfilePage() {
                   placeholder="Full name"
                   className={inputClass}
                 />
-              </div>
+              </Field>
 
-              <div>
-                <label className="mb-2 block text-sm font-semibold text-[#1F1F1F]">
-                  Phone Number *
-                </label>
+              <Field label="Phone Number *">
                 <input
                   name="phone_number"
                   value={addressForm.phone_number}
@@ -1603,12 +1241,9 @@ export default function ProfilePage() {
                   placeholder="09xxxxxxxxx"
                   className={inputClass}
                 />
-              </div>
+              </Field>
 
-              <div>
-                <label className="mb-2 block text-sm font-semibold text-[#1F1F1F]">
-                  Country *
-                </label>
+              <Field label="Country *">
                 <input
                   name="country"
                   value={addressForm.country}
@@ -1617,12 +1252,9 @@ export default function ProfilePage() {
                   required
                   readOnly
                 />
-              </div>
+              </Field>
 
-              <div>
-                <label className="mb-2 block text-sm font-semibold text-[#1F1F1F]">
-                  Province *
-                </label>
+              <Field label="Province *">
                 <select
                   value={selectedProvinceCode}
                   onChange={handleProvinceSelect}
@@ -1649,12 +1281,9 @@ export default function ProfilePage() {
                       Current: {addressForm.province}
                     </p>
                   )}
-              </div>
+              </Field>
 
-              <div>
-                <label className="mb-2 block text-sm font-semibold text-[#1F1F1F]">
-                  City / Municipality *
-                </label>
+              <Field label="City / Municipality *">
                 <select
                   value={selectedCityCode}
                   onChange={handleCitySelect}
@@ -1681,12 +1310,9 @@ export default function ProfilePage() {
                     Current: {addressForm.city}
                   </p>
                 )}
-              </div>
+              </Field>
 
-              <div>
-                <label className="mb-2 block text-sm font-semibold text-[#1F1F1F]">
-                  Barangay *
-                </label>
+              <Field label="Barangay *">
                 <select
                   value={selectedBarangayCode}
                   onChange={handleBarangaySelect}
@@ -1715,12 +1341,9 @@ export default function ProfilePage() {
                       Current: {addressForm.barangay}
                     </p>
                   )}
-              </div>
+              </Field>
 
-              <div>
-                <label className="mb-2 block text-sm font-semibold text-[#1F1F1F]">
-                  Unit / House No.
-                </label>
+              <Field label="Unit / House No.">
                 <input
                   name="unit_number"
                   value={addressForm.unit_number}
@@ -1728,26 +1351,22 @@ export default function ProfilePage() {
                   placeholder="Unit 3, Block 2"
                   className={inputClass}
                 />
-              </div>
+              </Field>
 
               <div className="md:col-span-2">
-                <label className="mb-2 block text-sm font-semibold text-[#1F1F1F]">
-                  Street Address *
-                </label>
-                <textarea
-                  name="street_address"
-                  value={addressForm.street_address}
-                  onChange={handleAddressInput}
-                  placeholder="Street, subdivision, landmark"
-                  rows={3}
-                  className={inputClass}
-                />
+                <Field label="Street Address *">
+                  <textarea
+                    name="street_address"
+                    value={addressForm.street_address}
+                    onChange={handleAddressInput}
+                    placeholder="Street, subdivision, landmark"
+                    rows={3}
+                    className={inputClass}
+                  />
+                </Field>
               </div>
 
-              <div>
-                <label className="mb-2 block text-sm font-semibold text-[#1F1F1F]">
-                  Postal Code
-                </label>
+              <Field label="Postal Code">
                 <input
                   name="postal_code"
                   value={addressForm.postal_code}
@@ -1755,13 +1374,9 @@ export default function ProfilePage() {
                   placeholder="8000"
                   className={inputClass}
                 />
-              </div>
+              </Field>
 
-              <div>
-                <label className="mb-2 block text-sm font-semibold text-[#1F1F1F]">
-                  Default Address
-                </label>
-
+              <Field label="Default Address">
                 <label className="flex h-[50px] cursor-pointer items-center gap-4 rounded-2xl border border-[#D9D2C7] bg-white px-5 text-sm font-semibold text-[#1F1F1F] transition hover:bg-[#F7F4EE]">
                   <input
                     type="checkbox"
@@ -1772,7 +1387,7 @@ export default function ProfilePage() {
                   />
                   <span>Set as default address</span>
                 </label>
-              </div>
+              </Field>
             </div>
 
             <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
@@ -1799,5 +1414,49 @@ export default function ProfilePage() {
         </div>
       )}
     </>
+  );
+}
+
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <label className="mb-2 block text-sm font-semibold text-[#1F1F1F]">
+        {label}
+      </label>
+      {children}
+    </div>
+  );
+}
+
+function SummaryRow({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-[#E5E0D8] bg-[#F7F4EE] p-4">
+      <div className="flex items-start gap-3">
+        <div className="rounded-xl bg-[#FFF3E7] p-2 text-[#E67E22]">
+          <Icon size={16} />
+        </div>
+
+        <div className="min-w-0">
+          <p className="text-sm text-[#8A8175]">{label}</p>
+          <p className="mt-1 break-words text-sm font-semibold text-[#1F1F1F]">
+            {value}
+          </p>
+        </div>
+      </div>
+    </div>
   );
 }

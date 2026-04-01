@@ -91,7 +91,7 @@ export default function Navbar() {
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
+  }, [supabase]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -279,25 +279,14 @@ export default function Navbar() {
                         </Link>
 
                         {!useAdminNavbar && (
-                          <>
-                            <Link
-                              href="/wishlist"
-                              onClick={() => setMenuOpen(false)}
-                              className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-[#1F1F1F] hover:bg-[#F7F4EE]"
-                            >
-                              <Heart size={16} />
-                              Wishlist
-                            </Link>
-
-                            <Link
-                              href="/cart"
-                              onClick={() => setMenuOpen(false)}
-                              className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-[#1F1F1F] hover:bg-[#F7F4EE]"
-                            >
-                              <ShoppingCart size={16} />
-                              Cart
-                            </Link>
-                          </>
+                          <Link
+                            href="/seller-dashboard"
+                            onClick={() => setMenuOpen(false)}
+                            className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-[#1F1F1F] hover:bg-[#F7F4EE]"
+                          >
+                            <LayoutDashboard size={16} />
+                            Seller Dashboard
+                          </Link>
                         )}
 
                         <Link
@@ -308,28 +297,6 @@ export default function Navbar() {
                           <Package size={16} />
                           My Orders
                         </Link>
-
-                        {!useAdminNavbar && (
-                          <>
-                            <Link
-                              href="/seller-orders"
-                              onClick={() => setMenuOpen(false)}
-                              className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-[#1F1F1F] hover:bg-[#F7F4EE]"
-                            >
-                              <Store size={16} />
-                              Seller Orders
-                            </Link>
-
-                            <Link
-                              href="/my-listings"
-                              onClick={() => setMenuOpen(false)}
-                              className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-[#1F1F1F] hover:bg-[#F7F4EE]"
-                            >
-                              <BookOpen size={16} />
-                              My Listings
-                            </Link>
-                          </>
-                        )}
 
                         {isApprovedAdmin && (
                           <Link
@@ -486,23 +453,13 @@ export default function Navbar() {
                   </Link>
 
                   {!useAdminNavbar && (
-                    <>
-                      <Link
-                        href="/wishlist"
-                        className={mobileNavLinkClass("/wishlist")}
-                      >
-                        <Heart size={18} />
-                        Wishlist
-                      </Link>
-
-                      <Link
-                        href="/cart"
-                        className={mobileNavLinkClass("/cart")}
-                      >
-                        <ShoppingCart size={18} />
-                        Cart
-                      </Link>
-                    </>
+                    <Link
+                      href="/seller-dashboard"
+                      className={mobileNavLinkClass("/seller-dashboard")}
+                    >
+                      <LayoutDashboard size={18} />
+                      Seller Dashboard
+                    </Link>
                   )}
 
                   <Link
@@ -512,26 +469,6 @@ export default function Navbar() {
                     <Package size={18} />
                     My Orders
                   </Link>
-
-                  {!useAdminNavbar && (
-                    <>
-                      <Link
-                        href="/seller-orders"
-                        className={mobileNavLinkClass("/seller-orders")}
-                      >
-                        <Store size={18} />
-                        Seller Orders
-                      </Link>
-
-                      <Link
-                        href="/my-listings"
-                        className={mobileNavLinkClass("/my-listings")}
-                      >
-                        <BookOpen size={18} />
-                        My Listings
-                      </Link>
-                    </>
-                  )}
 
                   {isApprovedAdmin && (
                     <Link

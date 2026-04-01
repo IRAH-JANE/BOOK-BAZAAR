@@ -14,16 +14,17 @@ type Profile = {
 
 export default function NavbarSwitcher() {
   const pathname = usePathname();
-  const [showAdminNavbar, setShowAdminNavbar] = useState(false);
-  const [loading, setLoading] = useState(true);
   const supabase = createSupabaseBrowser();
+
+  const [loading, setLoading] = useState(true);
+  const [showAdminNavbar, setShowAdminNavbar] = useState(false);
+
+  const isAdminPage = pathname.startsWith("/admin");
 
   useEffect(() => {
     const checkNavbarAccess = async () => {
       try {
-        const isAdminPage = pathname.startsWith("/admin");
-
-        // Normal pages always use normal navbar
+        // tanan non-admin pages kay normal navbar
         if (!isAdminPage) {
           setShowAdminNavbar(false);
           setLoading(false);
@@ -34,7 +35,6 @@ export default function NavbarSwitcher() {
           data: { user },
         } = await supabase.auth.getUser();
 
-        // On admin pages, never fall back to public navbar
         if (!user) {
           setShowAdminNavbar(false);
           setLoading(false);
@@ -59,7 +59,7 @@ export default function NavbarSwitcher() {
 
         setShowAdminNavbar(isMainAdmin || isApprovedAdmin);
       } catch (error) {
-        console.error("Navbar switcher admin check failed:", error);
+        console.error("Navbar switcher access check failed:", error);
         setShowAdminNavbar(false);
       } finally {
         setLoading(false);
@@ -67,22 +67,15 @@ export default function NavbarSwitcher() {
     };
 
     checkNavbarAccess();
-  }, [pathname]);
+  }, [isAdminPage, supabase]);
 
-  const isAdminPage = pathname.startsWith("/admin");
-
-  // While checking admin navbar on admin pages, show nothing
   if (loading && isAdminPage) {
     return null;
   }
 
-  // On admin pages:
-  // - show AdminNavbar for valid admin accounts
-  // - otherwise show nothing, never public Navbar
   if (isAdminPage) {
     return showAdminNavbar ? <AdminNavbar /> : null;
   }
 
-  // Normal pages
   return <Navbar />;
 }

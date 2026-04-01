@@ -1,52 +1,61 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { createSupabaseBrowser } from "@/lib/supabase";
-import { useRouter } from "next/navigation";
+import SellerNavbar from "@/components/SellerNavbar";
 import { useToast } from "@/components/ToastProvider";
 import { useConfirm } from "@/components/ConfirmProvider";
 import {
-  ChevronDown,
-  ChevronUp,
   Search,
+  ShoppingBag,
+  CheckCircle2,
   Package,
   Truck,
-  CheckCircle2,
+  Clock3,
+  ChevronDown,
+  ChevronUp,
+  CircleDollarSign,
   MapPin,
-  CalendarDays,
-  ShieldCheck,
+  Filter,
+  ArrowRight,
 } from "lucide-react";
 
-type SellerBook = {
-  title: string;
-  author: string;
-  image_url: string | null;
-};
-
-type SellerOrderInfo = {
+type SellerOrder = {
   id: number;
-  created_at: string;
+  created_at: string | null;
+  total_amount: number | null;
+  shipping_address: string | null;
   payment_method: string | null;
   payment_status: string | null;
   delivery_method: string | null;
-  shipping_address: string | null;
+  shipping_fee: number | null;
   shipping_note: string | null;
+  order_status: string | null;
+};
+
+type SellerBook = {
+  id: number;
+  title: string | null;
+  author: string | null;
+  image_url: string | null;
 };
 
 type SellerOrderItem = {
   id: number;
-  quantity: number;
-  price: number;
+  quantity: number | null;
+  price: number | null;
   item_status: string | null;
   courier_name: string | null;
   tracking_number: string | null;
   estimated_delivery_date: string | null;
+  seller_id: string | null;
+  order_id: number;
   books: SellerBook | SellerBook[] | null;
-  orders: SellerOrderInfo | SellerOrderInfo[] | null;
 };
 
-type GroupedOrder = {
-  order: SellerOrderInfo;
+type SellerOrderGroup = {
+  order: SellerOrder;
   items: SellerOrderItem[];
 };
 
@@ -56,222 +65,222 @@ function SkeletonBox({ className = "" }: { className?: string }) {
   );
 }
 
-function SellerOrdersPageSkeleton() {
+function SellerOrdersSkeleton() {
   return (
-    <main className="min-h-screen bg-[#F7F5F1] px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-6xl">
-        <div className="overflow-hidden rounded-[32px] border border-[#EEE7DC] bg-gradient-to-br from-[#FFF8F1] via-[#FFFDF9] to-[#F9F4EC] px-6 py-8 shadow-[0_12px_40px_rgba(31,31,31,0.06)] sm:px-8 sm:py-10">
-          <SkeletonBox className="h-5 w-36 rounded-full" />
-          <SkeletonBox className="mt-4 h-12 w-64" />
-          <SkeletonBox className="mt-3 h-5 w-80 max-w-full" />
-        </div>
+    <>
+      <SellerNavbar />
+      <main className="min-h-screen bg-[#F7F4EE] px-4 py-6 sm:px-6 lg:px-10 xl:px-20 md:ml-[240px]">
+        <div className="mx-auto w-full max-w-[1200px]">
+          <section className="rounded-[28px] border border-[#E5E0D8] bg-white p-5 sm:p-6 lg:p-8">
+            <SkeletonBox className="h-5 w-36" />
+            <SkeletonBox className="mt-4 h-10 w-64 max-w-full" />
+            <SkeletonBox className="mt-3 h-5 w-[420px] max-w-full" />
+          </section>
 
-        <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {[...Array(4)].map((_, index) => (
-            <div
-              key={index}
-              className="rounded-[28px] border border-[#E8E1D7] bg-[#FFFDF9] p-5 shadow-[0_10px_28px_rgba(31,31,31,0.05)]"
-            >
-              <SkeletonBox className="h-4 w-28" />
-              <SkeletonBox className="mt-4 h-8 w-16" />
-            </div>
-          ))}
-        </div>
-
-        <div className="mt-6 rounded-[28px] border border-[#E8E1D7] bg-[#FFFDF9] p-5 shadow-[0_8px_24px_rgba(31,31,31,0.05)]">
-          <div className="grid gap-4 md:grid-cols-[1fr_220px]">
-            <SkeletonBox className="h-12 w-full rounded-2xl" />
-            <SkeletonBox className="h-12 w-full rounded-2xl" />
-          </div>
-        </div>
-
-        <div className="mt-6 space-y-4">
-          {[...Array(3)].map((_, index) => (
-            <div
-              key={index}
-              className="rounded-[28px] border border-[#E8E1D7] bg-[#FFFDF9] p-5 shadow-[0_10px_28px_rgba(31,31,31,0.05)]"
-            >
-              <SkeletonBox className="h-8 w-40" />
-              <SkeletonBox className="mt-3 h-4 w-40" />
-              <div className="mt-5 space-y-3">
-                <SkeletonBox className="h-24 w-full rounded-2xl" />
-                <SkeletonBox className="h-40 w-full rounded-2xl" />
+          <section className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {[...Array(4)].map((_, index) => (
+              <div
+                key={index}
+                className="rounded-[24px] border border-[#E5E0D8] bg-white p-5"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <SkeletonBox className="h-4 w-24" />
+                    <SkeletonBox className="mt-4 h-8 w-16" />
+                    <SkeletonBox className="mt-2 h-4 w-28" />
+                  </div>
+                  <SkeletonBox className="h-11 w-11" />
+                </div>
               </div>
+            ))}
+          </section>
+
+          <section className="mt-6 rounded-[28px] border border-[#E5E0D8] bg-white p-5 sm:p-6">
+            <div className="grid gap-4 md:grid-cols-[1fr_220px]">
+              <SkeletonBox className="h-12 w-full rounded-2xl" />
+              <SkeletonBox className="h-12 w-full rounded-2xl" />
             </div>
-          ))}
+          </section>
+
+          <section className="mt-6 space-y-4">
+            {[...Array(3)].map((_, index) => (
+              <div
+                key={index}
+                className="rounded-[28px] border border-[#E5E0D8] bg-white p-5"
+              >
+                <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_120px]">
+                  <div>
+                    <SkeletonBox className="h-6 w-40" />
+                    <SkeletonBox className="mt-3 h-4 w-60" />
+                    <SkeletonBox className="mt-3 h-4 w-44" />
+                  </div>
+                  <div className="flex items-start justify-end">
+                    <SkeletonBox className="h-10 w-24 rounded-2xl" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </section>
         </div>
-      </div>
-    </main>
+      </main>
+    </>
   );
+}
+
+function formatCurrency(value: number | null | undefined) {
+  return `₱${Number(value || 0).toFixed(2)}`;
+}
+
+function formatDate(value: string | null | undefined) {
+  if (!value) return "—";
+  return new Date(value).toLocaleDateString();
+}
+
+function getBook(item: SellerOrderItem): SellerBook | null {
+  if (!item.books) return null;
+  return Array.isArray(item.books) ? item.books[0] || null : item.books;
+}
+
+function getOrderGroupStatus(group: SellerOrderGroup) {
+  const statuses = group.items.map((item) =>
+    (item.item_status || "").toLowerCase(),
+  );
+
+  if (statuses.some((status) => status === "pending")) return "pending";
+  if (statuses.some((status) => status === "confirmed")) return "confirmed";
+  if (statuses.some((status) => status === "packed")) return "packed";
+  if (statuses.some((status) => status === "shipped")) return "shipped";
+  if (statuses.some((status) => status === "out_for_delivery"))
+    return "out_for_delivery";
+  if (statuses.some((status) => status === "cancelled")) return "cancelled";
+  if (statuses.every((status) => status === "delivered")) return "delivered";
+
+  return group.order.order_status || "pending";
+}
+
+function statusLabel(status: string) {
+  const safe = status.toLowerCase();
+
+  if (safe === "out_for_delivery") return "Out for Delivery";
+  return safe.charAt(0).toUpperCase() + safe.slice(1).replace(/_/g, " ");
+}
+
+function statusTone(status: string) {
+  const safe = status.toLowerCase();
+
+  if (safe === "pending")
+    return "border-yellow-200 bg-yellow-50 text-yellow-700";
+  if (safe === "confirmed") return "border-blue-200 bg-blue-50 text-blue-700";
+  if (safe === "packed")
+    return "border-purple-200 bg-purple-50 text-purple-700";
+  if (safe === "shipped" || safe === "out_for_delivery")
+    return "border-sky-200 bg-sky-50 text-sky-700";
+  if (safe === "delivered")
+    return "border-green-200 bg-green-50 text-green-700";
+  if (safe === "cancelled") return "border-red-200 bg-red-50 text-red-700";
+
+  return "border-[#E5DED2] bg-[#F6EFE6] text-[#8A8175]";
 }
 
 export default function SellerOrdersPage() {
   const supabase = createSupabaseBrowser();
-
-  const router = useRouter();
   const { showToast } = useToast();
   const { confirm } = useConfirm();
 
-  const [groupedOrders, setGroupedOrders] = useState<GroupedOrder[]>([]);
+  const [orders, setOrders] = useState<SellerOrderGroup[]>([]);
   const [loading, setLoading] = useState(true);
-  const [savingId, setSavingId] = useState<number | null>(null);
-  const [openOrders, setOpenOrders] = useState<number[]>([]);
 
   const [searchText, setSearchText] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [openOrders, setOpenOrders] = useState<number[]>([]);
+  const [actionLoadingId, setActionLoadingId] = useState<number | null>(null);
 
-  const [courierInputs, setCourierInputs] = useState<Record<number, string>>(
-    {},
-  );
-  const [trackingInputs, setTrackingInputs] = useState<Record<number, string>>(
-    {},
-  );
-  const [etaInputs, setEtaInputs] = useState<Record<number, string>>({});
+  const fetchOrders = async () => {
+    try {
+      setLoading(true);
 
-  const getBook = (item: SellerOrderItem): SellerBook | null => {
-    if (!item.books) return null;
-    return Array.isArray(item.books) ? (item.books[0] ?? null) : item.books;
-  };
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
-  const getOrder = (item: SellerOrderItem): SellerOrderInfo | null => {
-    if (!item.orders) return null;
-    return Array.isArray(item.orders) ? (item.orders[0] ?? null) : item.orders;
-  };
-
-  const formatStatus = (status: string | null) => {
-    const map: Record<string, string> = {
-      pending: "Pending",
-      confirmed: "Confirmed",
-      packed: "Packed",
-      shipped: "Shipped",
-      out_for_delivery: "Out for Delivery",
-      delivered: "Delivered",
-      received: "Received",
-      cancelled: "Cancelled",
-    };
-
-    return map[status || "pending"] || status || "Pending";
-  };
-
-  const getStatusBadgeClass = (status: string | null) => {
-    switch (status) {
-      case "confirmed":
-        return "border-blue-200 bg-blue-50 text-blue-700";
-      case "packed":
-        return "border-purple-200 bg-purple-50 text-purple-700";
-      case "shipped":
-        return "border-orange-200 bg-orange-50 text-orange-700";
-      case "out_for_delivery":
-        return "border-amber-200 bg-amber-50 text-amber-700";
-      case "delivered":
-        return "border-green-200 bg-green-50 text-green-700";
-      case "received":
-        return "border-emerald-200 bg-emerald-50 text-emerald-700";
-      case "cancelled":
-        return "border-red-200 bg-red-50 text-red-700";
-      default:
-        return "border-gray-200 bg-gray-50 text-gray-700";
-    }
-  };
-
-  const fetchSellerOrders = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      router.push("/login");
-      return;
-    }
-
-    const { data, error } = await supabase
-      .from("order_items")
-      .select(
-        `
-        id,
-        quantity,
-        price,
-        item_status,
-        courier_name,
-        tracking_number,
-        estimated_delivery_date,
-        books (
-          title,
-          author,
-          image_url
-        ),
-        orders (
-          id,
-          created_at,
-          payment_method,
-          payment_status,
-          delivery_method,
-          shipping_address,
-          shipping_note
-        )
-        `,
-      )
-      .eq("seller_id", user.id)
-      .order("id", { ascending: false });
-
-    if (error) {
-      showToast({
-        title: "Failed to load orders",
-        message: error.message,
-        type: "error",
-      });
-      setLoading(false);
-      return;
-    }
-
-    const items = (data as unknown as SellerOrderItem[]) || [];
-    const groupedMap = new Map<number, GroupedOrder>();
-
-    items.forEach((item) => {
-      const order = getOrder(item);
-      if (!order) return;
-
-      if (!groupedMap.has(order.id)) {
-        groupedMap.set(order.id, {
-          order,
-          items: [],
-        });
+      if (!user) {
+        setOrders([]);
+        setLoading(false);
+        return;
       }
 
-      groupedMap.get(order.id)?.items.push(item);
-    });
+      const { data: orderItemsData, error: itemsError } = await supabase
+        .from("order_items")
+        .select(
+          `
+          id,
+          quantity,
+          price,
+          item_status,
+          courier_name,
+          tracking_number,
+          estimated_delivery_date,
+          seller_id,
+          order_id,
+          books (
+            id,
+            title,
+            author,
+            image_url
+          )
+        `,
+        )
+        .eq("seller_id", user.id)
+        .order("id", { ascending: false });
 
-    const grouped = Array.from(groupedMap.values()).sort(
-      (a, b) =>
-        new Date(b.order.created_at).getTime() -
-        new Date(a.order.created_at).getTime(),
-    );
+      if (itemsError) throw itemsError;
 
-    setGroupedOrders(grouped);
+      const sellerItems = (orderItemsData || []) as SellerOrderItem[];
 
-    if (grouped.length > 0 && openOrders.length === 0) {
-      setOpenOrders([grouped[0].order.id]);
+      if (sellerItems.length === 0) {
+        setOrders([]);
+        setLoading(false);
+        return;
+      }
+
+      const orderIds = [...new Set(sellerItems.map((item) => item.order_id))];
+
+      const { data: ordersData, error: ordersError } = await supabase
+        .from("orders")
+        .select(
+          "id, created_at, total_amount, shipping_address, payment_method, payment_status, delivery_method, shipping_fee, shipping_note, order_status",
+        )
+        .in("id", orderIds)
+        .order("created_at", { ascending: false });
+
+      if (ordersError) throw ordersError;
+
+      const orderList = (ordersData as SellerOrder[]) || [];
+
+      const grouped = orderList.map((order) => ({
+        order,
+        items: sellerItems.filter((item) => item.order_id === order.id),
+      }));
+
+      setOrders(grouped);
+
+      if (grouped.length > 0) {
+        setOpenOrders([grouped[0].order.id]);
+      }
+    } catch (error) {
+      console.error("Failed to load seller orders:", error);
+      showToast({
+        title: "Load failed",
+        message: "Failed to load seller orders.",
+        type: "error",
+      });
+    } finally {
+      setLoading(false);
     }
-
-    const nextCourier: Record<number, string> = {};
-    const nextTracking: Record<number, string> = {};
-    const nextEta: Record<number, string> = {};
-
-    items.forEach((item) => {
-      nextCourier[item.id] = item.courier_name || "";
-      nextTracking[item.id] = item.tracking_number || "";
-      nextEta[item.id] = item.estimated_delivery_date || "";
-    });
-
-    setCourierInputs(nextCourier);
-    setTrackingInputs(nextTracking);
-    setEtaInputs(nextEta);
-
-    setLoading(false);
   };
 
   useEffect(() => {
-    fetchSellerOrders();
+    fetchOrders();
   }, []);
 
   const toggleOrderOpen = (orderId: number) => {
@@ -282,221 +291,17 @@ export default function SellerOrdersPage() {
     );
   };
 
-  const syncParentOrderStatus = async (orderId: number) => {
-    const { data: siblingItems, error: siblingError } = await supabase
-      .from("order_items")
-      .select("item_status")
-      .eq("order_id", orderId);
-
-    if (siblingError) {
-      throw new Error(siblingError.message);
-    }
-
-    const statuses = (siblingItems || []).map((item) => item.item_status);
-
-    let overallOrderStatus = "pending";
-
-    if (statuses.every((s) => s === "delivered" || s === "received")) {
-      overallOrderStatus = "delivered";
-    } else if (statuses.some((s) => s === "out_for_delivery")) {
-      overallOrderStatus = "out_for_delivery";
-    } else if (statuses.some((s) => s === "shipped")) {
-      overallOrderStatus = "shipped";
-    } else if (statuses.some((s) => s === "packed")) {
-      overallOrderStatus = "packed";
-    } else if (statuses.some((s) => s === "confirmed")) {
-      overallOrderStatus = "confirmed";
-    } else if (statuses.every((s) => s === "cancelled")) {
-      overallOrderStatus = "cancelled";
-    }
-
-    const { error: orderError } = await supabase
-      .from("orders")
-      .update({
-        order_status: overallOrderStatus,
-      })
-      .eq("id", orderId);
-
-    if (orderError) {
-      throw new Error(orderError.message);
-    }
-  };
-
-  const saveShippingInfo = async (itemId: number) => {
-    setSavingId(itemId);
-
-    const courier = courierInputs[itemId] || null;
-    const tracking = trackingInputs[itemId] || null;
-    const eta = etaInputs[itemId] || null;
-
-    const { error } = await supabase
-      .from("order_items")
-      .update({
-        courier_name: courier,
-        tracking_number: tracking,
-        estimated_delivery_date: eta,
-      })
-      .eq("id", itemId);
-
-    if (error) {
-      setSavingId(null);
-      showToast({
-        title: "Save failed",
-        message: error.message,
-        type: "error",
-      });
-      return;
-    }
-
-    setSavingId(null);
-    showToast({
-      title: "Shipping info saved",
-      message: "The shipping details were saved successfully.",
-      type: "success",
-    });
-    fetchSellerOrders();
-  };
-
-  const updateItemStatus = async (
-    itemId: number,
-    orderId: number,
-    nextStatus:
-      | "confirmed"
-      | "packed"
-      | "shipped"
-      | "out_for_delivery"
-      | "delivered"
-      | "cancelled",
-  ) => {
-    const statusMessages: Record<
-      string,
-      {
-        title: string;
-        message: string;
-        danger?: boolean;
-        confirmText: string;
-        cancelText: string;
-      }
-    > = {
-      confirmed: {
-        title: "Confirm Item?",
-        message: "Mark this order item as confirmed?",
-        confirmText: "Confirm",
-        cancelText: "Back",
-      },
-      packed: {
-        title: "Mark as Packed?",
-        message:
-          "Confirm that this item is already packed and ready for shipment.",
-        confirmText: "Mark Packed",
-        cancelText: "Back",
-      },
-      shipped: {
-        title: "Mark as Shipped?",
-        message: "Confirm that this item has already been shipped.",
-        confirmText: "Mark Shipped",
-        cancelText: "Back",
-      },
-      out_for_delivery: {
-        title: "Mark as Out for Delivery?",
-        message: "Confirm that this item is already out for delivery.",
-        confirmText: "Update Status",
-        cancelText: "Back",
-      },
-      delivered: {
-        title: "Mark as Delivered?",
-        message:
-          "Confirm that this item has already been delivered to the buyer.",
-        confirmText: "Mark Delivered",
-        cancelText: "Back",
-      },
-      cancelled: {
-        title: "Cancel Item?",
-        message: "Are you sure you want to cancel this order item?",
-        confirmText: "Cancel Item",
-        cancelText: "Keep Item",
-        danger: true,
-      },
-    };
-
-    const config = statusMessages[nextStatus];
-
-    const confirmed = await confirm({
-      title: config.title,
-      message: config.message,
-      confirmText: config.confirmText,
-      cancelText: config.cancelText,
-      danger: config.danger,
-    });
-
-    if (!confirmed) return;
-
-    setSavingId(itemId);
-
-    const courier = courierInputs[itemId] || null;
-    const tracking = trackingInputs[itemId] || null;
-
-    if (
-      ["shipped", "out_for_delivery", "delivered"].includes(nextStatus) &&
-      (!courier || !tracking)
-    ) {
-      setSavingId(null);
-      showToast({
-        title: "Missing shipping details",
-        message:
-          "Please fill in and save courier and tracking number first before updating this status.",
-        type: "error",
-      });
-      return;
-    }
-
-    const { error: itemError } = await supabase
-      .from("order_items")
-      .update({
-        item_status: nextStatus,
-      })
-      .eq("id", itemId);
-
-    if (itemError) {
-      setSavingId(null);
-      showToast({
-        title: "Status update failed",
-        message: itemError.message,
-        type: "error",
-      });
-      return;
-    }
-
-    try {
-      await syncParentOrderStatus(orderId);
-    } catch (error) {
-      setSavingId(null);
-      showToast({
-        title: "Order sync failed",
-        message:
-          error instanceof Error ? error.message : "Failed to sync order.",
-        type: "error",
-      });
-      return;
-    }
-
-    setSavingId(null);
-    showToast({
-      title: "Status updated",
-      message: `Item status changed to ${formatStatus(nextStatus)}.`,
-      type: "success",
-    });
-    fetchSellerOrders();
-  };
-
   const filteredOrders = useMemo(() => {
     const query = searchText.trim().toLowerCase();
 
-    return groupedOrders.filter((group) => {
+    return orders.filter((group) => {
+      const groupStatus = getOrderGroupStatus(group).toLowerCase();
+
       const orderMatches =
         String(group.order.id).includes(query) ||
         (group.order.shipping_address || "").toLowerCase().includes(query) ||
-        (group.order.payment_method || "").toLowerCase().includes(query);
+        (group.order.payment_method || "").toLowerCase().includes(query) ||
+        (group.order.delivery_method || "").toLowerCase().includes(query);
 
       const itemMatches = group.items.some((item) => {
         const book = getBook(item);
@@ -509,478 +314,497 @@ export default function SellerOrdersPage() {
       });
 
       const statusMatches =
-        statusFilter === "all" ||
-        group.items.some(
-          (item) => (item.item_status || "pending") === statusFilter,
-        );
+        statusFilter === "all" || groupStatus === statusFilter;
 
-      const searchMatches = !query || orderMatches || itemMatches;
-
-      return searchMatches && statusMatches;
+      if (!query) return statusMatches;
+      return statusMatches && (orderMatches || itemMatches);
     });
-  }, [groupedOrders, searchText, statusFilter]);
+  }, [orders, searchText, statusFilter]);
 
-  const totalOrders = groupedOrders.length;
-  const pendingOrders = groupedOrders.filter((group) =>
-    group.items.some((item) => (item.item_status || "pending") === "pending"),
+  const totalOrders = orders.length;
+  const pendingCount = orders.filter(
+    (group) => getOrderGroupStatus(group).toLowerCase() === "pending",
   ).length;
-  const shippedOrders = groupedOrders.filter((group) =>
-    group.items.some((item) =>
-      ["shipped", "out_for_delivery"].includes(item.item_status || ""),
-    ),
+  const deliveredCount = orders.filter(
+    (group) => getOrderGroupStatus(group).toLowerCase() === "delivered",
   ).length;
-  const deliveredOrders = groupedOrders.filter((group) =>
-    group.items.every((item) =>
-      ["delivered", "received"].includes(item.item_status || ""),
-    ),
-  ).length;
+  const revenueEstimate = orders.reduce(
+    (sum, group) =>
+      sum +
+      group.items.reduce(
+        (inner, item) => inner + (item.price || 0) * (item.quantity || 0),
+        0,
+      ),
+    0,
+  );
 
-  const actionButtonClass =
-    "rounded-full border px-3 py-1.5 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-50";
+  const updateItemStatus = async (
+    itemId: number,
+    nextStatus:
+      | "confirmed"
+      | "packed"
+      | "shipped"
+      | "out_for_delivery"
+      | "delivered",
+  ) => {
+    const confirmed = await confirm({
+      title: "Update order item status?",
+      message: `Change this order item to ${statusLabel(nextStatus)}?`,
+      confirmText: "Update",
+      cancelText: "Cancel",
+    });
+
+    if (!confirmed) return;
+
+    try {
+      setActionLoadingId(itemId);
+
+      const { error } = await supabase
+        .from("order_items")
+        .update({ item_status: nextStatus })
+        .eq("id", itemId);
+
+      if (error) throw error;
+
+      setOrders((prev) =>
+        prev.map((group) => ({
+          ...group,
+          items: group.items.map((item) =>
+            item.id === itemId ? { ...item, item_status: nextStatus } : item,
+          ),
+        })),
+      );
+
+      showToast({
+        title: "Status updated",
+        message: `Item marked as ${statusLabel(nextStatus)}.`,
+        type: "success",
+      });
+    } catch (error) {
+      console.error("Failed to update seller item status:", error);
+      showToast({
+        title: "Update failed",
+        message: "Failed to update item status.",
+        type: "error",
+      });
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
 
   if (loading) {
-    return <SellerOrdersPageSkeleton />;
+    return <SellerOrdersSkeleton />;
   }
 
   return (
-    <main className="min-h-screen bg-[#F7F5F1] px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-6xl">
-        <section className="relative overflow-hidden rounded-[32px] border border-[#EEE7DC] bg-gradient-to-br from-[#FFF8F1] via-[#FFFDF9] to-[#F9F4EC] px-6 py-8 shadow-[0_12px_40px_rgba(31,31,31,0.06)] sm:px-8 sm:py-10">
-          <div className="pointer-events-none absolute -right-16 -top-16 h-44 w-44 rounded-full bg-[#E67E22]/10 blur-3xl" />
-          <div className="pointer-events-none absolute bottom-0 left-0 h-32 w-32 rounded-full bg-[#F3C998]/20 blur-2xl" />
+    <>
+      <SellerNavbar />
 
-          <div className="relative z-10 max-w-2xl">
-            <p className="inline-flex rounded-full bg-[#E67E22]/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.24em] text-[#C96A16]">
-              Seller Fulfillment
+      <main className="min-h-screen bg-[#F7F4EE] px-4 py-6 sm:px-6 lg:px-10 xl:px-20 md:ml-[240px]">
+        <div className="mx-auto w-full max-w-[1200px]">
+          <section className="rounded-[28px] border border-[#E5E0D8] bg-white p-5 sm:p-6 lg:p-8">
+            <p className="inline-flex rounded-full bg-[#FFF3E7] px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.24em] text-[#C96A16]">
+              Seller Dashboard
             </p>
 
-            <h1 className="mt-4 text-3xl font-bold tracking-tight text-[#1F1F1F] sm:text-4xl lg:text-5xl">
+            <h1 className="mt-4 text-3xl font-bold tracking-tight text-[#1F1F1F] sm:text-4xl">
               Seller Orders
             </h1>
 
-            <p className="mt-3 max-w-xl text-sm leading-7 text-[#6B6B6B] sm:text-base">
-              Review customer orders, save shipping details, and update item
-              fulfillment from one clean dashboard.
+            <p className="mt-3 max-w-2xl text-sm leading-7 text-[#5F5A52] sm:text-base">
+              Review incoming orders, update item progress, and track buyer
+              delivery details in one cleaner seller order space.
             </p>
-          </div>
-        </section>
-
-        <section className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <div className="rounded-[28px] border border-[#E8E1D7] bg-[#FFFDF9] p-5 shadow-[0_10px_28px_rgba(31,31,31,0.05)]">
-            <div className="flex items-center gap-2">
-              <Package className="text-[#E67E22]" size={16} />
-              <span className="text-sm text-[#6B6B6B]">Total Orders</span>
-            </div>
-            <p className="mt-3 text-3xl font-bold text-[#1F1F1F]">
-              {totalOrders}
-            </p>
-          </div>
-
-          <div className="rounded-[28px] border border-[#E8E1D7] bg-[#FFFDF9] p-5 shadow-[0_10px_28px_rgba(31,31,31,0.05)]">
-            <div className="flex items-center gap-2">
-              <Package className="text-[#E67E22]" size={16} />
-              <span className="text-sm text-[#6B6B6B]">Pending</span>
-            </div>
-            <p className="mt-3 text-3xl font-bold text-[#1F1F1F]">
-              {pendingOrders}
-            </p>
-          </div>
-
-          <div className="rounded-[28px] border border-[#E8E1D7] bg-[#FFFDF9] p-5 shadow-[0_10px_28px_rgba(31,31,31,0.05)]">
-            <div className="flex items-center gap-2">
-              <Truck className="text-[#E67E22]" size={16} />
-              <span className="text-sm text-[#6B6B6B]">In Transit</span>
-            </div>
-            <p className="mt-3 text-3xl font-bold text-[#1F1F1F]">
-              {shippedOrders}
-            </p>
-          </div>
-
-          <div className="rounded-[28px] border border-[#E8E1D7] bg-[#FFFDF9] p-5 shadow-[0_10px_28px_rgba(31,31,31,0.05)]">
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="text-[#E67E22]" size={16} />
-              <span className="text-sm text-[#6B6B6B]">Delivered</span>
-            </div>
-            <p className="mt-3 text-3xl font-bold text-[#1F1F1F]">
-              {deliveredOrders}
-            </p>
-          </div>
-        </section>
-
-        <section className="mt-6 rounded-[28px] border border-[#E8E1D7] bg-[#FFFDF9] p-5 shadow-[0_8px_24px_rgba(31,31,31,0.05)]">
-          <div className="grid gap-4 md:grid-cols-[1fr_220px]">
-            <div className="relative">
-              <Search
-                size={16}
-                className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#8A8175]"
-              />
-              <input
-                type="text"
-                placeholder="Search order ID, title, address, courier, tracking..."
-                value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
-                className="w-full rounded-2xl border border-[#DED8CF] bg-white py-3 pl-10 pr-4 text-sm text-[#5F5A52] outline-none transition focus:border-[#E67E22] focus:ring-1 focus:ring-[#E67E22]"
-              />
-            </div>
-
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full rounded-2xl border border-[#DED8CF] bg-white px-4 py-3 text-sm text-[#5F5A52] outline-none transition focus:border-[#E67E22] focus:ring-1 focus:ring-[#E67E22]"
-            >
-              <option value="all">All Statuses</option>
-              <option value="pending">Pending</option>
-              <option value="confirmed">Confirmed</option>
-              <option value="packed">Packed</option>
-              <option value="shipped">Shipped</option>
-              <option value="out_for_delivery">Out for Delivery</option>
-              <option value="delivered">Delivered</option>
-              <option value="cancelled">Cancelled</option>
-            </select>
-          </div>
-        </section>
-
-        {filteredOrders.length === 0 ? (
-          <section className="mt-8 rounded-[32px] border border-[#E8E1D7] bg-[#FFFDF9] p-10 text-center text-[#6B6B6B] shadow-[0_12px_30px_rgba(31,31,31,0.05)]">
-            No matching seller orders found.
           </section>
-        ) : (
-          <section className="mt-8 space-y-4">
-            {filteredOrders.map((group) => {
-              const isOpen = openOrders.includes(group.order.id);
-              const firstItem = group.items[0];
-              const firstBook = firstItem ? getBook(firstItem) : null;
 
-              return (
-                <article
-                  key={group.order.id}
-                  className="overflow-hidden rounded-[28px] border border-[#E8E1D7] bg-[#FFFDF9] p-5 shadow-[0_10px_28px_rgba(31,31,31,0.05)]"
-                >
-                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex min-w-0 items-center gap-3">
-                      {firstBook?.image_url ? (
-                        <img
-                          src={firstBook.image_url}
-                          alt={firstBook.title}
-                          className="h-16 w-12 rounded-xl object-cover"
-                        />
-                      ) : (
-                        <div className="flex h-16 w-12 items-center justify-center rounded-xl bg-[#F1ECE4] text-[10px] text-[#8A8175]">
-                          No Image
-                        </div>
-                      )}
+          <section className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <SummaryCard
+              title="Total Orders"
+              value={totalOrders}
+              subtitle="All orders linked to you"
+              icon={ShoppingBag}
+            />
+            <SummaryCard
+              title="Pending"
+              value={pendingCount}
+              subtitle="Needs seller attention"
+              icon={Clock3}
+              warn={pendingCount > 0}
+            />
+            <SummaryCard
+              title="Delivered"
+              value={deliveredCount}
+              subtitle="Completed seller orders"
+              icon={CheckCircle2}
+            />
+            <SummaryCard
+              title="Revenue Estimate"
+              value={formatCurrency(revenueEstimate)}
+              subtitle="Based on your sold items"
+              icon={CircleDollarSign}
+            />
+          </section>
 
-                      <div className="min-w-0">
-                        <h2 className="text-xl font-bold text-[#1F1F1F]">
-                          Order #{group.order.id}
-                        </h2>
-                        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-[#6B6B6B]">
-                          <span>
-                            {new Date(
-                              group.order.created_at,
-                            ).toLocaleDateString()}
-                          </span>
-                          <span>•</span>
-                          <span>{group.items.length} item(s)</span>
-                          <span>•</span>
-                          <span>{group.order.payment_method || "N/A"}</span>
-                        </div>
-                      </div>
-                    </div>
+          <section className="mt-6 rounded-[28px] border border-[#E5E0D8] bg-white p-5 sm:p-6">
+            <div className="mb-4 flex items-center gap-2">
+              <Filter size={18} className="text-[#8A8175]" />
+              <p className="text-sm font-semibold text-[#1F1F1F]">
+                Search and filter seller orders
+              </p>
+            </div>
 
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="rounded-full border border-[#E5E0D8] bg-white px-3 py-1.5 text-sm font-medium text-[#1F1F1F]">
-                        Payment: {group.order.payment_status || "N/A"}
-                      </span>
+            <div className="grid gap-4 md:grid-cols-[1fr_220px]">
+              <div className="relative">
+                <Search
+                  size={16}
+                  className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#8A8175]"
+                />
+                <input
+                  type="text"
+                  placeholder="Search order ID, title, address, courier, tracking"
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
+                  className="w-full rounded-2xl border border-[#DED8CF] bg-white py-3 pl-10 pr-4 text-sm text-[#5F5A52] outline-none transition focus:border-[#E67E22] focus:ring-1 focus:ring-[#E67E22]"
+                />
+              </div>
 
-                      <button
-                        onClick={() => toggleOrderOpen(group.order.id)}
-                        className="inline-flex items-center gap-1 rounded-full border border-[#D9D1C6] bg-white px-3 py-1.5 text-sm font-semibold text-[#1F1F1F] transition hover:bg-[#F7F4EE]"
-                      >
-                        {isOpen ? "Hide" : "View"}
-                        {isOpen ? (
-                          <ChevronUp size={14} />
-                        ) : (
-                          <ChevronDown size={14} />
-                        )}
-                      </button>
-                    </div>
-                  </div>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="w-full rounded-2xl border border-[#DED8CF] bg-white px-4 py-3 text-sm text-[#5F5A52] outline-none transition focus:border-[#E67E22] focus:ring-1 focus:ring-[#E67E22]"
+              >
+                <option value="all">All Statuses</option>
+                <option value="pending">Pending</option>
+                <option value="confirmed">Confirmed</option>
+                <option value="packed">Packed</option>
+                <option value="shipped">Shipped</option>
+                <option value="out_for_delivery">Out for Delivery</option>
+                <option value="delivered">Delivered</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+            </div>
+          </section>
 
-                  {isOpen && (
-                    <div className="mt-5 border-t border-[#EEE6DB] pt-5">
-                      <div className="mb-4 grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-                        <div className="rounded-2xl bg-[#FFFDF9] p-4 ring-1 ring-[#EDE7DE]">
-                          <p className="text-[11px] font-semibold uppercase tracking-wide text-[#8A8175]">
-                            Buyer Shipping Address
-                          </p>
-                          <div className="mt-3 flex items-start gap-2 text-sm leading-6 text-[#1F1F1F]">
-                            <MapPin
-                              size={16}
-                              className="mt-1 shrink-0 text-[#E67E22]"
+          {filteredOrders.length === 0 ? (
+            <section className="mt-6 rounded-[28px] border border-[#E5E0D8] bg-white p-10 text-center">
+              <p className="text-lg font-semibold text-[#1F1F1F]">
+                No matching seller orders found
+              </p>
+              <p className="mt-2 text-sm text-[#5F5A52]">
+                Try adjusting your search or status filter.
+              </p>
+            </section>
+          ) : (
+            <section className="mt-6 space-y-4">
+              {filteredOrders.map((group) => {
+                const isOpen = openOrders.includes(group.order.id);
+                const groupStatus = getOrderGroupStatus(group);
+                const firstItem = group.items[0];
+                const firstBook = firstItem ? getBook(firstItem) : null;
+
+                return (
+                  <article
+                    key={group.order.id}
+                    className="overflow-hidden rounded-[28px] border border-[#E5E0D8] bg-white"
+                  >
+                    <button
+                      onClick={() => toggleOrderOpen(group.order.id)}
+                      className="flex w-full items-start justify-between gap-4 p-5 text-left transition hover:bg-[#FFFDF9] sm:p-6"
+                    >
+                      <div className="flex min-w-0 flex-1 gap-4">
+                        <div className="flex h-24 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-[#EEE6DB] bg-[#F7F4EE]">
+                          {firstBook?.image_url ? (
+                            <img
+                              src={firstBook.image_url}
+                              alt={firstBook.title || "Book image"}
+                              className="h-full w-full object-cover"
                             />
+                          ) : (
+                            <div className="text-[#9C9489]">
+                              <Package size={18} />
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h2 className="text-xl font-bold text-[#1F1F1F]">
+                              Order #{group.order.id}
+                            </h2>
+                            <span
+                              className={`rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide ${statusTone(
+                                groupStatus,
+                              )}`}
+                            >
+                              {statusLabel(groupStatus)}
+                            </span>
+                          </div>
+
+                          <p className="mt-2 text-sm text-[#5F5A52]">
+                            {firstBook?.title || "Order items"}
+                          </p>
+
+                          <div className="mt-3 flex flex-wrap gap-3 text-sm text-[#8A8175]">
                             <span>
+                              Placed {formatDate(group.order.created_at)}
+                            </span>
+                            <span>•</span>
+                            <span>{group.items.length} item(s)</span>
+                            <span>•</span>
+                            <span>
+                              {group.order.payment_method || "Payment not set"}
+                            </span>
+                          </div>
+
+                          <div className="mt-3 flex items-start gap-2 text-sm text-[#6B6B6B]">
+                            <MapPin
+                              size={15}
+                              className="mt-0.5 shrink-0 text-[#8A8175]"
+                            />
+                            <span className="line-clamp-2">
                               {group.order.shipping_address ||
                                 "No shipping address"}
                             </span>
                           </div>
                         </div>
-
-                        <div className="rounded-2xl bg-[#FFFDF9] p-4 ring-1 ring-[#EDE7DE]">
-                          <p className="text-[11px] font-semibold uppercase tracking-wide text-[#8A8175]">
-                            Shipping Note
-                          </p>
-                          <p className="mt-3 text-sm leading-6 text-[#1F1F1F]">
-                            {group.order.shipping_note || "No shipping note"}
-                          </p>
-
-                          <div className="mt-4 flex items-start gap-2 text-xs leading-6 text-[#8A8175]">
-                            <CalendarDays
-                              size={14}
-                              className="mt-1 shrink-0 text-[#E67E22]"
-                            />
-                            <span>
-                              Delivery Method:{" "}
-                              {group.order.delivery_method || "N/A"}
-                            </span>
-                          </div>
-                        </div>
                       </div>
 
-                      <div className="mb-4 rounded-2xl bg-[#FCF7F0] p-4 text-sm text-[#6B6B6B]">
-                        <div className="flex items-start gap-3">
-                          <ShieldCheck
-                            size={18}
-                            className="mt-0.5 shrink-0 text-[#E67E22]"
-                          />
-                          <p>
-                            Save courier, tracking number, and ETA first before
-                            moving an item to shipped, out for delivery, or
-                            delivered.
+                      <div className="flex shrink-0 items-center gap-3">
+                        <div className="hidden text-right sm:block">
+                          <p className="text-lg font-bold text-[#E67E22]">
+                            {formatCurrency(
+                              group.items.reduce(
+                                (sum, item) =>
+                                  sum +
+                                  (item.price || 0) * (item.quantity || 0),
+                                0,
+                              ),
+                            )}
+                          </p>
+                          <p className="mt-1 text-xs text-[#9C9489]">
+                            Seller item value
                           </p>
                         </div>
+
+                        <div className="rounded-full bg-[#F7F4EE] p-2 text-[#8A8175]">
+                          {isOpen ? (
+                            <ChevronUp size={18} />
+                          ) : (
+                            <ChevronDown size={18} />
+                          )}
+                        </div>
                       </div>
+                    </button>
 
-                      <div className="space-y-3">
-                        {group.items.map((item) => {
-                          const book = getBook(item);
-                          const currentStatus = item.item_status || "pending";
+                    {isOpen && (
+                      <div className="border-t border-[#ECE5DA] bg-[#FFFDF9] px-5 py-5 sm:px-6">
+                        <div className="space-y-4">
+                          {group.items.map((item) => {
+                            const book = getBook(item);
+                            const currentStatus = (
+                              item.item_status || "pending"
+                            ).toLowerCase();
 
-                          return (
-                            <div
-                              key={item.id}
-                              className="rounded-2xl border border-[#E5E0D8] bg-[#FFFDF9] p-4"
-                            >
-                              <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                                <div className="flex min-w-0 items-center gap-3">
-                                  {book?.image_url ? (
-                                    <img
-                                      src={book.image_url}
-                                      alt={book.title}
-                                      className="h-16 w-12 rounded-xl object-cover"
-                                    />
-                                  ) : (
-                                    <div className="flex h-16 w-12 items-center justify-center rounded-xl bg-[#F1ECE4] text-[10px] text-[#8A8175]">
-                                      No Image
-                                    </div>
-                                  )}
-
+                            return (
+                              <div
+                                key={item.id}
+                                className="rounded-[24px] border border-[#E5E0D8] bg-white p-4"
+                              >
+                                <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px]">
                                   <div className="min-w-0">
-                                    <h3 className="truncate text-base font-semibold text-[#1F1F1F]">
-                                      {book?.title || "Book"}
-                                    </h3>
-                                    <p className="text-sm text-[#6B6B6B]">
-                                      {book?.author || "Unknown Author"}
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      <p className="text-lg font-bold text-[#1F1F1F]">
+                                        {book?.title || "Book item"}
+                                      </p>
+                                      <span
+                                        className={`rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide ${statusTone(
+                                          currentStatus,
+                                        )}`}
+                                      >
+                                        {statusLabel(currentStatus)}
+                                      </span>
+                                    </div>
+
+                                    <p className="mt-1 text-sm text-[#5F5A52]">
+                                      {book?.author || "Unknown author"}
                                     </p>
-                                    <div className="mt-1 flex flex-wrap gap-3 text-sm text-[#6B6B6B]">
-                                      <span>Qty: {item.quantity}</span>
-                                      <span>₱{item.price}</span>
+
+                                    <div className="mt-4 grid gap-2 text-sm text-[#5F5A52] sm:grid-cols-2">
+                                      <p>
+                                        Quantity:{" "}
+                                        <span className="font-semibold text-[#1F1F1F]">
+                                          {item.quantity || 0}
+                                        </span>
+                                      </p>
+                                      <p>
+                                        Item Value:{" "}
+                                        <span className="font-semibold text-[#E67E22]">
+                                          {formatCurrency(
+                                            (item.price || 0) *
+                                              (item.quantity || 0),
+                                          )}
+                                        </span>
+                                      </p>
+                                      <p>
+                                        Courier:{" "}
+                                        <span className="font-semibold text-[#1F1F1F]">
+                                          {item.courier_name || "Not set"}
+                                        </span>
+                                      </p>
+                                      <p>
+                                        Tracking:{" "}
+                                        <span className="font-semibold text-[#1F1F1F]">
+                                          {item.tracking_number || "Not set"}
+                                        </span>
+                                      </p>
+                                      <p className="sm:col-span-2">
+                                        Estimated Delivery:{" "}
+                                        <span className="font-semibold text-[#1F1F1F]">
+                                          {formatDate(
+                                            item.estimated_delivery_date,
+                                          )}
+                                        </span>
+                                      </p>
                                     </div>
                                   </div>
+
+                                  <div className="flex flex-col gap-3">
+                                    {currentStatus === "pending" && (
+                                      <ActionButton
+                                        label="Confirm"
+                                        icon={CheckCircle2}
+                                        loading={actionLoadingId === item.id}
+                                        onClick={() =>
+                                          updateItemStatus(item.id, "confirmed")
+                                        }
+                                      />
+                                    )}
+
+                                    {currentStatus === "confirmed" && (
+                                      <ActionButton
+                                        label="Mark Packed"
+                                        icon={Package}
+                                        loading={actionLoadingId === item.id}
+                                        onClick={() =>
+                                          updateItemStatus(item.id, "packed")
+                                        }
+                                      />
+                                    )}
+
+                                    {currentStatus === "packed" && (
+                                      <ActionButton
+                                        label="Mark Shipped"
+                                        icon={Truck}
+                                        loading={actionLoadingId === item.id}
+                                        onClick={() =>
+                                          updateItemStatus(item.id, "shipped")
+                                        }
+                                      />
+                                    )}
+
+                                    {currentStatus === "shipped" && (
+                                      <ActionButton
+                                        label="Out for Delivery"
+                                        icon={ArrowRight}
+                                        loading={actionLoadingId === item.id}
+                                        onClick={() =>
+                                          updateItemStatus(
+                                            item.id,
+                                            "out_for_delivery",
+                                          )
+                                        }
+                                      />
+                                    )}
+
+                                    {currentStatus === "out_for_delivery" && (
+                                      <ActionButton
+                                        label="Mark Delivered"
+                                        icon={CheckCircle2}
+                                        loading={actionLoadingId === item.id}
+                                        onClick={() =>
+                                          updateItemStatus(item.id, "delivered")
+                                        }
+                                      />
+                                    )}
+
+                                    {(currentStatus === "delivered" ||
+                                      currentStatus === "cancelled") && (
+                                      <div className="rounded-2xl border border-[#E5E0D8] bg-[#F7F4EE] px-4 py-3 text-center text-sm font-semibold text-[#6B6B6B]">
+                                        No more actions
+                                      </div>
+                                    )}
+                                  </div>
                                 </div>
-
-                                <span
-                                  className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${getStatusBadgeClass(
-                                    currentStatus,
-                                  )}`}
-                                >
-                                  {formatStatus(currentStatus)}
-                                </span>
                               </div>
-
-                              <div className="grid gap-3 md:grid-cols-3">
-                                <input
-                                  value={courierInputs[item.id] || ""}
-                                  onChange={(e) =>
-                                    setCourierInputs((prev) => ({
-                                      ...prev,
-                                      [item.id]: e.target.value,
-                                    }))
-                                  }
-                                  placeholder="Courier"
-                                  className="w-full rounded-xl border border-[#DED8CF] bg-white px-3 py-2.5 text-sm text-[#5F5A52] outline-none transition focus:border-[#E67E22] focus:ring-1 focus:ring-[#E67E22]"
-                                />
-
-                                <input
-                                  value={trackingInputs[item.id] || ""}
-                                  onChange={(e) =>
-                                    setTrackingInputs((prev) => ({
-                                      ...prev,
-                                      [item.id]: e.target.value,
-                                    }))
-                                  }
-                                  placeholder="Tracking Number"
-                                  className="w-full rounded-xl border border-[#DED8CF] bg-white px-3 py-2.5 text-sm text-[#5F5A52] outline-none transition focus:border-[#E67E22] focus:ring-1 focus:ring-[#E67E22]"
-                                />
-
-                                <input
-                                  type="date"
-                                  value={etaInputs[item.id] || ""}
-                                  onChange={(e) =>
-                                    setEtaInputs((prev) => ({
-                                      ...prev,
-                                      [item.id]: e.target.value,
-                                    }))
-                                  }
-                                  className="w-full rounded-xl border border-[#DED8CF] bg-white px-3 py-2.5 text-sm text-[#5F5A52] outline-none transition focus:border-[#E67E22] focus:ring-1 focus:ring-[#E67E22]"
-                                />
-                              </div>
-
-                              <div className="mt-4 flex flex-wrap items-center gap-2">
-                                <button
-                                  onClick={() => saveShippingInfo(item.id)}
-                                  disabled={savingId === item.id}
-                                  className="rounded-full border border-[#E67E22] bg-white px-3 py-1.5 text-xs font-semibold text-[#E67E22] transition hover:bg-[#FFF7EF] disabled:opacity-50"
-                                >
-                                  Save Shipping
-                                </button>
-
-                                <button
-                                  onClick={() =>
-                                    updateItemStatus(
-                                      item.id,
-                                      group.order.id,
-                                      "confirmed",
-                                    )
-                                  }
-                                  disabled={
-                                    savingId === item.id ||
-                                    !["pending"].includes(currentStatus)
-                                  }
-                                  className={`${actionButtonClass} border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100`}
-                                >
-                                  Confirm
-                                </button>
-
-                                <button
-                                  onClick={() =>
-                                    updateItemStatus(
-                                      item.id,
-                                      group.order.id,
-                                      "packed",
-                                    )
-                                  }
-                                  disabled={
-                                    savingId === item.id ||
-                                    !["confirmed"].includes(currentStatus)
-                                  }
-                                  className={`${actionButtonClass} border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100`}
-                                >
-                                  Packed
-                                </button>
-
-                                <button
-                                  onClick={() =>
-                                    updateItemStatus(
-                                      item.id,
-                                      group.order.id,
-                                      "shipped",
-                                    )
-                                  }
-                                  disabled={
-                                    savingId === item.id ||
-                                    !["packed"].includes(currentStatus)
-                                  }
-                                  className={`${actionButtonClass} border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-100`}
-                                >
-                                  Shipped
-                                </button>
-
-                                <button
-                                  onClick={() =>
-                                    updateItemStatus(
-                                      item.id,
-                                      group.order.id,
-                                      "out_for_delivery",
-                                    )
-                                  }
-                                  disabled={
-                                    savingId === item.id ||
-                                    !["shipped"].includes(currentStatus)
-                                  }
-                                  className={`${actionButtonClass} border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100`}
-                                >
-                                  Out for Delivery
-                                </button>
-
-                                <button
-                                  onClick={() =>
-                                    updateItemStatus(
-                                      item.id,
-                                      group.order.id,
-                                      "delivered",
-                                    )
-                                  }
-                                  disabled={
-                                    savingId === item.id ||
-                                    !["out_for_delivery"].includes(
-                                      currentStatus,
-                                    )
-                                  }
-                                  className={`${actionButtonClass} border-green-200 bg-green-50 text-green-700 hover:bg-green-100`}
-                                >
-                                  Delivered
-                                </button>
-
-                                <button
-                                  onClick={() =>
-                                    updateItemStatus(
-                                      item.id,
-                                      group.order.id,
-                                      "cancelled",
-                                    )
-                                  }
-                                  disabled={
-                                    savingId === item.id ||
-                                    [
-                                      "delivered",
-                                      "received",
-                                      "cancelled",
-                                    ].includes(currentStatus)
-                                  }
-                                  className={`${actionButtonClass} border-red-200 bg-red-50 text-red-700 hover:bg-red-100`}
-                                >
-                                  Cancel
-                                </button>
-                              </div>
-
-                              {savingId === item.id && (
-                                <p className="mt-2 text-xs text-[#6B6B6B]">
-                                  Saving update...
-                                </p>
-                              )}
-                            </div>
-                          );
-                        })}
+                            );
+                          })}
+                        </div>
                       </div>
-                    </div>
-                  )}
-                </article>
-              );
-            })}
-          </section>
-        )}
+                    )}
+                  </article>
+                );
+              })}
+            </section>
+          )}
+        </div>
+      </main>
+    </>
+  );
+}
+
+function SummaryCard({
+  title,
+  value,
+  subtitle,
+  icon: Icon,
+  warn = false,
+}: {
+  title: string;
+  value: string | number;
+  subtitle: string;
+  icon: React.ComponentType<{ size?: number }>;
+  warn?: boolean;
+}) {
+  return (
+    <div className="rounded-[24px] border border-[#E5E0D8] bg-white p-5 transition hover:shadow-sm sm:rounded-[28px]">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-sm text-[#9C9489]">{title}</p>
+          <h2 className="mt-2 text-3xl font-bold text-[#1F1F1F]">{value}</h2>
+          <p className="mt-2 text-sm text-[#5F5A52]">{subtitle}</p>
+        </div>
+
+        <div
+          className={`rounded-2xl p-3 ${
+            warn ? "bg-[#FFF1E8] text-[#E67E22]" : "bg-[#FFF3E7] text-[#E67E22]"
+          }`}
+        >
+          <Icon size={20} />
+        </div>
       </div>
-    </main>
+    </div>
+  );
+}
+
+function ActionButton({
+  label,
+  icon: Icon,
+  onClick,
+  loading,
+}: {
+  label: string;
+  icon: React.ComponentType<{ size?: number }>;
+  onClick: () => void;
+  loading: boolean;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={loading}
+      className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-[#F0B27A] bg-[#FFF7EF] px-4 py-3 text-sm font-semibold text-[#E67E22] transition hover:bg-[#FFEBD8] disabled:opacity-60"
+    >
+      <Icon size={16} />
+      {loading ? "Updating..." : label}
+    </button>
   );
 }
