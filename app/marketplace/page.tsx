@@ -1244,7 +1244,7 @@ function MarketplaceContent() {
                   </div>
 
                   {totalPages > 1 && (
-                    <div className="flex flex-col items-center justify-center gap-3 pb-8 sm:flex-row">
+                    <div className="flex flex-row flex-wrap items-center justify-center gap-3 pb-8">
                       <button
                         type="button"
                         onClick={() => goToPage(safeCurrentPage - 1)}
