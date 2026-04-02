@@ -13,6 +13,9 @@ type CartBook = {
   author: string;
   price: number;
   image_url: string | null;
+  stock_quantity?: number | null;
+  sold_count?: number | null;
+  status?: string | null;
 };
 
 type CartItem = {
@@ -133,6 +136,17 @@ export default function CartPage() {
     return Array.isArray(item.books) ? (item.books[0] ?? null) : item.books;
   };
 
+  const getRemainingStock = (book: CartBook | null) => {
+    if (!book) return 0;
+    return Math.max((book.stock_quantity ?? 0) - (book.sold_count ?? 0), 0);
+  };
+
+  const isSoldOut = (book: CartBook | null) => {
+    if (!book) return true;
+    const remaining = getRemainingStock(book);
+    return remaining <= 0 || (book.status || "").toLowerCase() === "sold";
+  };
+
   const fetchCart = useCallback(async () => {
     const requestId = ++latestRequestRef.current;
 
@@ -168,7 +182,10 @@ export default function CartPage() {
             title,
             author,
             price,
-            image_url
+            image_url,
+            stock_quantity,
+            sold_count,
+            status
           )
           `,
         )
@@ -185,7 +202,12 @@ export default function CartPage() {
       setItems(cartItems);
 
       setSelectedIds((prev) =>
-        prev.filter((id) => cartItems.some((item) => item.id === id)),
+        prev.filter((id) =>
+          cartItems.some((item) => {
+            const book = getBook(item);
+            return item.id === id && book && !isSoldOut(book);
+          }),
+        ),
       );
     } catch (error) {
       console.error("Failed to load cart:", error);
@@ -306,6 +328,38 @@ export default function CartPage() {
   const handleUpdateQuantity = async (cartId: number, newQuantity: number) => {
     if (newQuantity < 1) return;
 
+    const targetItem = items.find((item) => item.id === cartId);
+    const targetBook = targetItem ? getBook(targetItem) : null;
+
+    if (!targetItem || !targetBook) {
+      showToast({
+        title: "Item unavailable",
+        message: "This cart item is no longer available.",
+        type: "error",
+      });
+      return;
+    }
+
+    const remaining = getRemainingStock(targetBook);
+
+    if (isSoldOut(targetBook)) {
+      showToast({
+        title: "Out of stock",
+        message: `"${targetBook.title}" is already out of stock.`,
+        type: "error",
+      });
+      return;
+    }
+
+    if (newQuantity > remaining) {
+      showToast({
+        title: "Stock limit reached",
+        message: `Only ${remaining} item(s) available for "${targetBook.title}".`,
+        type: "info",
+      });
+      return;
+    }
+
     try {
       setUpdatingQtyId(cartId);
 
@@ -334,6 +388,18 @@ export default function CartPage() {
   };
 
   const toggleItemSelection = (cartId: number) => {
+    const targetItem = items.find((item) => item.id === cartId);
+    const targetBook = targetItem ? getBook(targetItem) : null;
+
+    if (!targetBook || isSoldOut(targetBook)) {
+      showToast({
+        title: "Unavailable item",
+        message: "This item is out of stock and cannot be selected.",
+        type: "info",
+      });
+      return;
+    }
+
     setSelectedIds((prev) =>
       prev.includes(cartId)
         ? prev.filter((id) => id !== cartId)
@@ -341,7 +407,15 @@ export default function CartPage() {
     );
   };
 
-  const allSelected = items.length > 0 && selectedIds.length === items.length;
+  const selectableItems = useMemo(() => {
+    return items.filter((item) => {
+      const book = getBook(item);
+      return book && !isSoldOut(book);
+    });
+  }, [items]);
+
+  const allSelected =
+    selectableItems.length > 0 && selectedIds.length === selectableItems.length;
 
   const toggleSelectAll = () => {
     if (allSelected) {
@@ -349,7 +423,7 @@ export default function CartPage() {
       return;
     }
 
-    setSelectedIds(items.map((item) => item.id));
+    setSelectedIds(selectableItems.map((item) => item.id));
   };
 
   const selectedItems = useMemo(() => {
@@ -468,6 +542,8 @@ export default function CartPage() {
                   const isSelected = selectedIds.includes(item.id);
                   const subtotal = (book?.price || 0) * item.quantity;
                   const isQtyUpdating = updatingQtyId === item.id;
+                  const remaining = getRemainingStock(book);
+                  const soldOut = isSoldOut(book);
 
                   return (
                     <article
@@ -477,7 +553,7 @@ export default function CartPage() {
                         isSelected
                           ? "border-[#E8B27C] ring-1 ring-[#E8B27C]/30"
                           : "border-[#E8E1D7]"
-                      }`}
+                      } ${soldOut ? "opacity-80" : ""}`}
                     >
                       <div className="flex flex-col gap-4">
                         <div className="flex gap-3 sm:gap-4">
@@ -487,7 +563,8 @@ export default function CartPage() {
                               checked={isSelected}
                               onChange={() => toggleItemSelection(item.id)}
                               onClick={(e) => e.stopPropagation()}
-                              className="h-5 w-5 cursor-pointer accent-[#E67E22]"
+                              disabled={soldOut}
+                              className="h-5 w-5 cursor-pointer accent-[#E67E22] disabled:cursor-not-allowed"
                             />
                           </div>
 
@@ -505,9 +582,17 @@ export default function CartPage() {
                             )}
 
                             <div className="min-w-0 flex-1">
-                              <h2 className="break-words text-lg font-bold leading-7 text-[#1F1F1F]">
-                                {book?.title || "Unknown Book"}
-                              </h2>
+                              <div className="flex flex-wrap items-center gap-2">
+                                <h2 className="break-words text-lg font-bold leading-7 text-[#1F1F1F]">
+                                  {book?.title || "Unknown Book"}
+                                </h2>
+
+                                {soldOut && (
+                                  <span className="rounded-full border border-[#D9D2C7] bg-[#F1ECE4] px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[#6B6B6B]">
+                                    Sold Out
+                                  </span>
+                                )}
+                              </div>
 
                               <p className="mt-1 text-sm text-[#6B6B6B]">
                                 {book?.author || "Unknown Author"}
@@ -521,6 +606,12 @@ export default function CartPage() {
                                 <span className="text-sm font-medium text-[#7A6F61]">
                                   Subtotal: ₱{subtotal.toFixed(2)}
                                 </span>
+
+                                {!soldOut && (
+                                  <span className="text-sm text-[#8A8175]">
+                                    Available: {remaining}
+                                  </span>
+                                )}
                               </div>
                             </div>
                           </div>
@@ -530,32 +621,44 @@ export default function CartPage() {
                           <div className="flex flex-wrap items-center gap-3">
                             <div className="flex items-center overflow-hidden rounded-full border border-[#E5E0D8] bg-white shadow-sm">
                               <button
-  type="button"
-  onClick={(e) => {
-    e.stopPropagation();
-    handleUpdateQuantity(item.id, item.quantity - 1);
-  }}
-  disabled={item.quantity <= 1 || isQtyUpdating}
-  className="flex h-11 w-11 items-center justify-center text-[#1F1F1F] transition hover:bg-[#F7F4EE] disabled:cursor-not-allowed disabled:opacity-40"
->
-  <Minus size={16} />
-</button>
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleUpdateQuantity(
+                                    item.id,
+                                    item.quantity - 1,
+                                  );
+                                }}
+                                disabled={
+                                  item.quantity <= 1 || isQtyUpdating || soldOut
+                                }
+                                className="flex h-11 w-11 items-center justify-center text-[#1F1F1F] transition hover:bg-[#F7F4EE] disabled:cursor-not-allowed disabled:opacity-40"
+                              >
+                                <Minus size={16} />
+                              </button>
 
                               <div className="min-w-[52px] text-center text-sm font-semibold text-[#1F1F1F]">
                                 {isQtyUpdating ? "..." : item.quantity}
                               </div>
 
                               <button
-  type="button"
-  onClick={(e) => {
-    e.stopPropagation();
-    handleUpdateQuantity(item.id, item.quantity + 1);
-  }}
-  disabled={isQtyUpdating}
-  className="flex h-11 w-11 items-center justify-center text-[#1F1F1F] transition hover:bg-[#F7F4EE] disabled:cursor-not-allowed disabled:opacity-40"
->
-  <Plus size={16} />
-</button>
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleUpdateQuantity(
+                                    item.id,
+                                    item.quantity + 1,
+                                  );
+                                }}
+                                disabled={
+                                  isQtyUpdating ||
+                                  soldOut ||
+                                  item.quantity >= remaining
+                                }
+                                className="flex h-11 w-11 items-center justify-center text-[#1F1F1F] transition hover:bg-[#F7F4EE] disabled:cursor-not-allowed disabled:opacity-40"
+                              >
+                                <Plus size={16} />
+                              </button>
                             </div>
 
                             <p className="text-sm text-[#8A8175]">
@@ -564,7 +667,10 @@ export default function CartPage() {
                           </div>
 
                           <button
-                            onClick={() => handleRemove(item.id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRemove(item.id);
+                            }}
                             disabled={removingOneId === item.id}
                             className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-red-300 bg-white px-4 py-2.5 text-sm font-semibold text-red-500 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
                           >
@@ -635,7 +741,7 @@ export default function CartPage() {
 
                   {selectedItems.length === 0 && (
                     <p className="mt-3 text-center text-sm text-[#8A8175]">
-                      Select at least one item to continue.
+                      Select at least one available item to continue.
                     </p>
                   )}
                 </div>

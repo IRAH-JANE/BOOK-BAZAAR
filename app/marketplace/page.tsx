@@ -1,13 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { Suspense, useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { createSupabaseBrowser } from "@/lib/supabase";
 import { useToast } from "@/components/ToastProvider";
 import {
   Heart,
-  MapPin,
   ShoppingCart,
   SlidersHorizontal,
   X,
@@ -29,6 +28,9 @@ type Book = {
   category_id: number | null;
   genre_id: number | null;
   book_type_id: number | null;
+  stock_quantity: number | null;
+  sold_count: number | null;
+  status: string | null;
   created_at?: string | null;
 };
 
@@ -58,6 +60,11 @@ type CartItem = {
   book_id: number;
   quantity: number;
   user_id: string;
+};
+
+type ExistingCartItem = {
+  id: number;
+  quantity: number;
 };
 
 const hiddenScrollbarClass =
@@ -166,7 +173,6 @@ function MarketplaceSkeleton() {
                       <SkeletonBox className="mt-3 h-6 w-20" />
 
                       <div className="mt-2 flex items-center gap-2">
-                        <SkeletonBox className="h-4 w-4 rounded-full" />
                         <SkeletonBox className="h-4 w-24" />
                       </div>
 
@@ -229,6 +235,15 @@ function MarketplaceContent() {
   const selectedCondition = searchParams.get("condition") || "";
   const sortBy = searchParams.get("sort") || "newest";
   const currentPage = Math.max(1, Number(searchParams.get("page") || "1") || 1);
+
+  const getRemainingStock = (book: Book) => {
+    return Math.max((book.stock_quantity ?? 0) - (book.sold_count ?? 0), 0);
+  };
+
+  const isSoldOut = (book: Book) => {
+    const remaining = getRemainingStock(book);
+    return remaining <= 0 || (book.status || "").toLowerCase() === "sold";
+  };
 
   const updateUrl = (updates: {
     search?: string;
@@ -428,9 +443,10 @@ function MarketplaceContent() {
       let query = supabase
         .from("books")
         .select(
-          "id, title, author, price, condition, location, image_url, category_id, genre_id, book_type_id, created_at",
+          "id, title, author, price, condition, location, image_url, category_id, genre_id, book_type_id, stock_quantity, sold_count, status, created_at",
           { count: "exact" },
-        );
+        )
+        .neq("status", "hidden");
 
       if (search.trim()) {
         const keyword = search.trim();
@@ -466,8 +482,14 @@ function MarketplaceContent() {
       const { data, count, error } = await query.range(from, to);
 
       if (!error && data) {
-        setBooks(data as Book[]);
-        setTotalBooksCount(count || 0);
+        const filteredBooks = (data as Book[]).filter((book) => {
+          const remaining = (book.stock_quantity ?? 0) - (book.sold_count ?? 0);
+
+          return remaining > 0 && (book.status || "").toLowerCase() !== "sold";
+        });
+
+        setBooks(filteredBooks);
+        setTotalBooksCount(filteredBooks.length);
 
         const totalPages = Math.max(
           1,
@@ -693,9 +715,56 @@ function MarketplaceContent() {
 
     if (cartLoadingIds.includes(bookId)) return;
 
+    const localBook = books.find((book) => book.id === bookId);
+
+    if (!localBook) {
+      showToast({
+        title: "Book unavailable",
+        message: "This book is no longer available.",
+        type: "error",
+      });
+      return;
+    }
+
+    if (isSoldOut(localBook)) {
+      showToast({
+        title: "Out of stock",
+        message: `"${localBook.title}" is already sold out.`,
+        type: "info",
+      });
+      return;
+    }
+
     setCartLoadingIds((prev) => [...prev, bookId]);
 
     try {
+      const { data: latestBook, error: latestBookError } = await supabase
+        .from("books")
+        .select("id, title, stock_quantity, sold_count, status")
+        .eq("id", bookId)
+        .single();
+
+      if (latestBookError || !latestBook) {
+        throw latestBookError || new Error("Book not found.");
+      }
+
+      const latestRemaining = Math.max(
+        (latestBook.stock_quantity ?? 0) - (latestBook.sold_count ?? 0),
+        0,
+      );
+
+      if (
+        latestRemaining <= 0 ||
+        (latestBook.status || "").toLowerCase() === "sold"
+      ) {
+        showToast({
+          title: "Out of stock",
+          message: `"${latestBook.title}" is already sold out.`,
+          type: "info",
+        });
+        return;
+      }
+
       const { data: existingItem, error: existingError } = await supabase
         .from("cart_items")
         .select("id, quantity")
@@ -706,10 +775,22 @@ function MarketplaceContent() {
       if (existingError) throw existingError;
 
       if (existingItem) {
+        const safeExistingItem = existingItem as ExistingCartItem;
+        const nextQuantity = safeExistingItem.quantity + 1;
+
+        if (nextQuantity > latestRemaining) {
+          showToast({
+            title: "Stock limit reached",
+            message: `Only ${latestRemaining} item(s) available for "${latestBook.title}".`,
+            type: "info",
+          });
+          return;
+        }
+
         const { error: updateError } = await supabase
           .from("cart_items")
-          .update({ quantity: existingItem.quantity + 1 })
-          .eq("id", existingItem.id);
+          .update({ quantity: nextQuantity })
+          .eq("id", safeExistingItem.id);
 
         if (updateError) throw updateError;
       } else {
@@ -1130,6 +1211,8 @@ function MarketplaceContent() {
                       );
                       const isCartLoading = cartLoadingIds.includes(book.id);
                       const isAlreadyInCart = cartBookIds.includes(book.id);
+                      const soldOut = isSoldOut(book);
+                      const remainingStock = getRemainingStock(book);
 
                       return (
                         <Link
@@ -1176,6 +1259,16 @@ function MarketplaceContent() {
                                 />
                               </button>
 
+                              {soldOut ? (
+                                <span className="absolute bottom-3 left-3 rounded-full border border-[#D9D2C7] bg-[#F1ECE4]/95 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-[#6B6B6B] shadow-sm backdrop-blur-sm">
+                                  Sold Out
+                                </span>
+                              ) : (
+                                <span className="absolute bottom-3 left-3 rounded-full bg-white/95 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-[#1F1F1F] shadow-sm backdrop-blur-sm">
+                                  {remainingStock} left
+                                </span>
+                              )}
+
                               <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#1F1F1F]/18 via-transparent to-transparent opacity-0 transition duration-300 group-hover:opacity-100" />
 
                               <div className="absolute inset-x-3 bottom-3 hidden translate-y-3 opacity-0 transition duration-300 md:block group-hover:translate-y-0 group-hover:opacity-100">
@@ -1186,16 +1279,22 @@ function MarketplaceContent() {
                                     e.stopPropagation();
                                     handleAddToCart(book.id);
                                   }}
-                                  disabled={isCartLoading}
-                                  className="w-full rounded-full border border-white/70 bg-white/92 px-4 py-2 text-[11px] font-semibold uppercase tracking-wide text-[#1F1F1F] shadow-sm backdrop-blur-sm transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+                                  disabled={isCartLoading || soldOut}
+                                  className={`w-full rounded-full border px-4 py-2 text-[11px] font-semibold uppercase tracking-wide shadow-sm backdrop-blur-sm transition ${
+                                    soldOut
+                                      ? "cursor-not-allowed border-[#D9D2C7] bg-[#F1ECE4]/95 text-[#8A8175] opacity-90"
+                                      : "border-white/70 bg-white/92 text-[#1F1F1F] hover:bg-white"
+                                  } disabled:opacity-60`}
                                 >
                                   <span className="inline-flex items-center justify-center gap-2">
                                     <ShoppingCart size={13} />
-                                    {isCartLoading
-                                      ? "Adding..."
-                                      : isAlreadyInCart
-                                        ? "Add Again"
-                                        : "Add to Cart"}
+                                    {soldOut
+                                      ? "Sold Out"
+                                      : isCartLoading
+                                        ? "Adding..."
+                                        : isAlreadyInCart
+                                          ? "Add Again"
+                                          : "Add to Cart"}
                                   </span>
                                 </button>
                               </div>
@@ -1219,7 +1318,7 @@ function MarketplaceContent() {
                                   </div>
 
                                   <p className="mt-1 pl-1 text-[11px] font-medium uppercase tracking-wide text-[#6B6B6B]">
-                                    Available
+                                    {soldOut ? "Not Available" : "Available"}
                                   </p>
                                 </div>
 
@@ -1235,15 +1334,21 @@ function MarketplaceContent() {
                                   e.stopPropagation();
                                   handleAddToCart(book.id);
                                 }}
-                                disabled={isCartLoading}
-                                className="mt-3 inline-flex w-full items-center justify-center gap-1.5 rounded-full bg-[#E67E22] px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-white transition hover:bg-[#cf6f1c] disabled:cursor-not-allowed disabled:opacity-60 min-[480px]:mt-4 min-[480px]:gap-2 min-[480px]:px-4 min-[480px]:py-2.5 min-[480px]:text-xs md:hidden"
+                                disabled={isCartLoading || soldOut}
+                                className={`mt-3 inline-flex w-full items-center justify-center gap-1.5 rounded-full px-3 py-2 text-[11px] font-semibold uppercase tracking-wide transition min-[480px]:mt-4 min-[480px]:gap-2 min-[480px]:px-4 min-[480px]:py-2.5 min-[480px]:text-xs md:hidden ${
+                                  soldOut
+                                    ? "cursor-not-allowed bg-gray-300 text-white"
+                                    : "bg-[#E67E22] text-white hover:bg-[#cf6f1c]"
+                                } disabled:cursor-not-allowed disabled:opacity-60`}
                               >
                                 <ShoppingCart size={14} />
-                                {isCartLoading
-                                  ? "Adding..."
-                                  : isAlreadyInCart
-                                    ? "Add Again"
-                                    : "Add to Cart"}
+                                {soldOut
+                                  ? "Sold Out"
+                                  : isCartLoading
+                                    ? "Adding..."
+                                    : isAlreadyInCart
+                                      ? "Add Again"
+                                      : "Add to Cart"}
                               </button>
                             </div>
                           </article>

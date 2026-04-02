@@ -23,6 +23,9 @@ type CartBook = {
   price: number;
   image_url: string | null;
   seller_id?: string | null;
+  stock_quantity?: number | null;
+  sold_count?: number | null;
+  status?: string | null;
 };
 
 type CartItem = {
@@ -47,6 +50,13 @@ type Address = {
   postal_code: string | null;
   is_default: boolean | null;
   created_at: string | null;
+};
+
+type LatestBookStock = {
+  id: number;
+  stock_quantity: number | null;
+  sold_count: number | null;
+  status: string | null;
 };
 
 function SkeletonBox({ className = "" }: { className?: string }) {
@@ -333,7 +343,10 @@ function CheckoutContent() {
           author,
           price,
           image_url,
-          seller_id
+          seller_id,
+          stock_quantity,
+          sold_count,
+          status
         )
       `,
         )
@@ -495,106 +508,228 @@ function CheckoutContent() {
 
     setPlacingOrder(true);
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
-    if (!user) {
-      showToast({
-        title: "Login required",
-        message: "Please log in first.",
-        type: "info",
+      if (!user) {
+        showToast({
+          title: "Login required",
+          message: "Please log in first.",
+          type: "info",
+        });
+        router.push("/login");
+        return;
+      }
+
+      const bookIds = items
+        .map((item) => {
+          const book = getBook(item);
+          return book?.id ?? null;
+        })
+        .filter((id): id is number => typeof id === "number");
+
+      if (bookIds.length === 0) {
+        showToast({
+          title: "No valid items",
+          message: "No valid books were found for checkout.",
+          type: "error",
+        });
+        return;
+      }
+
+      const { data: latestBooks, error: latestBooksError } = await supabase
+        .from("books")
+        .select("id, stock_quantity, sold_count, status")
+        .in("id", bookIds);
+
+      if (latestBooksError) {
+        showToast({
+          title: "Stock check failed",
+          message: latestBooksError.message,
+          type: "error",
+        });
+        return;
+      }
+
+      const latestBookMap = new Map<string, LatestBookStock>();
+      ((latestBooks as LatestBookStock[]) || []).forEach((book) => {
+        latestBookMap.set(String(book.id), book);
       });
-      setPlacingOrder(false);
-      router.push("/login");
-      return;
-    }
 
-    const paymentStatus =
-      paymentMethod === "Cash on Delivery" ? "unpaid" : "pending_verification";
-
-    const { data: orderData, error: orderError } = await supabase
-      .from("orders")
-      .insert([
-        {
-          buyer_id: user.id,
-          total_amount: total,
-          shipping_address: shippingAddress,
-          payment_method: paymentValidation.summary,
-          payment_status: paymentStatus,
-          delivery_method: deliveryMethod,
-          shipping_note: shippingNote || null,
-          shipping_fee: shippingFee,
-          order_status: "pending",
-        },
-      ])
-      .select("id")
-      .single();
-
-    if (orderError || !orderData) {
-      showToast({
-        title: "Order creation failed",
-        message: orderError?.message || "Failed to create order.",
-        type: "error",
-      });
-      setPlacingOrder(false);
-      return;
-    }
-
-    const orderItemsPayload = items
-      .map((item) => {
+      for (const item of items) {
         const book = getBook(item);
-        if (!book) return null;
 
-        return {
-          order_id: orderData.id,
-          book_id: book.id,
-          seller_id: book.seller_id || null,
-          quantity: item.quantity,
-          price: book.price,
-          item_status: "pending",
-        };
-      })
-      .filter(Boolean);
+        if (!book) {
+          showToast({
+            title: "Missing book data",
+            message: "One of the selected books is no longer available.",
+            type: "error",
+          });
+          return;
+        }
 
-    const { error: orderItemsError } = await supabase
-      .from("order_items")
-      .insert(orderItemsPayload as never[]);
+        const latestBook = latestBookMap.get(String(book.id));
 
-    if (orderItemsError) {
+        if (!latestBook) {
+          showToast({
+            title: "Book unavailable",
+            message: `"${book.title}" is no longer available.`,
+            type: "error",
+          });
+          return;
+        }
+
+        const stockQuantity = latestBook.stock_quantity ?? 0;
+        const soldCount = latestBook.sold_count ?? 0;
+        const remaining = Math.max(stockQuantity - soldCount, 0);
+
+        if (remaining <= 0 || latestBook.status === "sold") {
+          showToast({
+            title: "Out of stock",
+            message: `"${book.title}" is already out of stock.`,
+            type: "error",
+          });
+          return;
+        }
+
+        if (item.quantity > remaining) {
+          showToast({
+            title: "Not enough stock",
+            message: `"${book.title}" only has ${remaining} item(s) left.`,
+            type: "error",
+          });
+          return;
+        }
+      }
+
+      const paymentStatus =
+        paymentMethod === "Cash on Delivery"
+          ? "unpaid"
+          : "pending_verification";
+
+      const { data: orderData, error: orderError } = await supabase
+        .from("orders")
+        .insert([
+          {
+            buyer_id: user.id,
+            total_amount: total,
+            shipping_address: shippingAddress,
+            payment_method: paymentValidation.summary,
+            payment_status: paymentStatus,
+            delivery_method: deliveryMethod,
+            shipping_note: shippingNote || null,
+            shipping_fee: shippingFee,
+            order_status: "pending",
+          },
+        ])
+        .select("id")
+        .single();
+
+      if (orderError || !orderData) {
+        showToast({
+          title: "Order creation failed",
+          message: orderError?.message || "Failed to create order.",
+          type: "error",
+        });
+        return;
+      }
+
+      const orderItemsPayload = items
+        .map((item) => {
+          const book = getBook(item);
+          if (!book) return null;
+
+          return {
+            order_id: orderData.id,
+            book_id: book.id,
+            seller_id: book.seller_id || null,
+            quantity: item.quantity,
+            price: book.price,
+            item_status: "pending",
+          };
+        })
+        .filter(Boolean);
+
+      const { error: orderItemsError } = await supabase
+        .from("order_items")
+        .insert(orderItemsPayload as never[]);
+
+      if (orderItemsError) {
+        showToast({
+          title: "Order items failed",
+          message: orderItemsError.message,
+          type: "error",
+        });
+        return;
+      }
+
+      for (const item of items) {
+        const book = getBook(item);
+        if (!book) continue;
+
+        const latestBook = latestBookMap.get(String(book.id));
+        if (!latestBook) continue;
+
+        const currentStock = latestBook.stock_quantity ?? 0;
+        const currentSold = latestBook.sold_count ?? 0;
+
+        const newSoldCount = Number(currentSold) + Number(item.quantity);
+        const newRemaining = Math.max(currentStock - newSoldCount, 0);
+        const nextStatus = newRemaining <= 0 ? "sold" : "active";
+
+        const { error: updateBookError } = await supabase
+          .from("books")
+          .update({
+            sold_count: newSoldCount,
+            status: nextStatus,
+          })
+          .eq("id", book.id);
+
+        if (updateBookError) {
+          showToast({
+            title: "Stock update failed",
+            message: updateBookError.message,
+            type: "error",
+          });
+          return;
+        }
+      }
+
+      const cartIds = items.map((item) => item.id);
+
+      const { error: clearCartError } = await supabase
+        .from("cart_items")
+        .delete()
+        .in("id", cartIds);
+
+      if (clearCartError) {
+        showToast({
+          title: "Cart clearing failed",
+          message: clearCartError.message,
+          type: "error",
+        });
+        return;
+      }
+
       showToast({
-        title: "Order items failed",
-        message: orderItemsError.message,
+        title: "Order placed successfully",
+        message: "Your order has been placed successfully.",
+        type: "success",
+      });
+
+      router.push("/orders");
+    } catch (error) {
+      console.error("Failed to place order:", error);
+      showToast({
+        title: "Order failed",
+        message: "Something went wrong while placing your order.",
         type: "error",
       });
+    } finally {
       setPlacingOrder(false);
-      return;
     }
-
-    const cartIds = items.map((item) => item.id);
-
-    const { error: clearCartError } = await supabase
-      .from("cart_items")
-      .delete()
-      .in("id", cartIds);
-
-    if (clearCartError) {
-      showToast({
-        title: "Cart clearing failed",
-        message: clearCartError.message,
-        type: "error",
-      });
-      setPlacingOrder(false);
-      return;
-    }
-
-    setPlacingOrder(false);
-    showToast({
-      title: "Order placed successfully",
-      message: "Your order has been placed successfully.",
-      type: "success",
-    });
-    router.push("/orders");
   };
 
   if (loading) {

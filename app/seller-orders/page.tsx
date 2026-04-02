@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { createSupabaseBrowser } from "@/lib/supabase";
 import SellerNavbar from "@/components/SellerNavbar";
@@ -32,6 +31,15 @@ type SellerOrder = {
   shipping_fee: number | null;
   shipping_note: string | null;
   order_status: string | null;
+  buyer_id: string | null;
+  profiles:
+    | {
+        full_name?: string | null;
+      }
+    | {
+        full_name?: string | null;
+      }[]
+    | null;
 };
 
 type SellerBook = {
@@ -43,6 +51,7 @@ type SellerBook = {
 
 type SellerOrderItem = {
   id: number;
+  book_id: number | null;
   quantity: number | null;
   price: number | null;
   item_status: string | null;
@@ -57,6 +66,13 @@ type SellerOrderItem = {
 type SellerOrderGroup = {
   order: SellerOrder;
   items: SellerOrderItem[];
+};
+
+type BookStockRow = {
+  id: number;
+  stock_quantity: number | null;
+  sold_count: number | null;
+  status: string | null;
 };
 
 function SkeletonBox({ className = "" }: { className?: string }) {
@@ -141,6 +157,23 @@ function getBook(item: SellerOrderItem): SellerBook | null {
   return Array.isArray(item.books) ? item.books[0] || null : item.books;
 }
 
+function getBuyerName(
+  profile:
+    | {
+        full_name?: string | null;
+      }
+    | {
+        full_name?: string | null;
+      }[]
+    | null,
+) {
+  if (Array.isArray(profile)) {
+    return profile[0]?.full_name || "Unknown Buyer";
+  }
+
+  return profile?.full_name || "Unknown Buyer";
+}
+
 function getOrderGroupStatus(group: SellerOrderGroup) {
   const statuses = group.items.map((item) =>
     (item.item_status || "").toLowerCase(),
@@ -213,6 +246,7 @@ export default function SellerOrdersPage() {
         .select(
           `
           id,
+          book_id,
           quantity,
           price,
           item_status,
@@ -247,7 +281,22 @@ export default function SellerOrdersPage() {
       const { data: ordersData, error: ordersError } = await supabase
         .from("orders")
         .select(
-          "id, created_at, total_amount, shipping_address, payment_method, payment_status, delivery_method, shipping_fee, shipping_note, order_status",
+          `
+          id,
+          created_at,
+          total_amount,
+          shipping_address,
+          payment_method,
+          payment_status,
+          delivery_method,
+          shipping_fee,
+          shipping_note,
+          order_status,
+          buyer_id,
+          profiles:buyer_id (
+            full_name
+          )
+        `,
         )
         .in("id", orderIds)
         .order("created_at", { ascending: false });
@@ -293,9 +342,10 @@ export default function SellerOrdersPage() {
 
     return orders.filter((group) => {
       const groupStatus = getOrderGroupStatus(group).toLowerCase();
+      const buyerName = getBuyerName(group.order.profiles).toLowerCase();
 
       const orderMatches =
-        String(group.order.id).includes(query) ||
+        buyerName.includes(query) ||
         (group.order.shipping_address || "").toLowerCase().includes(query) ||
         (group.order.payment_method || "").toLowerCase().includes(query) ||
         (group.order.delivery_method || "").toLowerCase().includes(query);
@@ -319,6 +369,7 @@ export default function SellerOrdersPage() {
   }, [orders, searchText, statusFilter]);
 
   const totalOrders = orders.length;
+
   const pendingCount = orders.filter(
     (group) => getOrderGroupStatus(group).toLowerCase() === "pending",
   ).length;
@@ -351,12 +402,67 @@ export default function SellerOrdersPage() {
     try {
       setActionLoadingId(itemId);
 
-      const { error } = await supabase
+      const currentItem = orders
+        .flatMap((group) => group.items)
+        .find((item) => item.id === itemId);
+
+      if (!currentItem) {
+        throw new Error("Order item not found.");
+      }
+
+      const currentStatus = (
+        currentItem.item_status || "pending"
+      ).toLowerCase();
+
+      const { error: itemStatusError } = await supabase
         .from("order_items")
         .update({ item_status: nextStatus })
         .eq("id", itemId);
 
-      if (error) throw error;
+      if (itemStatusError) throw itemStatusError;
+
+      if (currentStatus === "pending" && nextStatus === "confirmed") {
+        if (!currentItem.book_id) {
+          throw new Error("Missing book_id for this order item.");
+        }
+
+        const { data: bookRow, error: bookFetchError } = await supabase
+          .from("books")
+          .select("id, stock_quantity, sold_count, status")
+          .eq("id", currentItem.book_id)
+          .single();
+
+        if (bookFetchError) throw bookFetchError;
+
+        const safeBook = bookRow as BookStockRow;
+        const currentStock = Number(safeBook.stock_quantity ?? 0);
+        const currentSold = Number(safeBook.sold_count ?? 0);
+        const orderQty = Number(currentItem.quantity ?? 0);
+
+        const remainingBeforeConfirm = Math.max(currentStock - currentSold, 0);
+
+        if (orderQty <= 0) {
+          throw new Error("Invalid order quantity.");
+        }
+
+        if (remainingBeforeConfirm < orderQty) {
+          throw new Error("Not enough stock left to confirm this order.");
+        }
+
+        const newSoldCount = currentSold + orderQty;
+        const newRemaining = Math.max(currentStock - newSoldCount, 0);
+        const nextBookStatus = newRemaining <= 0 ? "sold" : "active";
+
+        const { error: bookUpdateError } = await supabase
+          .from("books")
+          .update({
+            sold_count: newSoldCount,
+            status: nextBookStatus,
+          })
+          .eq("id", currentItem.book_id);
+
+        if (bookUpdateError) throw bookUpdateError;
+      }
 
       setOrders((prev) =>
         prev.map((group) => ({
@@ -369,14 +475,21 @@ export default function SellerOrdersPage() {
 
       showToast({
         title: "Status updated",
-        message: `Item marked as ${statusLabel(nextStatus)}.`,
+        message:
+          nextStatus === "confirmed"
+            ? `Item marked as ${statusLabel(
+                nextStatus,
+              )}. Stock was updated too.`
+            : `Item marked as ${statusLabel(nextStatus)}.`,
         type: "success",
       });
-    } catch (error) {
+
+      await fetchOrders();
+    } catch (error: any) {
       console.error("Failed to update seller item status:", error);
       showToast({
         title: "Update failed",
-        message: "Failed to update item status.",
+        message: error?.message || "Failed to update item status.",
         type: "error",
       });
     } finally {
@@ -453,7 +566,7 @@ export default function SellerOrdersPage() {
                 />
                 <input
                   type="text"
-                  placeholder="Search order ID, title, address, courier, tracking"
+                  placeholder="Search buyer, title, address, courier, tracking"
                   value={searchText}
                   onChange={(e) => setSearchText(e.target.value)}
                   className="w-full rounded-2xl border border-[#DED8CF] bg-white py-3 pl-10 pr-4 text-sm text-[#5F5A52] outline-none transition focus:border-[#E67E22] focus:ring-1 focus:ring-[#E67E22]"
@@ -493,6 +606,7 @@ export default function SellerOrdersPage() {
                 const groupStatus = getOrderGroupStatus(group);
                 const firstItem = group.items[0];
                 const firstBook = firstItem ? getBook(firstItem) : null;
+                const buyerName = getBuyerName(group.order.profiles);
 
                 return (
                   <article
@@ -521,7 +635,7 @@ export default function SellerOrdersPage() {
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
                             <h2 className="text-xl font-bold text-[#1F1F1F]">
-                              Order #{group.order.id}
+                              {buyerName}
                             </h2>
                             <span
                               className={`rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide ${statusTone(
@@ -533,15 +647,13 @@ export default function SellerOrdersPage() {
                           </div>
 
                           <p className="mt-2 text-sm text-[#5F5A52]">
-                            {firstBook?.title || "Order items"}
+                            {group.items.length} item(s) in this order
                           </p>
 
                           <div className="mt-3 flex flex-wrap gap-3 text-sm text-[#8A8175]">
                             <span>
                               Placed {formatDate(group.order.created_at)}
                             </span>
-                            <span>•</span>
-                            <span>{group.items.length} item(s)</span>
                             <span>•</span>
                             <span>
                               {group.order.payment_method || "Payment not set"}

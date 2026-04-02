@@ -14,6 +14,10 @@ import {
   ChevronRight,
   Activity,
   Package,
+  Boxes,
+  Truck,
+  Clock3,
+  CheckCircle2,
 } from "lucide-react";
 
 type SellerBook = {
@@ -35,6 +39,19 @@ type SellerOrderItem = {
   price: number | null;
   quantity: number | null;
   order_id: number | null;
+  created_at?: string | null;
+  orders:
+    | {
+        created_at: string | null;
+        payment_method?: string | null;
+        payment_status?: string | null;
+      }
+    | {
+        created_at: string | null;
+        payment_method?: string | null;
+        payment_status?: string | null;
+      }[]
+    | null;
 };
 
 function formatCurrency(value: number) {
@@ -55,6 +72,13 @@ function getStatusLabel(status: string | null) {
   if (value === "hidden") return "Hidden";
 
   return status || "Unknown";
+}
+
+function getOrderCreatedAt(item: SellerOrderItem) {
+  if (Array.isArray(item.orders)) {
+    return item.orders[0]?.created_at || null;
+  }
+  return item.orders?.created_at || null;
 }
 
 function SkeletonBox({ className = "" }: { className?: string }) {
@@ -167,7 +191,7 @@ function SellerDashboardSkeleton() {
               <div className="rounded-[28px] border border-[#E5E0D8] bg-white p-5 sm:p-6">
                 <SkeletonBox className="h-7 w-40" />
                 <div className="mt-5 space-y-3">
-                  {[...Array(4)].map((_, index) => (
+                  {[...Array(5)].map((_, index) => (
                     <div
                       key={index}
                       className="flex items-center justify-between rounded-2xl border border-[#E5E0D8] bg-[#F7F4EE] px-4 py-4"
@@ -185,7 +209,7 @@ function SellerDashboardSkeleton() {
               <div className="rounded-[28px] border border-[#E5E0D8] bg-white p-5 sm:p-6">
                 <SkeletonBox className="h-7 w-40" />
                 <div className="mt-5 space-y-3">
-                  {[...Array(2)].map((_, index) => (
+                  {[...Array(3)].map((_, index) => (
                     <div
                       key={index}
                       className="rounded-2xl border border-[#E5E0D8] bg-[#FFFDF9] p-4"
@@ -246,7 +270,21 @@ export default function SellerDashboardPage() {
 
           supabase
             .from("order_items")
-            .select("id, seller_id, item_status, price, quantity, order_id")
+            .select(
+              `
+              id,
+              seller_id,
+              item_status,
+              price,
+              quantity,
+              order_id,
+              orders:order_id (
+                created_at,
+                payment_method,
+                payment_status
+              )
+              `,
+            )
             .eq("seller_id", user.id),
         ]);
 
@@ -277,13 +315,28 @@ export default function SellerDashboardPage() {
 
   const totalListings = books.length;
 
+  const activeListings = useMemo(
+    () =>
+      books.filter((book) => (book.status || "").toLowerCase() === "active")
+        .length,
+    [books],
+  );
+
   const soldListings = useMemo(
     () =>
       books.filter(
         (book) =>
           (book.status || "").toLowerCase() === "sold" ||
-          (book.sold_count ?? 0) > 0,
+          (book.sold_count ?? 0) > 0 ||
+          (book.stock_quantity ?? 0) <= 0,
       ).length,
+    [books],
+  );
+
+  const hiddenListings = useMemo(
+    () =>
+      books.filter((book) => (book.status || "").toLowerCase() === "hidden")
+        .length,
     [books],
   );
 
@@ -291,12 +344,20 @@ export default function SellerDashboardPage() {
     () =>
       books.filter((book) => {
         const stock = book.stock_quantity ?? 0;
-        return stock > 0 && stock <= 2;
+        const status = (book.status || "").toLowerCase();
+        return stock > 0 && stock <= 2 && status !== "hidden";
       }).length,
     [books],
   );
 
   const totalSellerOrders = sellerOrderItems.length;
+
+  const totalBooksSold = useMemo(() => {
+    return sellerOrderItems.reduce(
+      (sum, item) => sum + (item.quantity ?? 0),
+      0,
+    );
+  }, [sellerOrderItems]);
 
   const totalRevenueEstimate = useMemo(() => {
     return sellerOrderItems.reduce((sum, item) => {
@@ -308,10 +369,10 @@ export default function SellerDashboardPage() {
 
   const recentListings = useMemo(() => books.slice(0, 5), [books]);
 
-  const deliveredOrders = useMemo(
+  const receivedOrders = useMemo(
     () =>
       sellerOrderItems.filter(
-        (item) => (item.item_status || "").toLowerCase() === "delivered",
+        (item) => (item.item_status || "").toLowerCase() === "received",
       ).length,
     [sellerOrderItems],
   );
@@ -324,6 +385,24 @@ export default function SellerDashboardPage() {
     [sellerOrderItems],
   );
 
+  const processingOrders = useMemo(
+    () =>
+      sellerOrderItems.filter((item) =>
+        ["confirmed", "packed", "shipped", "out_for_delivery"].includes(
+          (item.item_status || "").toLowerCase(),
+        ),
+      ).length,
+    [sellerOrderItems],
+  );
+
+  const cancelledOrders = useMemo(
+    () =>
+      sellerOrderItems.filter(
+        (item) => (item.item_status || "").toLowerCase() === "cancelled",
+      ).length,
+    [sellerOrderItems],
+  );
+
   const averageOrderValue = useMemo(() => {
     if (!sellerOrderItems.length) return 0;
     return totalRevenueEstimate / sellerOrderItems.length;
@@ -331,53 +410,74 @@ export default function SellerDashboardPage() {
 
   const orderStatusData = useMemo(
     () => [
-      {
-        label: "Pending",
-        value: sellerOrderItems.filter(
-          (item) => (item.item_status || "").toLowerCase() === "pending",
-        ).length,
-      },
-      {
-        label: "Delivered",
-        value: deliveredOrders,
-      },
-      {
-        label: "Sold",
-        value: soldListings,
-      },
-      {
-        label: "Low Stock",
-        value: lowStockCount,
-      },
+      { label: "Pending", value: pendingOrders },
+      { label: "Processing", value: processingOrders },
+      { label: "Received", value: receivedOrders },
+      { label: "Cancelled", value: cancelledOrders },
     ],
-    [sellerOrderItems, deliveredOrders, soldListings, lowStockCount],
+    [pendingOrders, processingOrders, receivedOrders, cancelledOrders],
   );
 
   const maxOrderStatusValue = useMemo(() => {
     return Math.max(...orderStatusData.map((item) => item.value), 1);
   }, [orderStatusData]);
 
-  const salesOverviewData = useMemo(() => {
-    const labels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const listingStatusData = useMemo(
+    () => [
+      { label: "Active", value: activeListings },
+      { label: "Sold", value: soldListings },
+      { label: "Hidden", value: hiddenListings },
+      { label: "Low Stock", value: lowStockCount },
+    ],
+    [activeListings, soldListings, hiddenListings, lowStockCount],
+  );
 
-    if (!sellerOrderItems.length) {
-      return labels.map((label, index) => ({
-        label,
-        value: [120, 280, 160, 340, 210, 390, 250][index],
-      }));
+  const maxListingStatusValue = useMemo(() => {
+    return Math.max(...listingStatusData.map((item) => item.value), 1);
+  }, [listingStatusData]);
+
+  const salesOverviewData = useMemo(() => {
+    const labels: string[] = [];
+    const values = new Array(7).fill(0);
+    const today = new Date();
+
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(today.getDate() - i);
+      labels.push(
+        d.toLocaleDateString("en-US", {
+          weekday: "short",
+        }),
+      );
     }
 
-    const grouped = new Array(7).fill(0);
-
     sellerOrderItems.forEach((item) => {
-      const amount = (item.price ?? 0) * (item.quantity ?? 0);
-      const bucket = item.id % 7;
-      grouped[bucket] += amount;
+      const createdAt = getOrderCreatedAt(item);
+      if (!createdAt) return;
+
+      const orderDate = new Date(createdAt);
+      const diffMs =
+        new Date(
+          today.getFullYear(),
+          today.getMonth(),
+          today.getDate(),
+        ).getTime() -
+        new Date(
+          orderDate.getFullYear(),
+          orderDate.getMonth(),
+          orderDate.getDate(),
+        ).getTime();
+
+      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+      if (diffDays < 0 || diffDays > 6) return;
+
+      const bucketIndex = 6 - diffDays;
+      values[bucketIndex] += (item.price ?? 0) * (item.quantity ?? 0);
     });
 
     return labels.map((label, index) => ({
       label,
-      value: grouped[index],
+      value: values[index],
     }));
   }, [sellerOrderItems]);
 
@@ -428,9 +528,9 @@ export default function SellerDashboardPage() {
               icon={ShoppingBag}
             />
             <StatCard
-              title="Sold Listings"
-              value={soldListings}
-              subtitle="Books already sold"
+              title="Books Sold"
+              value={totalBooksSold}
+              subtitle="Total quantities sold"
               icon={PackageCheck}
             />
             <StatCard
@@ -450,24 +550,25 @@ export default function SellerDashboardPage() {
                     Sales Overview
                   </h3>
                   <p className="mt-1 text-sm text-[#5F5A52]">
-                    Visual trend of seller activity across the week
+                    Revenue from the last 7 days based on actual seller orders
                   </p>
                 </div>
               </div>
 
               <div className="flex h-[260px] items-end gap-3 rounded-[24px] border border-[#E5E0D8] bg-[#FFFDF9] p-4 sm:gap-4 sm:p-5">
                 {salesOverviewData.map((item) => {
-                  const height = `${Math.max((item.value / maxSalesValue) * 100, 12)}%`;
+                  const height = `${Math.max((item.value / maxSalesValue) * 100, item.value > 0 ? 12 : 0)}%`;
 
                   return (
                     <div
                       key={item.label}
                       className="flex flex-1 flex-col items-center justify-end gap-3"
                     >
-                      <div className="w-full max-w-[72px] rounded-t-2xl bg-[#FFE0BE]">
+                      <div className="flex h-full w-full max-w-[72px] items-end rounded-t-2xl bg-[#FFE0BE]">
                         <div
                           className="w-full rounded-t-2xl bg-[#E67E22] transition-all duration-500"
                           style={{ height }}
+                          title={formatCurrency(item.value)}
                         />
                       </div>
                       <p className="text-xs font-semibold text-[#8A8175]">
@@ -485,7 +586,7 @@ export default function SellerDashboardPage() {
                   Order Status
                 </h3>
                 <p className="mt-1 text-sm text-[#5F5A52]">
-                  Quick breakdown of the current seller situation
+                  Real-time breakdown from seller orders
                 </p>
               </div>
 
@@ -610,12 +711,12 @@ export default function SellerDashboardPage() {
                     value={formatCurrency(totalRevenueEstimate)}
                   />
                   <InsightRow
-                    icon={TrendingUp}
-                    label="Delivered Orders"
-                    value={String(deliveredOrders)}
+                    icon={CheckCircle2}
+                    label="Received Orders"
+                    value={String(receivedOrders)}
                   />
                   <InsightRow
-                    icon={ShoppingBag}
+                    icon={Clock3}
                     label="Pending Orders"
                     value={String(pendingOrders)}
                   />
@@ -624,6 +725,33 @@ export default function SellerDashboardPage() {
                     label="Average Order Value"
                     value={formatCurrency(averageOrderValue)}
                   />
+                  <InsightRow
+                    icon={Truck}
+                    label="Processing Orders"
+                    value={String(processingOrders)}
+                  />
+                </div>
+              </div>
+
+              <div className="rounded-[28px] border border-[#E5E0D8] bg-white p-5 sm:p-6">
+                <div className="mb-4">
+                  <h3 className="text-[2rem] font-bold tracking-tight text-[#1F1F1F]">
+                    Listing Status
+                  </h3>
+                  <p className="mt-1 text-sm text-[#5F5A52]">
+                    Quick breakdown of your store inventory
+                  </p>
+                </div>
+
+                <div className="space-y-4">
+                  {listingStatusData.map((item) => (
+                    <StatusProgressRow
+                      key={item.label}
+                      label={item.label}
+                      value={item.value}
+                      maxValue={maxListingStatusValue}
+                    />
+                  ))}
                 </div>
               </div>
 
@@ -656,7 +784,18 @@ export default function SellerDashboardPage() {
                     />
                   ) : null}
 
-                  {lowStockCount === 0 && pendingOrders === 0 ? (
+                  {processingOrders > 0 ? (
+                    <AttentionCard
+                      href="/seller-orders"
+                      icon={Truck}
+                      title={`${processingOrders} processing order${processingOrders > 1 ? "s" : ""}`}
+                      text="Some items are already moving and may need updates soon."
+                    />
+                  ) : null}
+
+                  {lowStockCount === 0 &&
+                  pendingOrders === 0 &&
+                  processingOrders === 0 ? (
                     <div className="rounded-2xl border border-[#E5E0D8] bg-[#FFFDF9] p-4">
                       <p className="font-semibold text-[#1F1F1F]">
                         Everything looks good

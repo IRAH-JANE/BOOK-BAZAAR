@@ -115,6 +115,29 @@ function OrdersPageSkeleton() {
   );
 }
 
+function getBook(item: BuyerOrderItem): OrderItemBook | null {
+  if (!item.books) return null;
+  return Array.isArray(item.books) ? (item.books[0] ?? null) : item.books;
+}
+
+function getBuyerOrderHeading(group: GroupedBuyerOrder) {
+  if (group.items.length === 1) {
+    const onlyBook = getBook(group.items[0]);
+    return onlyBook?.title || "Purchased Book";
+  }
+
+  return `${group.items.length} books in this order`;
+}
+
+function getBuyerOrderSubheading(group: GroupedBuyerOrder) {
+  if (group.items.length === 1) {
+    const onlyBook = getBook(group.items[0]);
+    return onlyBook?.author || "Book purchase";
+  }
+
+  return "Multiple books purchased together";
+}
+
 export default function OrdersPage() {
   const router = useRouter();
   const supabase = createSupabaseBrowser();
@@ -141,11 +164,6 @@ export default function OrdersPage() {
   const [reviewDeletingBookId, setReviewDeletingBookId] = useState<
     number | null
   >(null);
-
-  const getBook = (item: BuyerOrderItem): OrderItemBook | null => {
-    if (!item.books) return null;
-    return Array.isArray(item.books) ? (item.books[0] ?? null) : item.books;
-  };
 
   const formatItemStatus = (status: string | null) => {
     const map: Record<string, string> = {
@@ -563,7 +581,6 @@ export default function OrdersPage() {
         type: "error",
       });
     } finally {
-      setReviewDeletingBookId(bookId);
       setReviewDeletingBookId(null);
     }
   };
@@ -580,8 +597,12 @@ export default function OrdersPage() {
     const query = searchText.trim().toLowerCase();
 
     return orders.filter((group) => {
+      const heading = getBuyerOrderHeading(group).toLowerCase();
+      const subheading = getBuyerOrderSubheading(group).toLowerCase();
+
       const orderMatches =
-        String(group.order.id).includes(query) ||
+        heading.includes(query) ||
+        subheading.includes(query) ||
         (group.order.shipping_address || "").toLowerCase().includes(query) ||
         (group.order.payment_method || "").toLowerCase().includes(query) ||
         (group.order.delivery_method || "").toLowerCase().includes(query);
@@ -609,7 +630,13 @@ export default function OrdersPage() {
     });
   }, [orders, searchText, statusFilter]);
 
-  const totalOrders = orders.length;
+  const totalBooksPurchased = orders.reduce(
+    (sum, group) =>
+      sum +
+      group.items.reduce((inner, item) => inner + (item.quantity || 0), 0),
+    0,
+  );
+
   const pendingOrders = orders.filter((group) =>
     group.items.some((item) =>
       ["pending", "confirmed", "packed"].includes(item.item_status || ""),
@@ -655,10 +682,10 @@ export default function OrdersPage() {
           <div className="rounded-[28px] border border-[#E8E1D7] bg-[#FFFDF9] p-5 shadow-[0_10px_28px_rgba(31,31,31,0.05)]">
             <div className="flex items-center gap-2">
               <ShoppingBag className="text-[#E67E22]" size={16} />
-              <span className="text-sm text-[#6B6B6B]">Total Orders</span>
+              <span className="text-sm text-[#6B6B6B]">Total Books</span>
             </div>
             <p className="mt-3 text-3xl font-bold text-[#1F1F1F]">
-              {totalOrders}
+              {totalBooksPurchased}
             </p>
           </div>
 
@@ -702,7 +729,7 @@ export default function OrdersPage() {
               />
               <input
                 type="text"
-                placeholder="Search order ID, title, address, courier, tracking..."
+                placeholder="Search purchased books, address, courier, tracking..."
                 value={searchText}
                 onChange={(e) => setSearchText(e.target.value)}
                 className="w-full rounded-2xl border border-[#DED8CF] bg-white py-3 pl-10 pr-4 text-sm text-[#5F5A52] outline-none transition focus:border-[#E67E22] focus:ring-1 focus:ring-[#E67E22]"
@@ -754,6 +781,8 @@ export default function OrdersPage() {
               const isOpen = openOrders.includes(group.order.id);
               const firstItem = group.items[0];
               const firstBook = firstItem ? getBook(firstItem) : null;
+              const heading = getBuyerOrderHeading(group);
+              const subheading = getBuyerOrderSubheading(group);
 
               return (
                 <article
@@ -776,8 +805,11 @@ export default function OrdersPage() {
 
                       <div className="min-w-0">
                         <h2 className="text-xl font-bold text-[#1F1F1F]">
-                          Order #{group.order.id}
+                          {heading}
                         </h2>
+                        <p className="mt-1 text-sm text-[#6B6B6B]">
+                          {subheading}
+                        </p>
                         <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-[#6B6B6B]">
                           <span>
                             {new Date(

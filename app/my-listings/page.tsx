@@ -16,10 +16,7 @@ import {
   CircleDollarSign,
   AlertTriangle,
   CheckCircle2,
-  Archive,
-  Plus,
   Package2,
-  ChevronRight,
   SlidersHorizontal,
   Boxes,
   EyeOff,
@@ -678,13 +675,14 @@ export default function MyListingsPage() {
 
                           <div className="mt-4 flex flex-wrap gap-2.5">
                             <span className="rounded-full bg-[#F3EEE7] px-4 py-2 text-sm text-[#3B342C]">
-                              Stock: <strong>{book.stock_quantity ?? 0}</strong>
+                              Total Stock:{" "}
+                              <strong>{book.stock_quantity ?? 0}</strong>
                             </span>
                             <span className="rounded-full bg-[#F3EEE7] px-4 py-2 text-sm text-[#3B342C]">
                               Sold: <strong>{book.sold_count ?? 0}</strong>
                             </span>
                             <span className="rounded-full bg-[#F3EEE7] px-4 py-2 text-sm text-[#3B342C]">
-                              Remaining: <strong>{remainingStock}</strong>
+                              Available: <strong>{remainingStock}</strong>
                             </span>
                           </div>
                         </div>
