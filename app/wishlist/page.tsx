@@ -28,35 +28,38 @@ function SkeletonBox({ className = "" }: { className?: string }) {
 
 function WishlistPageSkeleton() {
   return (
-    <main className="min-h-screen bg-[#F7F5F1] px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-7xl">
+    <main className="min-h-screen bg-[#F7F5F1] px-4 py-8 min-[480px]:px-6 min-[768px]:px-8 min-[1024px]:px-10 min-[1280px]:px-20 min-[1440px]:px-0">
+      <div className="mx-auto w-full max-w-[1200px]">
         <div className="relative overflow-hidden rounded-[32px] border border-[#EEE7DC] bg-gradient-to-br from-[#FFF8F1] via-[#FFFDF9] to-[#F9F4EC] px-6 py-8 shadow-[0_12px_40px_rgba(31,31,31,0.06)] sm:px-8 sm:py-10">
           <div className="max-w-2xl">
-            <SkeletonBox className="h-4 w-28 rounded-full" />
-            <SkeletonBox className="mt-4 h-11 w-64" />
+            <SkeletonBox className="h-11 w-64" />
             <SkeletonBox className="mt-3 h-5 w-[22rem] max-w-full" />
           </div>
         </div>
 
-        <div className="mt-8 grid gap-6 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+        <div className="mt-8 grid grid-cols-2 gap-3 min-[480px]:gap-4 min-[768px]:grid-cols-3 min-[768px]:gap-5 min-[1024px]:grid-cols-4 min-[1024px]:gap-6">
           {[...Array(8)].map((_, index) => (
             <div
               key={index}
-              className="overflow-hidden rounded-[28px] border border-[#E8E1D7] bg-[#FFFDF9] shadow-[0_10px_30px_rgba(31,31,31,0.05)]"
+              className="overflow-hidden rounded-[22px] border border-[#E5E0D8] bg-white p-3 min-[480px]:p-4 shadow-sm"
             >
-              <SkeletonBox className="h-72 w-full rounded-none" />
+              <div className="relative overflow-hidden rounded-2xl bg-[#F7F4EE]">
+                <SkeletonBox className="h-40 w-full rounded-2xl min-[480px]:h-52 min-[768px]:h-60 min-[1024px]:h-64" />
+                <SkeletonBox className="absolute left-3 top-3 h-7 w-20 rounded-full" />
+                <SkeletonBox className="absolute right-3 top-3 h-10 w-10 rounded-full" />
+              </div>
 
-              <div className="p-5 sm:p-6">
-                <SkeletonBox className="h-6 w-full" />
-                <SkeletonBox className="mt-2 h-6 w-4/5" />
+              <div className="pt-4">
+                <SkeletonBox className="h-5 w-full" />
+                <SkeletonBox className="mt-2 h-5 w-4/5" />
+                <SkeletonBox className="mt-3 h-4 w-24" />
 
-                <SkeletonBox className="mt-4 h-4 w-32" />
-                <SkeletonBox className="mt-4 h-7 w-24" />
-                <SkeletonBox className="mt-3 h-4 w-40" />
-
-                <div className="mt-6 flex gap-3">
-                  <SkeletonBox className="h-11 flex-1 rounded-full" />
-                  <SkeletonBox className="h-11 flex-1 rounded-full" />
+                <div className="mt-3 flex items-end justify-between gap-2 min-[480px]:gap-3">
+                  <div className="min-w-0">
+                    <SkeletonBox className="h-4 w-24" />
+                    <SkeletonBox className="mt-2 h-4 w-16" />
+                  </div>
+                  <SkeletonBox className="h-7 w-16" />
                 </div>
               </div>
             </div>
@@ -182,15 +185,15 @@ export default function WishlistPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#F7F5F1] px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-7xl">
-        <section className="relative overflow-hidden rounded-[32px] border border-[#EEE7DC] bg-gradient-to-br from-[#FFF8F1] via-[#FFFDF9] to-[#F9F4EC] px-6 py-8 shadow-[0_12px_40px_rgba(31,31,31,0.06)] sm:px-8 sm:py-10">
+    <main className="min-h-screen bg-[#F7F5F1] px-4 py-8 min-[480px]:px-6 min-[768px]:px-8 min-[1024px]:px-10 min-[1280px]:px-20 min-[1440px]:px-0">
+      <div className="mx-auto w-full max-w-[1200px]">
+        <section className="relative overflow-hidden rounded-[32px] border border-[#EEE7DC] bg-gradient-to-br from-[#FFF8F1] via-[#FFFDF9] to-[#F9F4EC] px-5 py-7 shadow-[0_12px_40px_rgba(31,31,31,0.06)] min-[480px]:px-6 min-[480px]:py-8 sm:px-8 sm:py-10">
           <div className="pointer-events-none absolute -right-16 -top-16 h-44 w-44 rounded-full bg-[#E67E22]/10 blur-3xl" />
           <div className="pointer-events-none absolute bottom-0 left-0 h-32 w-32 rounded-full bg-[#F3C998]/20 blur-2xl" />
 
           <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
             <div className="max-w-2xl">
-              <h1 className="mt-4 text-3xl font-bold tracking-tight text-[#1F1F1F] sm:text-4xl lg:text-5xl">
+              <h1 className="mt-2 text-3xl font-bold tracking-tight text-[#1F1F1F] sm:text-4xl lg:text-5xl">
                 My Wishlist
               </h1>
 
@@ -201,7 +204,7 @@ export default function WishlistPage() {
             </div>
 
             <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
-              <div className="flex flex-col items-center justify-center text-center rounded-2xl border border-[#E8DED1] bg-white/80 px-5 py-4 shadow-sm backdrop-blur-sm">
+              <div className="flex flex-col items-center justify-center rounded-2xl border border-[#E8DED1] bg-white/80 px-5 py-4 text-center shadow-sm backdrop-blur-sm">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8A8175]">
                   Total Saved
                 </p>
@@ -236,71 +239,72 @@ export default function WishlistPage() {
             </Link>
           </section>
         ) : (
-          <section className="mt-8 grid gap-6 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+          <section className="mt-8 grid grid-cols-2 gap-3 min-[480px]:gap-4 min-[768px]:grid-cols-3 min-[768px]:gap-5 min-[1024px]:grid-cols-4 min-[1024px]:gap-6">
             {items.map((item) => (
               <Link
                 key={item.id}
                 href={item.books ? `/book/${item.books.id}` : "#"}
-                className="block"
+                className="group block rounded-[22px] focus:outline-none"
               >
-                <article className="group overflow-hidden rounded-[28px] border border-[#E8E1D7] bg-[#FFFDF9] shadow-[0_10px_30px_rgba(31,31,31,0.05)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_18px_45px_rgba(31,31,31,0.08)]">
-                  <div className="relative overflow-hidden bg-gradient-to-b from-[#F6EFE6] to-[#EFE7DB]">
-                    <div className="absolute right-3 top-3 z-10">
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          handleRemove(item.id);
-                        }}
-                        disabled={removingId === item.id}
-                        className="flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-red-500 shadow-sm backdrop-blur-sm transition active:scale-95 disabled:opacity-50"
-                        aria-label="Remove from wishlist"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-
+                <article className="overflow-hidden rounded-[22px] border border-[#E5E0D8] bg-white p-3 min-[480px]:p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_16px_40px_rgba(31,31,31,0.08)] active:scale-[0.99]">
+                  <div className="relative overflow-hidden rounded-2xl bg-[#F7F4EE]">
                     {item.books?.image_url ? (
                       <img
                         src={item.books.image_url}
                         alt={item.books.title}
-                        className="h-72 w-full object-cover transition duration-500 group-hover:scale-[1.04]"
+                        className="h-40 w-full object-cover transition duration-500 group-hover:scale-[1.04] min-[480px]:h-52 min-[768px]:h-60 min-[1024px]:h-64"
                       />
                     ) : (
-                      <div className="flex h-72 w-full flex-col items-center justify-center px-6 text-center text-[#8A8175]">
-                        <div className="rounded-full bg-white/70 px-4 py-2 text-sm font-semibold shadow-sm">
-                          No Image Available
-                        </div>
+                      <div className="flex h-40 w-full items-center justify-center bg-[#EEF1F6] text-[#7B8593] min-[480px]:h-52 min-[768px]:h-60 min-[1024px]:h-64">
+                        No Image
                       </div>
                     )}
 
-                    <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/20 to-transparent" />
+                    <span className="absolute left-3 top-3 rounded-full bg-white/95 px-3 py-1 text-[11px] font-semibold text-[#1F1F1F] shadow-sm backdrop-blur-sm">
+                      {item.books?.condition || "N/A"}
+                    </span>
+
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleRemove(item.id);
+                      }}
+                      disabled={removingId === item.id}
+                      className="absolute right-3 top-3 rounded-full bg-white/95 p-2.5 shadow-sm backdrop-blur-sm transition duration-200 hover:scale-105 hover:bg-[#F7F4EE] disabled:opacity-50"
+                      aria-label="Remove from wishlist"
+                    >
+                      <Trash2 size={16} className="text-red-500" />
+                    </button>
                   </div>
 
-                  <div className="p-5 sm:p-6">
-                    <div className="min-h-[72px]">
-                      <h2 className="line-clamp-2 text-lg font-bold leading-7 text-[#1F1F1F]">
-                        {item.books?.title || "Unknown Book"}
-                      </h2>
+                  <div className="pt-4">
+                    <h2 className="line-clamp-2 min-h-[40px] text-[15px] font-semibold leading-tight text-[#1F1F1F] transition group-hover:text-[#2A211B] min-[480px]:min-h-[44px] min-[480px]:text-base min-[768px]:min-h-[48px]">
+                      {item.books?.title || "Unknown Book"}
+                    </h2>
 
-                      <p className="mt-2 line-clamp-1 text-sm text-[#6B6B6B]">
-                        {item.books?.author || "Unknown Author"}
-                      </p>
-                    </div>
+                    <p className="mt-1 line-clamp-1 text-[12px] text-[#8A8175] min-[480px]:text-sm">
+                      {item.books?.author || "Unknown Author"}
+                    </p>
 
-                    <div className="mt-4 flex items-center justify-between gap-3">
-                      <p className="text-2xl font-bold text-[#E67E22]">
+                    <div className="mt-3 flex items-end justify-between gap-2 min-[480px]:gap-3">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 text-sm text-[#8A8175]">
+                          <span className="line-clamp-1">
+                            {item.books?.location || "N/A"}
+                          </span>
+                        </div>
+
+                        <p className="mt-1 pl-1 text-[11px] font-medium uppercase tracking-wide text-[#6B6B6B]">
+                          Available
+                        </p>
+                      </div>
+
+                      <p className="shrink-0 text-base font-bold text-[#E67E22] min-[480px]:text-lg">
                         ₱{item.books?.price ?? 0}
                       </p>
-
-                      <span className="rounded-full bg-[#F6EFE6] px-3 py-1 text-xs font-semibold text-[#7A6F61]">
-                        {item.books?.condition || "N/A"}
-                      </span>
                     </div>
-
-                    <p className="mt-3 text-sm text-[#8A8175]">
-                      {item.books?.location || "N/A"}
-                    </p>
                   </div>
                 </article>
               </Link>
