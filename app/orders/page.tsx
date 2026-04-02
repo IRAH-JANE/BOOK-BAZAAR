@@ -5,17 +5,18 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowser } from "@/lib/supabase";
 import { useToast } from "@/components/ToastProvider";
+import { useConfirm } from "@/components/ConfirmProvider";
 import {
   ChevronDown,
   ChevronUp,
   CreditCard,
   MapPin,
-  Package,
   Search,
   ShoppingBag,
   Truck,
   CheckCircle2,
   Clock3,
+  Star,
 } from "lucide-react";
 
 type OrderItemBook = {
@@ -33,6 +34,7 @@ type BuyerOrderItem = {
   courier_name: string | null;
   tracking_number: string | null;
   estimated_delivery_date: string | null;
+  received_at?: string | null;
   books: OrderItemBook | OrderItemBook[] | null;
 };
 
@@ -51,7 +53,14 @@ type BuyerOrder = {
 
 type GroupedBuyerOrder = {
   order: BuyerOrder;
-  items: BuyerOrderItem[];
+  items: (BuyerOrderItem & { order_id: number })[];
+};
+
+type ExistingReview = {
+  id: number;
+  book_id: number;
+  rating: number;
+  review_text: string | null;
 };
 
 function SkeletonBox({ className = "" }: { className?: string }) {
@@ -110,12 +119,28 @@ export default function OrdersPage() {
   const router = useRouter();
   const supabase = createSupabaseBrowser();
   const { showToast } = useToast();
+  const { confirm } = useConfirm();
 
   const [orders, setOrders] = useState<GroupedBuyerOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [openOrders, setOpenOrders] = useState<number[]>([]);
   const [searchText, setSearchText] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [actionLoadingId, setActionLoadingId] = useState<number | null>(null);
+
+  const [reviewMap, setReviewMap] = useState<Record<number, ExistingReview>>(
+    {},
+  );
+  const [openReviewBookId, setOpenReviewBookId] = useState<number | null>(null);
+  const [reviewRating, setReviewRating] = useState<Record<number, number>>({});
+  const [reviewHover, setReviewHover] = useState<Record<number, number>>({});
+  const [reviewText, setReviewText] = useState<Record<number, string>>({});
+  const [reviewSavingBookId, setReviewSavingBookId] = useState<number | null>(
+    null,
+  );
+  const [reviewDeletingBookId, setReviewDeletingBookId] = useState<
+    number | null
+  >(null);
 
   const getBook = (item: BuyerOrderItem): OrderItemBook | null => {
     if (!item.books) return null;
@@ -145,6 +170,7 @@ export default function OrdersPage() {
       shipped: "Shipped",
       out_for_delivery: "Out for Delivery",
       delivered: "Delivered",
+      received: "Received",
       cancelled: "Cancelled",
     };
 
@@ -169,6 +195,62 @@ export default function OrdersPage() {
       default:
         return "border-gray-200 bg-gray-50 text-gray-700";
     }
+  };
+
+  const fetchReviewsForReceivedBooks = async (
+    userId: string,
+    groupedOrders: GroupedBuyerOrder[],
+  ) => {
+    const receivedBookIds = Array.from(
+      new Set(
+        groupedOrders.flatMap(
+          (group) =>
+            group.items
+              .filter(
+                (item) => (item.item_status || "").toLowerCase() === "received",
+              )
+              .map((item) => {
+                const book = getBook(item);
+                return book?.id || null;
+              })
+              .filter(Boolean) as number[],
+        ),
+      ),
+    );
+
+    if (receivedBookIds.length === 0) {
+      setReviewMap({});
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("book_reviews")
+      .select("id, book_id, rating, review_text")
+      .eq("user_id", userId)
+      .in("book_id", receivedBookIds);
+
+    if (error) {
+      console.error("Failed to load existing reviews:", error);
+      return;
+    }
+
+    const reviewLookup: Record<number, ExistingReview> = {};
+    (data || []).forEach((review) => {
+      reviewLookup[review.book_id] = review as ExistingReview;
+    });
+
+    setReviewMap(reviewLookup);
+
+    const initialRatings: Record<number, number> = {};
+    const initialTexts: Record<number, string> = {};
+
+    (data || []).forEach((review) => {
+      initialRatings[review.book_id] = review.rating || 0;
+      initialTexts[review.book_id] = review.review_text || "";
+    });
+
+    setReviewRating((prev) => ({ ...prev, ...initialRatings }));
+    setReviewText((prev) => ({ ...prev, ...initialTexts }));
   };
 
   const fetchOrders = async () => {
@@ -215,6 +297,7 @@ export default function OrdersPage() {
           courier_name,
           tracking_number,
           estimated_delivery_date,
+          received_at,
           order_id,
           books (
             id,
@@ -243,6 +326,8 @@ export default function OrdersPage() {
       if (grouped.length > 0) {
         setOpenOrders([grouped[0].order.id]);
       }
+
+      await fetchReviewsForReceivedBooks(user.id, grouped);
     } catch (error) {
       console.error("Failed to load buyer orders:", error);
       showToast({
@@ -258,6 +343,230 @@ export default function OrdersPage() {
   useEffect(() => {
     fetchOrders();
   }, []);
+
+  const handleMarkAsReceived = async (itemId: number) => {
+    const confirmed = await confirm({
+      title: "Confirm receipt?",
+      message:
+        "Click this only if you already received the book. After this, you can rate the product.",
+      confirmText: "Mark as Received",
+      cancelText: "Cancel",
+    });
+
+    if (!confirmed) return;
+
+    try {
+      setActionLoadingId(itemId);
+
+      const { error } = await supabase
+        .from("order_items")
+        .update({
+          item_status: "received",
+          received_at: new Date().toISOString(),
+        })
+        .eq("id", itemId);
+
+      if (error) throw error;
+
+      setOrders((prev) =>
+        prev.map((group) => ({
+          ...group,
+          items: group.items.map((item) =>
+            item.id === itemId
+              ? {
+                  ...item,
+                  item_status: "received",
+                  received_at: new Date().toISOString(),
+                }
+              : item,
+          ),
+        })),
+      );
+
+      showToast({
+        title: "Marked as received",
+        message: "You can now rate this book.",
+        type: "success",
+      });
+
+      router.refresh();
+    } catch (error) {
+      console.error("Failed to confirm item receipt:", error);
+      showToast({
+        title: "Update failed",
+        message: "Failed to mark this item as received.",
+        type: "error",
+      });
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  const openReviewEditor = (bookId: number) => {
+    setOpenReviewBookId((prev) => (prev === bookId ? null : bookId));
+
+    if (!reviewRating[bookId]) {
+      setReviewRating((prev) => ({
+        ...prev,
+        [bookId]: reviewMap[bookId]?.rating || 0,
+      }));
+    }
+
+    if (reviewText[bookId] === undefined) {
+      setReviewText((prev) => ({
+        ...prev,
+        [bookId]: reviewMap[bookId]?.review_text || "",
+      }));
+    }
+  };
+
+  const submitReview = async (bookId: number) => {
+    const rating = reviewRating[bookId] || 0;
+    const text = reviewText[bookId] || "";
+    const existing = reviewMap[bookId];
+
+    if (!rating) {
+      showToast({
+        title: "Rating required",
+        message: "Please choose a star rating first.",
+        type: "info",
+      });
+      return;
+    }
+
+    try {
+      setReviewSavingBookId(bookId);
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        showToast({
+          title: "Login required",
+          message: "Please log in first.",
+          type: "info",
+        });
+        return;
+      }
+
+      if (existing) {
+        const { error } = await supabase
+          .from("book_reviews")
+          .update({
+            rating,
+            review_text: text.trim() || null,
+          })
+          .eq("id", existing.id);
+
+        if (error) throw error;
+
+        setReviewMap((prev) => ({
+          ...prev,
+          [bookId]: {
+            ...existing,
+            rating,
+            review_text: text.trim() || null,
+          },
+        }));
+
+        showToast({
+          title: "Review updated",
+          message: "Your review was updated successfully.",
+          type: "success",
+        });
+      } else {
+        const { data, error } = await supabase
+          .from("book_reviews")
+          .insert([
+            {
+              book_id: bookId,
+              user_id: user.id,
+              rating,
+              review_text: text.trim() || null,
+            },
+          ])
+          .select("id, book_id, rating, review_text")
+          .single();
+
+        if (error) throw error;
+
+        setReviewMap((prev) => ({
+          ...prev,
+          [bookId]: data as ExistingReview,
+        }));
+
+        showToast({
+          title: "Review submitted",
+          message: "Thank you for rating this book.",
+          type: "success",
+        });
+      }
+
+      setOpenReviewBookId(null);
+      router.refresh();
+    } catch (error: any) {
+      showToast({
+        title: "Review failed",
+        message:
+          error?.message || "Something went wrong while saving your review.",
+        type: "error",
+      });
+    } finally {
+      setReviewSavingBookId(null);
+    }
+  };
+
+  const deleteReview = async (bookId: number) => {
+    const existing = reviewMap[bookId];
+    if (!existing) return;
+
+    try {
+      setReviewDeletingBookId(bookId);
+
+      const { error } = await supabase
+        .from("book_reviews")
+        .delete()
+        .eq("id", existing.id);
+
+      if (error) throw error;
+
+      setReviewMap((prev) => {
+        const next = { ...prev };
+        delete next[bookId];
+        return next;
+      });
+
+      setReviewRating((prev) => ({
+        ...prev,
+        [bookId]: 0,
+      }));
+
+      setReviewText((prev) => ({
+        ...prev,
+        [bookId]: "",
+      }));
+
+      setOpenReviewBookId(null);
+
+      showToast({
+        title: "Review removed",
+        message: "Your review was deleted.",
+        type: "success",
+      });
+
+      router.refresh();
+    } catch (error: any) {
+      showToast({
+        title: "Delete failed",
+        message: error?.message || "Could not delete your review.",
+        type: "error",
+      });
+    } finally {
+      setReviewDeletingBookId(bookId);
+      setReviewDeletingBookId(null);
+    }
+  };
 
   const toggleOrderOpen = (orderId: number) => {
     setOpenOrders((prev) =>
@@ -301,14 +610,18 @@ export default function OrdersPage() {
   }, [orders, searchText, statusFilter]);
 
   const totalOrders = orders.length;
-  const pendingOrders = orders.filter(
-    (group) => (group.order.order_status || "pending") === "pending",
+  const pendingOrders = orders.filter((group) =>
+    group.items.some((item) =>
+      ["pending", "confirmed", "packed"].includes(item.item_status || ""),
+    ),
   ).length;
   const inTransitOrders = orders.filter((group) =>
-    ["shipped", "out_for_delivery"].includes(group.order.order_status || ""),
+    group.items.some((item) =>
+      ["shipped", "out_for_delivery"].includes(item.item_status || ""),
+    ),
   ).length;
   const completedOrders = orders.filter((group) =>
-    ["delivered"].includes(group.order.order_status || ""),
+    group.items.every((item) => (item.item_status || "") === "received"),
   ).length;
 
   if (loading) {
@@ -407,7 +720,7 @@ export default function OrdersPage() {
               <option value="packed">Packed</option>
               <option value="shipped">Shipped</option>
               <option value="out_for_delivery">Out for Delivery</option>
-              <option value="delivered">Delivered</option>
+              <option value="received">Received</option>
               <option value="cancelled">Cancelled</option>
             </select>
           </div>
@@ -586,6 +899,23 @@ export default function OrdersPage() {
                       <div className="space-y-3">
                         {group.items.map((item) => {
                           const book = getBook(item);
+                          const currentStatus = (
+                            item.item_status || "pending"
+                          ).toLowerCase();
+                          const canConfirmReceipt =
+                            currentStatus === "out_for_delivery";
+                          const bookId = book?.id || 0;
+                          const existingReview = bookId
+                            ? reviewMap[bookId]
+                            : null;
+                          const isReviewOpen = openReviewBookId === bookId;
+                          const currentRating =
+                            reviewRating[bookId] ?? existingReview?.rating ?? 0;
+                          const currentHover = reviewHover[bookId] || 0;
+                          const currentReviewText =
+                            reviewText[bookId] ??
+                            existingReview?.review_text ??
+                            "";
 
                           return (
                             <div
@@ -620,13 +950,49 @@ export default function OrdersPage() {
                                   </div>
                                 </div>
 
-                                <span
-                                  className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${getStatusBadgeClass(
-                                    item.item_status,
-                                  )}`}
-                                >
-                                  {formatItemStatus(item.item_status)}
-                                </span>
+                                <div className="flex flex-col items-start gap-2 sm:items-end">
+                                  <span
+                                    className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${getStatusBadgeClass(
+                                      item.item_status,
+                                    )}`}
+                                  >
+                                    {formatItemStatus(item.item_status)}
+                                  </span>
+
+                                  {canConfirmReceipt && (
+                                    <button
+                                      onClick={() =>
+                                        handleMarkAsReceived(item.id)
+                                      }
+                                      disabled={actionLoadingId === item.id}
+                                      className="inline-flex items-center justify-center rounded-full bg-[#E67E22] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#cf6f1c] disabled:opacity-50"
+                                    >
+                                      {actionLoadingId === item.id
+                                        ? "Updating..."
+                                        : "Mark as Received"}
+                                    </button>
+                                  )}
+
+                                  {currentStatus === "received" &&
+                                    bookId > 0 && (
+                                      <>
+                                        <button
+                                          onClick={() =>
+                                            openReviewEditor(bookId)
+                                          }
+                                          className="inline-flex items-center justify-center rounded-full border border-[#F0B27A] bg-[#FFF7EF] px-4 py-2 text-xs font-semibold text-[#E67E22] transition hover:bg-[#FFEBD8]"
+                                        >
+                                          {existingReview
+                                            ? "Edit Review"
+                                            : "Rate this Book"}
+                                        </button>
+
+                                        <span className="text-xs font-medium text-[#6B6B6B]">
+                                          You can now rate this book
+                                        </span>
+                                      </>
+                                    )}
+                                </div>
                               </div>
 
                               {(item.courier_name ||
@@ -661,6 +1027,119 @@ export default function OrdersPage() {
                                   </div>
                                 </div>
                               )}
+
+                              {currentStatus === "received" &&
+                                bookId > 0 &&
+                                isReviewOpen && (
+                                  <div className="mt-4 rounded-2xl border border-[#E5E0D8] bg-[#FFFCF8] p-4">
+                                    <h4 className="text-sm font-bold text-[#1F1F1F]">
+                                      {existingReview
+                                        ? "Edit your review"
+                                        : "Rate this book"}
+                                    </h4>
+
+                                    <p className="mt-1 text-sm text-[#6B6B6B]">
+                                      Share your feedback without leaving this
+                                      page.
+                                    </p>
+
+                                    <div className="mt-4 flex items-center gap-1">
+                                      {[1, 2, 3, 4, 5].map((value) => {
+                                        const active =
+                                          (currentHover || currentRating) >=
+                                          value;
+
+                                        return (
+                                          <button
+                                            key={value}
+                                            type="button"
+                                            onMouseEnter={() =>
+                                              setReviewHover((prev) => ({
+                                                ...prev,
+                                                [bookId]: value,
+                                              }))
+                                            }
+                                            onMouseLeave={() =>
+                                              setReviewHover((prev) => ({
+                                                ...prev,
+                                                [bookId]: 0,
+                                              }))
+                                            }
+                                            onClick={() =>
+                                              setReviewRating((prev) => ({
+                                                ...prev,
+                                                [bookId]: value,
+                                              }))
+                                            }
+                                            className="rounded-full p-1"
+                                          >
+                                            <Star
+                                              size={24}
+                                              className={
+                                                active
+                                                  ? "fill-[#E67E22] text-[#E67E22]"
+                                                  : "text-[#D6CEC2]"
+                                              }
+                                            />
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+
+                                    <textarea
+                                      value={currentReviewText}
+                                      onChange={(e) =>
+                                        setReviewText((prev) => ({
+                                          ...prev,
+                                          [bookId]: e.target.value,
+                                        }))
+                                      }
+                                      rows={4}
+                                      placeholder="Share your experience with this book..."
+                                      className="mt-4 w-full rounded-2xl border border-[#DED8CF] bg-white px-4 py-3 text-sm text-[#5F5A52] outline-none transition focus:border-[#E67E22] focus:ring-1 focus:ring-[#E67E22]"
+                                    />
+
+                                    <div className="mt-4 flex flex-wrap gap-3">
+                                      <button
+                                        type="button"
+                                        onClick={() => submitReview(bookId)}
+                                        disabled={reviewSavingBookId === bookId}
+                                        className="inline-flex items-center justify-center rounded-full bg-[#E67E22] px-5 py-3 font-semibold text-white transition hover:bg-[#cf6f1c] disabled:opacity-50"
+                                      >
+                                        {reviewSavingBookId === bookId
+                                          ? "Saving..."
+                                          : existingReview
+                                            ? "Update Review"
+                                            : "Submit Review"}
+                                      </button>
+
+                                      {existingReview && (
+                                        <button
+                                          type="button"
+                                          onClick={() => deleteReview(bookId)}
+                                          disabled={
+                                            reviewDeletingBookId === bookId
+                                          }
+                                          className="inline-flex items-center justify-center rounded-full border border-[#D9D1C6] bg-white px-5 py-3 font-semibold text-[#1F1F1F] transition hover:bg-[#F7F4EE] disabled:opacity-50"
+                                        >
+                                          {reviewDeletingBookId === bookId
+                                            ? "Deleting..."
+                                            : "Delete Review"}
+                                        </button>
+                                      )}
+
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          setOpenReviewBookId(null)
+                                        }
+                                        className="inline-flex items-center justify-center rounded-full border border-[#D9D1C6] bg-white px-5 py-3 font-semibold text-[#1F1F1F] transition hover:bg-[#F7F4EE]"
+                                      >
+                                        Cancel
+                                      </button>
+                                    </div>
+                                  </div>
+                                )}
                             </div>
                           );
                         })}

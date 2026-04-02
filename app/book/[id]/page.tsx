@@ -66,6 +66,10 @@ type BookData = {
   book_types: LookupRelation;
 };
 
+type BookReviewStat = {
+  rating: number;
+};
+
 function extractRelationName(relation: LookupRelation) {
   if (Array.isArray(relation)) {
     return relation[0]?.name || null;
@@ -132,6 +136,21 @@ export default async function BookDetailsPage({ params }: BookPageProps) {
     fullDescription.length > 320
       ? `${fullDescription.slice(0, 320)}...`
       : fullDescription;
+
+  const { data: reviewStatsData } = await supabase
+    .from("book_reviews")
+    .select("rating")
+    .eq("book_id", book.id);
+
+  const reviewStats = (reviewStatsData as BookReviewStat[]) || [];
+  const reviewCount = reviewStats.length;
+  const averageRating =
+    reviewCount > 0
+      ? reviewStats.reduce(
+          (sum, review) => sum + Number(review.rating || 0),
+          0,
+        ) / reviewCount
+      : 0;
 
   let relatedBooks: RelatedBook[] = [];
 
@@ -224,8 +243,12 @@ export default async function BookDetailsPage({ params }: BookPageProps) {
               <div className="mt-4 flex flex-wrap items-center gap-2 sm:gap-3">
                 <div className="flex items-center gap-1 rounded-full bg-[#F7F4EE] px-3 py-2 text-xs font-medium text-[#1F1F1F] sm:text-sm">
                   <Star size={15} className="fill-[#E67E22] text-[#E67E22]" />
-                  <span>0.0</span>
-                  <span className="text-[#8A8175]">(No ratings yet)</span>
+                  <span>{averageRating.toFixed(1)}</span>
+                  <span className="text-[#8A8175]">
+                    {reviewCount > 0
+                      ? `(${reviewCount} review${reviewCount === 1 ? "" : "s"})`
+                      : "(No ratings yet)"}
+                  </span>
                 </div>
 
                 {book.condition && (

@@ -243,7 +243,6 @@ export default function AdminOrdersPage() {
   return (
     <main className="ml-[240px] min-h-screen bg-[#181614] p-6 text-[#F7F5F1]">
       <div className="mx-auto max-w-7xl">
-        {/* Header */}
         <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight text-[#FFFDF9]">
@@ -266,7 +265,6 @@ export default function AdminOrdersPage() {
           </div>
         </div>
 
-        {/* Summary cards */}
         <section className="grid gap-4 sm:grid-cols-3">
           <SummaryCard
             title="Total Orders"
@@ -288,7 +286,6 @@ export default function AdminOrdersPage() {
           />
         </section>
 
-        {/* Filters */}
         <section className="mt-6 rounded-2xl border border-[#312B26] bg-[#211D1A] p-4">
           <div className="flex flex-wrap gap-3">
             {[
@@ -312,7 +309,6 @@ export default function AdminOrdersPage() {
           </div>
         </section>
 
-        {/* Orders table */}
         <section className="mt-6 rounded-2xl border border-[#312B26] bg-[#211D1A] p-5">
           <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
             <div>

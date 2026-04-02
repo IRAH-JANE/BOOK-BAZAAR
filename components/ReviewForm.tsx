@@ -41,10 +41,10 @@ export default function ReviewForm({
     if (canReview) {
       return isEditing
         ? "You can update your review anytime."
-        : "Only buyers with a delivered or received order can review this book.";
+        : "Only buyers who already received the item can review this book.";
     }
 
-    return "You can review this book only after you buy it and the item is marked delivered or received.";
+    return "You can review this book only after you buy it and mark the item as received.";
   }, [canReview, isEditing]);
 
   const handleSubmit = async () => {

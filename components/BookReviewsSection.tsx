@@ -114,7 +114,7 @@ export default async function BookReviewsSection({
       )
       .eq("book_id", bookId)
       .eq("orders.buyer_id", user.id)
-      .in("item_status", ["delivered", "received"])
+      .eq("item_status", "received")
       .limit(1)
       .maybeSingle();
 
@@ -131,7 +131,7 @@ export default async function BookReviewsSection({
           Ratings & Reviews
         </h2>
         <p className="mt-2 text-sm text-[#6B6B6B] sm:text-base">
-          Reviews from buyers who completed their order for this book.
+          Reviews from buyers who already received their order.
         </p>
       </div>
 

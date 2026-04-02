@@ -153,7 +153,7 @@ function getOrderGroupStatus(group: SellerOrderGroup) {
   if (statuses.some((status) => status === "out_for_delivery"))
     return "out_for_delivery";
   if (statuses.some((status) => status === "cancelled")) return "cancelled";
-  if (statuses.every((status) => status === "delivered")) return "delivered";
+  if (statuses.every((status) => status === "received")) return "received";
 
   return group.order.order_status || "pending";
 }
@@ -175,8 +175,7 @@ function statusTone(status: string) {
     return "border-purple-200 bg-purple-50 text-purple-700";
   if (safe === "shipped" || safe === "out_for_delivery")
     return "border-sky-200 bg-sky-50 text-sky-700";
-  if (safe === "delivered")
-    return "border-green-200 bg-green-50 text-green-700";
+  if (safe === "received") return "border-green-200 bg-green-50 text-green-700";
   if (safe === "cancelled") return "border-red-200 bg-red-50 text-red-700";
 
   return "border-[#E5DED2] bg-[#F6EFE6] text-[#8A8175]";
@@ -268,12 +267,10 @@ export default function SellerOrdersPage() {
         setOpenOrders([grouped[0].order.id]);
       }
     } catch (error) {
-      console.error("Failed to load seller orders:", error);
-      showToast({
-        title: "Load failed",
-        message: "Failed to load seller orders.",
-        type: "error",
-      });
+      console.error(
+        "Failed to load seller orders:",
+        JSON.stringify(error, null, 2),
+      );
     } finally {
       setLoading(false);
     }
@@ -325,8 +322,8 @@ export default function SellerOrdersPage() {
   const pendingCount = orders.filter(
     (group) => getOrderGroupStatus(group).toLowerCase() === "pending",
   ).length;
-  const deliveredCount = orders.filter(
-    (group) => getOrderGroupStatus(group).toLowerCase() === "delivered",
+  const completedCount = orders.filter(
+    (group) => getOrderGroupStatus(group).toLowerCase() === "received",
   ).length;
   const revenueEstimate = orders.reduce(
     (sum, group) =>
@@ -340,12 +337,7 @@ export default function SellerOrdersPage() {
 
   const updateItemStatus = async (
     itemId: number,
-    nextStatus:
-      | "confirmed"
-      | "packed"
-      | "shipped"
-      | "out_for_delivery"
-      | "delivered",
+    nextStatus: "confirmed" | "packed" | "shipped" | "out_for_delivery",
   ) => {
     const confirmed = await confirm({
       title: "Update order item status?",
@@ -432,9 +424,9 @@ export default function SellerOrdersPage() {
               warn={pendingCount > 0}
             />
             <SummaryCard
-              title="Delivered"
-              value={deliveredCount}
-              subtitle="Completed seller orders"
+              title="Completed"
+              value={completedCount}
+              subtitle="Buyer confirmed receipt"
               icon={CheckCircle2}
             />
             <SummaryCard
@@ -479,7 +471,7 @@ export default function SellerOrdersPage() {
                 <option value="packed">Packed</option>
                 <option value="shipped">Shipped</option>
                 <option value="out_for_delivery">Out for Delivery</option>
-                <option value="delivered">Delivered</option>
+                <option value="received">Received</option>
                 <option value="cancelled">Cancelled</option>
               </select>
             </div>
@@ -716,21 +708,15 @@ export default function SellerOrdersPage() {
                                       />
                                     )}
 
-                                    {currentStatus === "out_for_delivery" && (
-                                      <ActionButton
-                                        label="Mark Delivered"
-                                        icon={CheckCircle2}
-                                        loading={actionLoadingId === item.id}
-                                        onClick={() =>
-                                          updateItemStatus(item.id, "delivered")
-                                        }
-                                      />
-                                    )}
-
-                                    {(currentStatus === "delivered" ||
+                                    {(currentStatus === "out_for_delivery" ||
+                                      currentStatus === "received" ||
                                       currentStatus === "cancelled") && (
                                       <div className="rounded-2xl border border-[#E5E0D8] bg-[#F7F4EE] px-4 py-3 text-center text-sm font-semibold text-[#6B6B6B]">
-                                        No more actions
+                                        {currentStatus === "received"
+                                          ? "Buyer already confirmed receipt"
+                                          : currentStatus === "out_for_delivery"
+                                            ? "Waiting for buyer confirmation"
+                                            : "No more actions"}
                                       </div>
                                     )}
                                   </div>
