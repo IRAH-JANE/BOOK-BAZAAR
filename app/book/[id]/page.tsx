@@ -3,6 +3,7 @@ import Link from "next/link";
 import { createSupabaseServer } from "@/lib/supabase-server";
 import BookActions from "@/components/BookActions";
 import BookImageWithFallback from "@/components/BookImageWithFallback";
+import BookReviewsSection from "@/components/BookReviewsSection";
 import {
   MapPin,
   Tag,
@@ -11,10 +12,11 @@ import {
   CalendarDays,
   Building2,
   Hash,
-  PackageCheck,
   Shapes,
   Library,
 } from "lucide-react";
+
+export const dynamic = "force-dynamic";
 
 type BookPageProps = {
   params: Promise<{
@@ -226,6 +228,12 @@ export default async function BookDetailsPage({ params }: BookPageProps) {
                   <span className="text-[#8A8175]">(No ratings yet)</span>
                 </div>
 
+                {book.condition && (
+                  <div className="rounded-full bg-[#F7F4EE] px-3 py-2 text-xs font-medium text-[#1F1F1F] sm:text-sm">
+                    {book.condition}
+                  </div>
+                )}
+
                 {categoryName && (
                   <div className="rounded-full bg-[#F7F4EE] px-3 py-2 text-xs font-medium text-[#1F1F1F] sm:text-sm">
                     {categoryName}
@@ -249,37 +257,8 @@ export default async function BookDetailsPage({ params }: BookPageProps) {
                 ₱{Number(book.price).toFixed(2)}
               </p>
 
-              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              <div className="mt-5">
                 <div className="rounded-2xl bg-[#F7F4EE] p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-[#8A8175]">
-                    Condition
-                  </p>
-                  <p className="mt-2 text-sm font-semibold text-[#1F1F1F] sm:text-base">
-                    {book.condition || "Not specified"}
-                  </p>
-                </div>
-
-                <div className="rounded-2xl bg-[#F7F4EE] p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-[#8A8175]">
-                    Status
-                  </p>
-                  <p className="mt-2 text-sm font-semibold capitalize text-[#1F1F1F] sm:text-base">
-                    {book.status || "Available"}
-                  </p>
-                </div>
-
-                <div className="rounded-2xl bg-[#F7F4EE] p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-[#8A8175]">
-                    Stock
-                  </p>
-                  <p className="mt-2 text-sm font-semibold text-[#1F1F1F] sm:text-base">
-                    {book.stock_quantity ?? 1}
-                  </p>
-                </div>
-
-                
-
-                <div className="rounded-2xl bg-[#F7F4EE] p-4 sm:col-span-2">
                   <p className="text-xs font-semibold uppercase tracking-wide text-[#8A8175]">
                     Location
                   </p>
@@ -428,6 +407,8 @@ export default async function BookDetailsPage({ params }: BookPageProps) {
             </div>
           </div>
         </div>
+
+        <BookReviewsSection bookId={book.id} />
 
         <section className="mt-10 sm:mt-14">
           <div className="mb-6">
