@@ -446,7 +446,9 @@ function MarketplaceContent() {
           "id, title, author, price, condition, location, image_url, category_id, genre_id, book_type_id, stock_quantity, sold_count, status, created_at",
           { count: "exact" },
         )
+        // Only exclude explicitly hidden books
         .neq("status", "hidden");
+        //.or(`stock_quantity.gt.0,status.eq.pre-order`);   000000000000000000000000000000000000000000000000000
 
       if (search.trim()) {
         const keyword = search.trim();
@@ -482,20 +484,15 @@ function MarketplaceContent() {
       const { data, count, error } = await query.range(from, to);
 
       if (!error && data) {
-        const filteredBooks = (data as Book[]).filter((book) => {
-          const remaining = (book.stock_quantity ?? 0) - (book.sold_count ?? 0);
-
-          return remaining > 0 && (book.status || "").toLowerCase() !== "sold";
-        });
-
-        setBooks(filteredBooks);
-        setTotalBooksCount(filteredBooks.length);
+        // ✅ NO CLIENT-SIDE FILTERING - show all non-hidden books
+        // The UI will handle "Sold Out" display via isSoldOut() function
+        setBooks(data as Book[]);
+        setTotalBooksCount(count || 0);
 
         const totalPages = Math.max(
           1,
           Math.ceil((count || 0) / ITEMS_PER_PAGE),
         );
-
         if (currentPage > totalPages) {
           updateUrl({ page: totalPages });
         }
