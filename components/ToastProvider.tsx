@@ -70,7 +70,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     <ToastContext.Provider value={value}>
       {children}
 
-      <div className="pointer-events-none fixed inset-x-0 top-4 z-[9999] flex justify-center px-4 sm:top-6 sm:justify-end sm:px-6">
+      <div className="pointer-events-none fixed inset-x-0 top-[90px] z-[9999] flex justify-center px-4 sm:top-[80px] sm:justify-end sm:px-6">
         <div className="flex w-full max-w-md flex-col gap-3">
           {toasts.map((toast) => {
             const styles = {
