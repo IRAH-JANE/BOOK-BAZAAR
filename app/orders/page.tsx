@@ -61,6 +61,7 @@ type ExistingReview = {
   book_id: number;
   rating: number;
   review_text: string | null;
+  is_anonymous: boolean | null;
 };
 
 function SkeletonBox({ className = "" }: { className?: string }) {
@@ -158,6 +159,9 @@ export default function OrdersPage() {
   const [reviewRating, setReviewRating] = useState<Record<number, number>>({});
   const [reviewHover, setReviewHover] = useState<Record<number, number>>({});
   const [reviewText, setReviewText] = useState<Record<number, string>>({});
+  const [reviewAnonymous, setReviewAnonymous] = useState<
+    Record<number, boolean>
+  >({});
   const [reviewSavingBookId, setReviewSavingBookId] = useState<number | null>(
     null,
   );
@@ -243,7 +247,7 @@ export default function OrdersPage() {
 
     const { data, error } = await supabase
       .from("book_reviews")
-      .select("id, book_id, rating, review_text")
+      .select("id, book_id, rating, review_text, is_anonymous")
       .eq("user_id", userId)
       .in("book_id", receivedBookIds);
 
@@ -261,14 +265,17 @@ export default function OrdersPage() {
 
     const initialRatings: Record<number, number> = {};
     const initialTexts: Record<number, string> = {};
+    const initialAnonymous: Record<number, boolean> = {};
 
     (data || []).forEach((review) => {
       initialRatings[review.book_id] = review.rating || 0;
       initialTexts[review.book_id] = review.review_text || "";
+      initialAnonymous[review.book_id] = !!review.is_anonymous;
     });
 
     setReviewRating((prev) => ({ ...prev, ...initialRatings }));
     setReviewText((prev) => ({ ...prev, ...initialTexts }));
+    setReviewAnonymous((prev) => ({ ...prev, ...initialAnonymous }));
   };
 
   const fetchOrders = async () => {
@@ -436,11 +443,19 @@ export default function OrdersPage() {
         [bookId]: reviewMap[bookId]?.review_text || "",
       }));
     }
+
+    if (reviewAnonymous[bookId] === undefined) {
+      setReviewAnonymous((prev) => ({
+        ...prev,
+        [bookId]: !!reviewMap[bookId]?.is_anonymous,
+      }));
+    }
   };
 
   const submitReview = async (bookId: number) => {
     const rating = reviewRating[bookId] || 0;
     const text = reviewText[bookId] || "";
+    const isAnonymous = !!reviewAnonymous[bookId];
     const existing = reviewMap[bookId];
 
     if (!rating) {
@@ -474,6 +489,7 @@ export default function OrdersPage() {
           .update({
             rating,
             review_text: text.trim() || null,
+            is_anonymous: isAnonymous,
           })
           .eq("id", existing.id);
 
@@ -485,6 +501,7 @@ export default function OrdersPage() {
             ...existing,
             rating,
             review_text: text.trim() || null,
+            is_anonymous: isAnonymous,
           },
         }));
 
@@ -502,9 +519,10 @@ export default function OrdersPage() {
               user_id: user.id,
               rating,
               review_text: text.trim() || null,
+              is_anonymous: isAnonymous,
             },
           ])
-          .select("id, book_id, rating, review_text")
+          .select("id, book_id, rating, review_text, is_anonymous")
           .single();
 
         if (error) throw error;
@@ -563,6 +581,11 @@ export default function OrdersPage() {
       setReviewText((prev) => ({
         ...prev,
         [bookId]: "",
+      }));
+
+      setReviewAnonymous((prev) => ({
+        ...prev,
+        [bookId]: false,
       }));
 
       setOpenReviewBookId(null);
@@ -642,11 +665,13 @@ export default function OrdersPage() {
       ["pending", "confirmed", "packed"].includes(item.item_status || ""),
     ),
   ).length;
+
   const inTransitOrders = orders.filter((group) =>
     group.items.some((item) =>
       ["shipped", "out_for_delivery"].includes(item.item_status || ""),
     ),
   ).length;
+
   const completedOrders = orders.filter((group) =>
     group.items.every((item) => (item.item_status || "") === "received"),
   ).length;
@@ -851,83 +876,6 @@ export default function OrdersPage() {
 
                   {isOpen && (
                     <div className="mt-5 border-t border-[#EEE6DB] pt-5">
-                      <div className="mb-4 grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-                        <div className="rounded-2xl bg-[#FFFDF9] p-4 ring-1 ring-[#EDE7DE]">
-                          <p className="text-[11px] font-semibold uppercase tracking-wide text-[#8A8175]">
-                            Shipping Address
-                          </p>
-                          <div className="mt-3 flex items-start gap-2 text-sm leading-6 text-[#1F1F1F]">
-                            <MapPin
-                              size={16}
-                              className="mt-1 shrink-0 text-[#E67E22]"
-                            />
-                            <span>
-                              {group.order.shipping_address ||
-                                "No shipping address"}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="rounded-2xl bg-[#FFFDF9] p-4 ring-1 ring-[#EDE7DE]">
-                          <p className="text-[11px] font-semibold uppercase tracking-wide text-[#8A8175]">
-                            Payment & Delivery
-                          </p>
-                          <div className="mt-3 space-y-2 text-sm text-[#1F1F1F]">
-                            <div className="flex items-start gap-2">
-                              <CreditCard
-                                size={15}
-                                className="mt-0.5 shrink-0 text-[#E67E22]"
-                              />
-                              <span>{group.order.payment_method || "N/A"}</span>
-                            </div>
-                            <div className="flex items-start gap-2">
-                              <Truck
-                                size={15}
-                                className="mt-0.5 shrink-0 text-[#E67E22]"
-                              />
-                              <span>
-                                {group.order.delivery_method || "N/A"}
-                              </span>
-                            </div>
-                            <p className="text-[#6B6B6B]">
-                              Payment Status:{" "}
-                              {group.order.payment_status || "N/A"}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="mb-4 rounded-2xl bg-[#FCF7F0] p-4">
-                        <div className="flex items-center justify-between gap-4">
-                          <span className="text-sm font-medium text-[#6B6B6B]">
-                            Shipping Fee
-                          </span>
-                          <span className="font-semibold text-[#1F1F1F]">
-                            ₱{Number(group.order.shipping_fee || 0).toFixed(2)}
-                          </span>
-                        </div>
-
-                        <div className="mt-3 flex items-center justify-between gap-4 border-t border-[#EADFD0] pt-3">
-                          <span className="text-base font-semibold text-[#1F1F1F]">
-                            Order Total
-                          </span>
-                          <span className="text-xl font-bold text-[#E67E22]">
-                            ₱{Number(group.order.total_amount || 0).toFixed(2)}
-                          </span>
-                        </div>
-                      </div>
-
-                      {group.order.shipping_note && (
-                        <div className="mb-4 rounded-2xl bg-[#FFFDF9] p-4 ring-1 ring-[#EDE7DE]">
-                          <p className="text-[11px] font-semibold uppercase tracking-wide text-[#8A8175]">
-                            Shipping Note
-                          </p>
-                          <p className="mt-2 text-sm leading-6 text-[#1F1F1F]">
-                            {group.order.shipping_note}
-                          </p>
-                        </div>
-                      )}
-
                       <div className="space-y-3">
                         {group.items.map((item) => {
                           const book = getBook(item);
@@ -948,6 +896,9 @@ export default function OrdersPage() {
                             reviewText[bookId] ??
                             existingReview?.review_text ??
                             "";
+                          const currentAnonymous =
+                            reviewAnonymous[bookId] ??
+                            !!existingReview?.is_anonymous;
 
                           return (
                             <div
@@ -1027,39 +978,6 @@ export default function OrdersPage() {
                                 </div>
                               </div>
 
-                              {(item.courier_name ||
-                                item.tracking_number ||
-                                item.estimated_delivery_date) && (
-                                <div className="mt-4 grid gap-3 md:grid-cols-3">
-                                  <div className="rounded-xl bg-[#F7F4EE] px-3 py-3 text-sm text-[#1F1F1F]">
-                                    <p className="text-[11px] font-semibold uppercase tracking-wide text-[#8A8175]">
-                                      Courier
-                                    </p>
-                                    <p className="mt-1">
-                                      {item.courier_name || "N/A"}
-                                    </p>
-                                  </div>
-
-                                  <div className="rounded-xl bg-[#F7F4EE] px-3 py-3 text-sm text-[#1F1F1F]">
-                                    <p className="text-[11px] font-semibold uppercase tracking-wide text-[#8A8175]">
-                                      Tracking Number
-                                    </p>
-                                    <p className="mt-1 break-all">
-                                      {item.tracking_number || "N/A"}
-                                    </p>
-                                  </div>
-
-                                  <div className="rounded-xl bg-[#F7F4EE] px-3 py-3 text-sm text-[#1F1F1F]">
-                                    <p className="text-[11px] font-semibold uppercase tracking-wide text-[#8A8175]">
-                                      Estimated Delivery
-                                    </p>
-                                    <p className="mt-1">
-                                      {item.estimated_delivery_date || "N/A"}
-                                    </p>
-                                  </div>
-                                </div>
-                              )}
-
                               {currentStatus === "received" &&
                                 bookId > 0 &&
                                 isReviewOpen && (
@@ -1130,6 +1048,30 @@ export default function OrdersPage() {
                                       placeholder="Share your experience with this book..."
                                       className="mt-4 w-full rounded-2xl border border-[#DED8CF] bg-white px-4 py-3 text-sm text-[#5F5A52] outline-none transition focus:border-[#E67E22] focus:ring-1 focus:ring-[#E67E22]"
                                     />
+
+                                    <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-2xl border border-[#E5E0D8] bg-white px-4 py-3 text-sm text-[#5F5A52] transition hover:bg-[#F7F4EE]">
+                                      <input
+                                        type="checkbox"
+                                        checked={currentAnonymous}
+                                        onChange={(e) =>
+                                          setReviewAnonymous((prev) => ({
+                                            ...prev,
+                                            [bookId]: e.target.checked,
+                                          }))
+                                        }
+                                        className="mt-1 h-4 w-4 shrink-0 accent-[#E67E22]"
+                                      />
+
+                                      <span>
+                                        <span className="block font-semibold text-[#1F1F1F]">
+                                          Review anonymously
+                                        </span>
+                                        <span className="mt-1 block text-xs leading-5 text-[#6B6B6B]">
+                                          Your rating will still count, but your
+                                          name will show as Anonymous Buyer.
+                                        </span>
+                                      </span>
+                                    </label>
 
                                     <div className="mt-4 flex flex-wrap gap-3">
                                       <button

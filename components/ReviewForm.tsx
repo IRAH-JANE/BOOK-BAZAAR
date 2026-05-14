@@ -10,6 +10,7 @@ type ExistingReview = {
   id: number;
   rating: number;
   review_text: string | null;
+  is_anonymous?: boolean | null;
 } | null;
 
 type ReviewFormProps = {
@@ -32,23 +33,33 @@ export default function ReviewForm({
   const [reviewText, setReviewText] = useState(
     existingReview?.review_text || "",
   );
+  const [isAnonymous, setIsAnonymous] = useState<boolean>(
+    !!existingReview?.is_anonymous,
+  );
+
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
   const isEditing = !!existingReview;
 
+  /**
+   * Sold-out books may pass canReview=false.
+   * But users with an existing review should still be able to update/delete it.
+   */
+  const canEditReview = canReview || isEditing;
+
   const helperText = useMemo(() => {
-    if (canReview) {
+    if (canEditReview) {
       return isEditing
         ? "You can update your review anytime."
         : "Only buyers who already received the item can review this book.";
     }
 
     return "You can review this book only after you buy it and mark the item as received.";
-  }, [canReview, isEditing]);
+  }, [canEditReview, isEditing]);
 
   const handleSubmit = async () => {
-    if (!canReview) {
+    if (!canEditReview) {
       showToast({
         title: "Review not allowed",
         message: "Only eligible buyers can review this book.",
@@ -88,6 +99,7 @@ export default function ReviewForm({
           .update({
             rating,
             review_text: reviewText.trim() || null,
+            is_anonymous: isAnonymous,
           })
           .eq("id", existingReview.id);
 
@@ -105,6 +117,7 @@ export default function ReviewForm({
             user_id: user.id,
             rating,
             review_text: reviewText.trim() || null,
+            is_anonymous: isAnonymous,
           },
         ]);
 
@@ -177,7 +190,7 @@ export default function ReviewForm({
             <button
               key={value}
               type="button"
-              disabled={!canReview || saving}
+              disabled={!canEditReview || saving}
               onMouseEnter={() => setHovered(value)}
               onMouseLeave={() => setHovered(0)}
               onClick={() => setRating(value)}
@@ -197,17 +210,37 @@ export default function ReviewForm({
       <textarea
         value={reviewText}
         onChange={(e) => setReviewText(e.target.value)}
-        disabled={!canReview || saving}
+        disabled={!canEditReview || saving}
         rows={4}
         placeholder="Share your experience with this book..."
         className="mt-4 w-full rounded-2xl border border-[#DED8CF] bg-white px-4 py-3 text-sm text-[#5F5A52] outline-none transition focus:border-[#E67E22] focus:ring-1 focus:ring-[#E67E22] disabled:bg-[#F7F4EE]"
       />
 
+      <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-2xl border border-[#E5E0D8] bg-[#FFFDF9] px-4 py-3 text-sm text-[#5F5A52] transition hover:bg-[#F7F4EE]">
+        <input
+          type="checkbox"
+          checked={isAnonymous}
+          disabled={!canEditReview || saving}
+          onChange={(e) => setIsAnonymous(e.target.checked)}
+          className="mt-1 h-4 w-4 shrink-0 accent-[#E67E22] disabled:cursor-not-allowed"
+        />
+
+        <span>
+          <span className="block font-semibold text-[#1F1F1F]">
+            Review anonymously
+          </span>
+          <span className="mt-1 block text-xs leading-5 text-[#6B6B6B]">
+            Your rating will still count, but your name will show as Anonymous
+            Buyer.
+          </span>
+        </span>
+      </label>
+
       <div className="mt-4 flex flex-wrap gap-3">
         <button
           type="button"
           onClick={handleSubmit}
-          disabled={!canReview || saving}
+          disabled={!canEditReview || saving}
           className="inline-flex items-center justify-center rounded-full bg-[#E67E22] px-5 py-3 font-semibold text-white transition hover:bg-[#cf6f1c] disabled:opacity-50"
         >
           {saving ? "Saving..." : isEditing ? "Update Review" : "Submit Review"}

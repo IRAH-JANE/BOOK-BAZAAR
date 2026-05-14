@@ -14,6 +14,10 @@ import {
   Hash,
   Shapes,
   Library,
+  Store,
+  UserRound,
+  ExternalLink,
+  ShoppingBag,
 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -46,6 +50,7 @@ type LookupRelation =
 
 type BookData = {
   id: number;
+  seller_id: string | null;
   category_id: number | null;
   genre_id: number | null;
   book_type_id: number | null;
@@ -66,6 +71,19 @@ type BookData = {
   book_types: LookupRelation;
 };
 
+type SellerProfile = {
+  id: string;
+  full_name: string | null;
+  public_display_name: string | null;
+  shop_name: string | null;
+  shop_slug: string | null;
+  shop_logo: string | null;
+  city: string | null;
+  province: string | null;
+  seller_rating: number | null;
+  completed_orders: number | null;
+};
+
 type BookReviewStat = {
   rating: number;
 };
@@ -74,6 +92,7 @@ function extractRelationName(relation: LookupRelation) {
   if (Array.isArray(relation)) {
     return relation[0]?.name || null;
   }
+
   return relation?.name || null;
 }
 
@@ -91,6 +110,7 @@ export default async function BookDetailsPage({ params }: BookPageProps) {
     .select(
       `
       id,
+      seller_id,
       category_id,
       genre_id,
       book_type_id,
@@ -125,6 +145,98 @@ export default async function BookDetailsPage({ params }: BookPageProps) {
   }
 
   const book = data as BookData;
+
+  let seller: SellerProfile | null = null;
+
+  if (book.seller_id) {
+    const { data: sellerData, error: sellerError } = await supabase
+      .from("profiles")
+      .select(
+        "id, full_name, public_display_name, shop_name, shop_slug, shop_logo, city, province, seller_rating, completed_orders",
+      )
+      .eq("id", book.seller_id)
+      .maybeSingle();
+
+    if (!sellerError && sellerData) {
+      seller = sellerData as SellerProfile;
+    }
+  }
+
+  const sellerDisplayName =
+    seller?.shop_name ||
+    seller?.public_display_name ||
+    seller?.full_name ||
+    "BookBazaar Seller";
+
+  const sellerLocation =
+    seller?.city && seller?.province
+      ? `${seller.city}, ${seller.province}`
+      : seller?.city || seller?.province || "Seller location not provided";
+
+  let sellerAverageRating = 0;
+  let sellerReviewCount = 0;
+
+  if (book.seller_id) {
+    const { data: sellerBooksData } = await supabase
+      .from("books")
+      .select("id")
+      .eq("seller_id", book.seller_id);
+
+    const sellerBookIds =
+      sellerBooksData?.map((sellerBook) => sellerBook.id).filter(Boolean) || [];
+
+    if (sellerBookIds.length > 0) {
+      const { data: sellerReviewsData } = await supabase
+        .from("book_reviews")
+        .select("rating")
+        .in("book_id", sellerBookIds);
+
+      const sellerReviews = sellerReviewsData || [];
+
+      sellerReviewCount = sellerReviews.length;
+
+      sellerAverageRating =
+        sellerReviewCount > 0
+          ? sellerReviews.reduce(
+              (sum, review) => sum + Number(review.rating || 0),
+              0,
+            ) / sellerReviewCount
+          : 0;
+    }
+  }
+
+  const sellerRating =
+    sellerReviewCount > 0
+      ? `${sellerAverageRating.toFixed(1)} seller rating (${sellerReviewCount} review${
+          sellerReviewCount === 1 ? "" : "s"
+        })`
+      : "No seller ratings yet";
+
+  let sellerCompletedOrderCount = 0;
+
+  if (book.seller_id) {
+    const { count: completedCount, error: completedCountError } = await supabase
+      .from("order_items")
+      .select("id", { count: "exact", head: true })
+      .eq("seller_id", book.seller_id)
+      .in("item_status", ["received", "delivered"]);
+
+    if (completedCountError) {
+      console.error(
+        "Failed to count seller completed orders:",
+        completedCountError,
+      );
+    }
+
+    sellerCompletedOrderCount = completedCount || 0;
+  }
+
+  const sellerCompletedOrders =
+    sellerCompletedOrderCount > 0
+      ? `${sellerCompletedOrderCount} completed order${
+          sellerCompletedOrderCount === 1 ? "" : "s"
+        }`
+      : "No completed orders yet";
 
   const categoryName = extractRelationName(book.categories);
   const genreName = extractRelationName(book.genres);
@@ -430,6 +542,92 @@ export default async function BookDetailsPage({ params }: BookPageProps) {
             </div>
           </div>
         </div>
+
+        {seller && (
+          <section className="mt-10 sm:mt-14">
+            <div className="mb-6">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#E67E22] sm:text-sm">
+                Seller Information
+              </p>
+              <h2 className="mt-2 text-2xl font-bold text-[#1F1F1F] sm:text-3xl">
+                Listed By
+              </h2>
+              <p className="mt-2 text-sm text-[#6B6B6B] sm:text-base">
+                Visit this seller&apos;s shop to see more books from them.
+              </p>
+            </div>
+
+            <div className="rounded-[20px] border border-[#E5E0D8] bg-white p-5 shadow-sm sm:rounded-[24px] sm:p-6">
+              <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex min-w-0 items-center gap-4">
+                  <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-[#FFF3E7] text-[#E67E22]">
+                    {seller.shop_logo ? (
+                      <img
+                        src={seller.shop_logo}
+                        alt={sellerDisplayName}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <Store size={28} />
+                    )}
+                  </div>
+
+                  <div className="min-w-0">
+                    {seller.shop_slug ? (
+                      <Link
+                        href={`/shop/${seller.shop_slug}`}
+                        className="inline-flex max-w-full items-center gap-2 text-xl font-bold text-[#1F1F1F] transition hover:text-[#E67E22] sm:text-2xl"
+                      >
+                        <span className="truncate">{sellerDisplayName}</span>
+                        <ExternalLink size={17} className="shrink-0" />
+                      </Link>
+                    ) : (
+                      <h3 className="truncate text-xl font-bold text-[#1F1F1F] sm:text-2xl">
+                        {sellerDisplayName}
+                      </h3>
+                    )}
+
+                    <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-[#8A8175]">
+                      <span className="inline-flex items-center gap-1.5">
+                        <UserRound size={14} />
+                        {seller.full_name || "Seller"}
+                      </span>
+
+                      <span className="inline-flex items-center gap-1.5">
+                        <MapPin size={14} />
+                        {sellerLocation}
+                      </span>
+                    </div>
+
+                    <div className="mt-3 flex flex-wrap gap-2 text-xs sm:text-sm">
+                      <span className="rounded-full bg-[#FFF3E7] px-3 py-1.5 font-semibold text-[#C96A16]">
+                        {sellerRating}
+                      </span>
+
+                      <span className="rounded-full bg-[#F7F4EE] px-3 py-1.5 font-semibold text-[#6B6B6B]">
+                        {sellerCompletedOrders}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {seller.shop_slug ? (
+                  <Link
+                    href={`/shop/${seller.shop_slug}`}
+                    className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-[#E67E22] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#cf6f1c]"
+                  >
+                    <ShoppingBag size={16} />
+                    Visit Shop
+                  </Link>
+                ) : (
+                  <span className="inline-flex shrink-0 items-center justify-center rounded-full border border-[#D9D1C6] bg-[#F7F4EE] px-5 py-3 text-sm font-semibold text-[#8A8175]">
+                    Shop not set
+                  </span>
+                )}
+              </div>
+            </div>
+          </section>
+        )}
 
         <BookReviewsSection bookId={book.id} />
 

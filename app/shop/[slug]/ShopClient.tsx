@@ -31,6 +31,8 @@ type Profile = {
   full_name?: string | null;
   city?: string | null;
   province?: string | null;
+  seller_rating?: number | null;
+  seller_review_count?: number | null;
 };
 
 export default function ShopClient({
@@ -46,8 +48,6 @@ export default function ShopClient({
 
   const supabase = createSupabaseBrowser();
   const { showToast } = useToast();
-
-  const [followingStatusChecked, setFollowingStatusChecked] = useState(false);
 
   const [wishlistBookIds, setWishlistBookIds] = useState<number[]>([]);
   const [wishlistLoadingIds, setWishlistLoadingIds] = useState<number[]>([]);
@@ -120,7 +120,14 @@ export default function ShopClient({
   const locationText =
     profile.city && profile.province
       ? `${profile.city}, ${profile.province}`
-      : "Davao City, Philippines";
+      : profile.city || profile.province || "Davao City, Philippines";
+
+  const sellerRatingText =
+    profile.seller_review_count && profile.seller_review_count > 0
+      ? `${Number(profile.seller_rating || 0).toFixed(1)} rating (${
+          profile.seller_review_count
+        } review${profile.seller_review_count === 1 ? "" : "s"})`
+      : "No ratings yet";
 
   const fallbackCover =
     "https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=1200&auto=format&fit=crop";
@@ -254,6 +261,10 @@ export default function ShopClient({
       }
     }
 
+    setCartBookIds((prev) =>
+      prev.includes(bookId) ? prev : [...prev, bookId],
+    );
+
     showToast({
       title: "Added to cart",
       message: "Book added to cart.",
@@ -263,7 +274,6 @@ export default function ShopClient({
 
   return (
     <div className="min-h-screen bg-[#F7F5F1]">
-      {/* HEADER */}
       <section className="border-b border-[#E5E0D8] bg-[#FFF8F0]">
         <div className="mx-auto max-w-7xl px-6 py-8">
           <div className="rounded-[26px] border border-[#E5E0D8] bg-white p-6 shadow-sm">
@@ -296,7 +306,7 @@ export default function ShopClient({
 
                   <div className="mt-2 flex items-center gap-1.5 text-sm text-[#7A7268]">
                     <Star className="h-4 w-4 fill-[#EAB308] text-[#EAB308]" />
-                    <span>No ratings yet</span>
+                    <span>{sellerRatingText}</span>
                   </div>
                 </div>
               </div>
@@ -326,7 +336,6 @@ export default function ShopClient({
         </div>
       </section>
 
-      {/* SORT / FILTER */}
       <section className="mx-auto max-w-7xl px-6 py-7">
         <div className="mb-7 rounded-[24px] border border-[#E5E0D8] bg-white p-5 shadow-sm">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
@@ -377,7 +386,6 @@ export default function ShopClient({
           </div>
         </div>
 
-        {/* EMPTY STATE */}
         {visibleBooks.length === 0 ? (
           <div className="flex min-h-[320px] flex-col items-center justify-center rounded-[24px] border border-dashed border-[#DED5C8] bg-[#FFFCF8] px-6 text-center">
             <SearchX className="mb-3 h-9 w-9 text-[#A79E92]" />
@@ -387,7 +395,7 @@ export default function ShopClient({
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-6 pb-6 sm:grid-cols-2 md:grid-cols-3 md:grid-cols-4 md:grid-cols-5">
+          <div className="grid grid-cols-1 gap-6 pb-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
             {visibleBooks.map((book: Book) => (
               <Link
                 key={book.id}
@@ -403,7 +411,8 @@ export default function ShopClient({
                         e.stopPropagation();
                         handleToggleWishlist(Number(book.id));
                       }}
-                      className="absolute right-3 top-3 z-20 rounded-full bg-white/95 p-2 shadow-sm backdrop-blur hover:scale-105"
+                      disabled={wishlistLoadingIds.includes(Number(book.id))}
+                      className="absolute right-3 top-3 z-20 rounded-full bg-white/95 p-2 shadow-sm backdrop-blur transition hover:scale-105 disabled:opacity-60"
                     >
                       <Heart
                         className={`h-4 w-4 transition ${
@@ -420,8 +429,7 @@ export default function ShopClient({
                       className="h-64 w-full object-cover transition duration-500 group-hover:scale-[1.04]"
                     />
 
-                    {/* desktop hover add to cart */}
-                    <div className="absolute inset-x-3 bottom-3 hidden translate-y-3 opacity-0 transition duration-300 md:block group-hover:translate-y-0 group-hover:opacity-100 z-10">
+                    <div className="absolute inset-x-3 bottom-3 z-10 hidden translate-y-3 opacity-0 transition duration-300 group-hover:translate-y-0 group-hover:opacity-100 md:block">
                       <button
                         type="button"
                         onClick={(e) => {
@@ -431,7 +439,9 @@ export default function ShopClient({
                         }}
                         className="w-full rounded-full bg-white/90 px-4 py-2 text-xs font-semibold text-[#1F1F1F] shadow"
                       >
-                        Add to Cart
+                        {cartBookIds.includes(Number(book.id))
+                          ? "Add Another"
+                          : "Add to Cart"}
                       </button>
                     </div>
 
@@ -469,7 +479,6 @@ export default function ShopClient({
                       </p>
                     </div>
 
-                    {/* mobile add to cart - same pattern as marketplace */}
                     <button
                       type="button"
                       onClick={(e) => {
@@ -479,7 +488,9 @@ export default function ShopClient({
                       }}
                       className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#E67E22] px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-[#cf6f1c] md:hidden"
                     >
-                      Add to Cart
+                      {cartBookIds.includes(Number(book.id))
+                        ? "Add Another"
+                        : "Add to Cart"}
                     </button>
                   </div>
                 </article>

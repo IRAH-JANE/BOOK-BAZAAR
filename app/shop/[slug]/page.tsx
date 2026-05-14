@@ -27,5 +27,41 @@ export default async function ShopPage({
     console.error("Error fetching books:", booksError);
   }
 
-  return <ShopClient profile={seller} books={books || []} />;
+  const safeBooks = books || [];
+  const bookIds = safeBooks.map((book) => book.id).filter(Boolean);
+
+  let sellerAverageRating = 0;
+  let sellerReviewCount = 0;
+
+  if (bookIds.length > 0) {
+    const { data: reviewsData, error: reviewsError } = await supabase
+      .from("book_reviews")
+      .select("rating")
+      .in("book_id", bookIds);
+
+    if (reviewsError) {
+      console.error("Error fetching seller reviews:", reviewsError);
+    }
+
+    const reviews = reviewsData || [];
+
+    sellerReviewCount = reviews.length;
+
+    sellerAverageRating =
+      sellerReviewCount > 0
+        ? reviews.reduce((sum, review) => sum + Number(review.rating || 0), 0) /
+          sellerReviewCount
+        : 0;
+  }
+
+  return (
+    <ShopClient
+      profile={{
+        ...seller,
+        seller_rating: sellerAverageRating,
+        seller_review_count: sellerReviewCount,
+      }}
+      books={safeBooks}
+    />
+  );
 }

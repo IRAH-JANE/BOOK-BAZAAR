@@ -10,6 +10,7 @@ type ReviewRow = {
   id: number;
   rating: number;
   review_text: string | null;
+  is_anonymous: boolean | null;
   created_at: string;
   user_id: string;
   profiles:
@@ -24,24 +25,19 @@ type ReviewRow = {
     | null;
 };
 
-function getProfileName(
-  profile:
-    | {
-        full_name?: string | null;
-        email?: string | null;
-      }
-    | {
-        full_name?: string | null;
-        email?: string | null;
-      }[]
-    | null,
-) {
-  if (Array.isArray(profile)) {
-    const first = profile[0];
-    return first?.full_name || first?.email || "Anonymous Buyer";
+function getProfileName(review: ReviewRow) {
+  if (review.is_anonymous) {
+    return "Anonymous Buyer";
   }
 
-  return profile?.full_name || profile?.email || "Anonymous Buyer";
+  const profile = review.profiles;
+
+  if (Array.isArray(profile)) {
+    const first = profile[0];
+    return first?.full_name || first?.email || "BookBazaar Buyer";
+  }
+
+  return profile?.full_name || profile?.email || "BookBazaar Buyer";
 }
 
 function renderStars(rating: number) {
@@ -67,13 +63,14 @@ export default async function BookReviewsSection({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { data: reviewsData } = await supabase
+  const { data: reviewsData, error: reviewsError } = await supabase
     .from("book_reviews")
     .select(
       `
       id,
       rating,
       review_text,
+      is_anonymous,
       created_at,
       user_id,
       profiles (
@@ -85,9 +82,14 @@ export default async function BookReviewsSection({
     .eq("book_id", bookId)
     .order("created_at", { ascending: false });
 
+  if (reviewsError) {
+    console.error("Failed to load book reviews:", reviewsError);
+  }
+
   const reviews = (reviewsData as ReviewRow[]) || [];
 
   const totalReviews = reviews.length;
+
   const averageRating =
     totalReviews > 0
       ? reviews.reduce((sum, item) => sum + Number(item.rating || 0), 0) /
@@ -100,7 +102,7 @@ export default async function BookReviewsSection({
   if (user) {
     ownReview = reviews.find((item) => item.user_id === user.id) || null;
 
-    const { data: eligibleOrderItem } = await supabase
+    const { data: eligibleOrderItem, error: eligibleError } = await supabase
       .from("order_items")
       .select(
         `
@@ -118,6 +120,10 @@ export default async function BookReviewsSection({
       .limit(1)
       .maybeSingle();
 
+    if (eligibleError) {
+      console.error("Failed to check review eligibility:", eligibleError);
+    }
+
     canReview = !!eligibleOrderItem;
   }
 
@@ -127,9 +133,11 @@ export default async function BookReviewsSection({
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#E67E22] sm:text-sm">
           Buyer Feedback
         </p>
+
         <h2 className="mt-2 text-2xl font-bold text-[#1F1F1F] sm:text-3xl">
           Ratings & Reviews
         </h2>
+
         <p className="mt-2 text-sm text-[#6B6B6B] sm:text-base">
           Reviews from buyers who already received their order.
         </p>
@@ -141,6 +149,7 @@ export default async function BookReviewsSection({
             <span className="text-4xl font-bold text-[#1F1F1F]">
               {averageRating.toFixed(1)}
             </span>
+
             <span className="pb-1 text-sm text-[#8A8175]">
               / 5 average rating
             </span>
@@ -164,6 +173,7 @@ export default async function BookReviewsSection({
                       id: ownReview.id,
                       rating: ownReview.rating,
                       review_text: ownReview.review_text,
+                      is_anonymous: ownReview.is_anonymous,
                     }
                   : null
               }
@@ -185,8 +195,9 @@ export default async function BookReviewsSection({
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div>
                     <p className="text-base font-semibold text-[#1F1F1F]">
-                      {getProfileName(review.profiles)}
+                      {getProfileName(review)}
                     </p>
+
                     <p className="mt-1 text-sm text-[#8A8175]">
                       {new Date(review.created_at).toLocaleDateString()}
                     </p>
